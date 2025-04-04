@@ -70,11 +70,18 @@ def read_chroma(filename, mod_time = 1.25, max_val = None):
         Chromatogram full filename.
     mod_time : optional
         Modulation time
+    max_val : int, optional
+        The maximum number of mass and intensity values to load. If not specified, all values are loaded.
     -------
     Returns
     -------
-    A: tuple
-        Return the created chromato object wrapping (chromato TIC), (time_rn), (spectra and mass range min and max).
+    tuple
+        A tuple containing:
+        - A numpy array representing the chromatogram (Chromato TIC).
+        - A numpy array representing the acquisition times (time_rn).
+        - A tuple containing additional information:
+            - The dimensions of the chromatogram (l1, l2).
+            - The mass values (`mv`), intensity values (`iv`), and the minimum and maximum mass range (`range_min`, `range_max`).
     -------
     Examples
     --------
@@ -82,6 +89,7 @@ def read_chroma(filename, mod_time = 1.25, max_val = None):
     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
     >>> chromato,time_rn,spectra_obj = chromato_obj
     """
+
     ds = nc.Dataset(filename)
     chromato = ds['total_intensity']
     Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
@@ -147,7 +155,8 @@ def read_chromato_cube(filename, mod_time=1.25, pre_process=True):
     sigma = estimate_sigma(chromato, channel_axis=None)
     return (chromato,time_rn,spectra_obj), chromato_cube, sigma
 
-def read_chromato_and_chromato_cube(filename, mod_time=1.25, pre_process=True):
+
+def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
     r"""Same as read_chromato_cube but do not returns full spectra_obj (only range_min and range_max) because of RAM issue.
 
     Parameters
@@ -162,7 +171,7 @@ def read_chromato_and_chromato_cube(filename, mod_time=1.25, pre_process=True):
     Returns
     -------
     chromato:
-        hromato TIC
+        chromato TIC
     time_rn : 
         Time range
     chromato_cube:
