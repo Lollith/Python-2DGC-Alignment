@@ -291,7 +291,7 @@ def clustering(coordinates_all_mass, chromato):
 
 def blob_log_kernel(i, m_chromato, min_sigma, max_sigma, seuil, threshold_abs, num_sigma):
     #blobs_log = blob_log(m_chromato, min_sigma = min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=seuil, threshold=threshold_abs)
-    blobs_log = blob_log(m_chromato, min_sigma = min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=threshold_abs)
+    blobs_log = skimage.feature.blob_log(m_chromato, min_sigma = min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=threshold_abs)
 
     blobs_log[:, 2] = blobs_log[:, 2] *  math.sqrt(2)
     blobs_log = blobs_log.astype(int)
@@ -345,10 +345,56 @@ def LoG_mass_per_mass_multiprocessing(chromato_cube, seuil, num_sigma=10, min_si
 #     return np.array(coordinates_all_mass)
 
 def LoG(chromato_obj, mod_time, seuil, num_sigma=10, threshold_abs=0, mode="tic", chromato_cube=None, cluster=False, min_sigma=1, max_sigma=30, unique=True):
+    """
+    Detects blobs in a chromatogram using the Laplacian of Gaussian (LoG) method.
+    The function compute their radius, using a multi-scale approach to capture structures at different resolutions.
+    
+    Parameters:
+    ------------
+    chromato_obj : tuple
+        A tuple containing the chromatographic matrix and the corresponding time values.
+    mod_time : float
+        Modulation time used for the analysis.
+    seuil : float
+        Relative threshold used for blob detection.
+    num_sigma : int, optional (default=10)
+        Number of scales used for blob detection.
+    threshold_abs : float, optional (default=0)
+        Absolute threshold for blob detection.
+    mode : str, optional (default="tic")
+        Analysis mode. Can be "tic" (total ion current) or "mass_per_mass".
+        - If "mass_per_mass" is selected, blobs are detected separately for each mass spectrum in `chromato_cube` using multiprocessing for efficiency.
+    chromato_cube : ndarray, optional (default=None)
+        Chromatographic cube containing individual masses if "mass_per_mass" mode is used.
+    cluster : bool, optional (default=False)
+        Indicates whether clustering should be applied to the detected blobs to group nearby detections.
+    min_sigma : int, optional (default=1)
+        Minimum sigma value used for blob detection.
+    max_sigma : int, optional (default=30)
+        Maximum sigma value used for blob detection.
+    unique : bool, optional (default=True)
+        Indicates whether duplicate blobs should be removed.
+    
+    Returns: 
+    ---------
+    tuple (ndarray, ndarray)
+        - An array containing the coordinates of the detected blobs (without the radius).
+        - An array containing the radius values of the detected blobs.
+          * In "tic" mode, these radii correspond to detected blobs in the total ion current.
+          * In "mass_per_mass" mode, the radii correspond to blobs detected separately for each mass spectrum in `chromato_cube`.
+        - If "mass_per_mass" mode is used, multiprocessing is applied to improve performance when processing multiple mass spectra simultaneously.
+    
+    Notes:
+    ------
+        - In "3D" mode, the function processes a 3D chromatographic cube, with the blobs being detected across the entire 3D data set.
+        - In "mass_per_mass" mode, the function processes each individual mass spectrum separately in the chromatographic cube, which is useful for analyzing mass spectral data over time.
+        - If `cluster=True`, the function applies clustering to group nearby blobs together, which can be useful for merging multiple detections of the same feature.
+    """
+    
     chromato, time_rn = chromato_obj
     if (mode == "3D"):
         #blobs_log = blob_log(chromato_cube, min_sigma=min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=seuil, threshold=.1)
-        blobs_log = blob_log(chromato_cube, min_sigma=min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=threshold_abs)
+        blobs_log = skimage.feature.blob_log(chromato_cube, min_sigma=min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=threshold_abs)
 
         #delete mass dimension ([[2 720 128], [24 720 128]] -> [[720 128], [720 128]])
         blobs_log = np.delete(blobs_log, 0, -1)
@@ -400,7 +446,7 @@ def LoG(chromato_obj, mod_time, seuil, num_sigma=10, threshold_abs=0, mode="tic"
     else:
         max_peak_val = np.max(chromato)
         #blobs_log = blob_log(chromato, min_sigma = 10, max_sigma=30, num_sigma=num_sigma, threshold_rel=seuil, threshold=.1)
-        blobs_log = blob_log(chromato, min_sigma = min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=threshold_abs)
+        blobs_log = skimage.feature.blob_log(chromato, min_sigma = min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=threshold_abs)
 
         # Compute radii in the 3rd column.
         blobs_log[:, 2] = blobs_log[:, 2] *  math.sqrt(2)
@@ -412,7 +458,7 @@ def LoG(chromato_obj, mod_time, seuil, num_sigma=10, threshold_abs=0, mode="tic"
 
 def blob_dog_kernel(i, m_chromato, min_sigma, max_sigma, seuil, threshold_abs, sigma_ratio):
     #blobs_dog = blob_dog(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=seuil, threshold=threshold_abs, sigma_ratio=sigma_ratio)
-    blobs_dog = blob_dog(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=threshold_abs, sigma_ratio=sigma_ratio)
+    blobs_dog = skimage.feature.blob_dog(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=threshold_abs, sigma_ratio=sigma_ratio)
 
     blobs_dog[:, 2] = blobs_dog[:, 2] *  math.sqrt(2)
     blobs_dog = blobs_dog.astype(int)
@@ -468,12 +514,54 @@ def DoG_mass_per_mass_multiprocessing(chromato_cube, seuil, sigma_ratio=1.6, min
 #     return np.array(coordinates_all_mass)
 
 def DoG(chromato_obj, mod_time, seuil, sigma_ratio=1.6, threshold_abs=0, mode="tic", chromato_cube=None, cluster=False, min_sigma=1, max_sigma=30, unique=True):
+    """
+    Detects blobs in a 2D or 3D chromatogram using the Difference of Gaussians (DoG) method.
+    
+    Parameters:
+    ------------
+    chromato_obj : tuple
+        A tuple containing the chromatographic matrix and the corresponding time values.
+    mod_time : float
+        Modulation time used for the analysis.
+    seuil : float
+        Relative threshold used for blob detection.
+    sigma_ratio : float, optional (default=1.6)
+        The ratio between the standard deviations of the two Gaussian functions used in the DoG filter.
+    threshold_abs : float, optional (default=0)
+        Absolute threshold for blob detection.
+    mode : str, optional (default="tic")
+        Analysis mode. Can be:
+        - "tic" (total ion current): Process the entire chromatogram for blob detection.
+        - "mass_per_mass": Process each mass spectrum separately.
+        - "3D": Process a 3D chromatographic cube for blob detection.
+    chromato_cube : ndarray, optional (default=None)
+        Chromatographic cube containing individual masses if "mass_per_mass" or "3D" mode is used.
+    cluster : bool, optional (default=False)
+        Indicates whether clustering should be applied to the detected blobs to group nearby detections.
+    min_sigma : int, optional (default=1)
+        Minimum sigma value used for blob detection.
+    max_sigma : int, optional (default=30)
+        Maximum sigma value used for blob detection.
+    unique : bool, optional (default=True)
+        Indicates whether duplicate blobs should be removed.
+    
+    Returns: 
+    ---------
+    tuple (ndarray, ndarray)
+        - An array containing the coordinates of the detected blobs (without the radius).
+        - An array containing the radius values of the detected blobs.
+          * In "tic" mode, these radii correspond to blobs detected in the total ion current.
+          * In "mass_per_mass" mode, the radii correspond to blobs detected separately for each mass spectrum in `chromato_cube`.
+          * In "3D" mode, blobs are detected in a 3D chromatographic cube and the radii are adjusted accordingly.
+        - If "mass_per_mass" or "3D" mode is used, multiprocessing is applied to improve performance when processing multiple mass spectra or cube slices simultaneously.
+    """
+
     chromato, time_rn = chromato_obj
     # Compute DoG on the entire chromato cube
     if (mode == "3D"):
         #delete mass dimension ([[2 720 128], [24 720 128]] -> [[720 128], [720 128]])
         #blobs_dog = blob_dog(chromato_cube, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=seuil, threshold=.1, sigma_ratio=sigma_ratio)
-        blobs_dog = blob_dog(chromato_cube, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=threshold_abs, sigma_ratio=sigma_ratio)
+        blobs_dog = skimage.feature.blob_dog(chromato_cube, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=threshold_abs, sigma_ratio=sigma_ratio)
         
         blobs_dog = np.delete(blobs_dog, 0, -1)
         blobs_dog[:, 2] = blobs_dog[:, 2] *  math.sqrt(2)
@@ -501,14 +589,13 @@ def DoG(chromato_obj, mod_time, seuil, sigma_ratio=1.6, threshold_abs=0, mode="t
             coordinates_all_mass = clustering(coordinates_all_mass, chromato)
         return np.delete(coordinates_all_mass, 2 ,-1), coordinates_all_mass[:,2]
 
-
     else:
         max_peak_val = np.max(chromato)
         #blobs_dog = blob_dog(chromato, min_sigma = 10, max_sigma=30, threshold_rel=seuil,threshold=.1, sigma_ratio=sigma_ratio)
         
         '''PENSER A MODIFIER MIN SIGMA ET MAX SIGMA'''
         
-        blobs_dog = blob_dog(chromato, min_sigma = min_sigma, max_sigma=max_sigma, threshold_rel=threshold_abs, sigma_ratio=sigma_ratio)
+        blobs_dog = skimage.feature.blob_dog(chromato, min_sigma = min_sigma, max_sigma=max_sigma, threshold_rel=threshold_abs, sigma_ratio=sigma_ratio)
 
         # Compute radii in the 3rd column.
         blobs_dog[:, 2] = blobs_dog[:, 2] *  math.sqrt(2)
@@ -570,6 +657,42 @@ def DoH_mass_per_mass_multiprocessing(chromato_cube, seuil, num_sigma=10, min_si
 #     return np.array(coordinates_all_mass)
 
 def DoH(chromato_obj, mod_time, seuil, num_sigma=10, threshold_abs=0, mode="tic", chromato_cube=None, cluster=False, min_sigma=10, max_sigma=30, unique=True):
+    """
+    Detects blobs in a 2D chromatogram using the Determinant of Hessian (DoH) method.
+    
+    Parameters:
+    ------------
+    chromato_obj : tuple
+        A tuple containing the chromatographic matrix and the corresponding time values.
+    mod_time : float
+        Modulation time used for the analysis.
+    seuil : float
+        Relative threshold used for blob detection.
+    num_sigma : int, optional (default=10)
+        Number of scales used for blob detection.
+    threshold_abs : float, optional (default=0)
+        Absolute threshold for blob detection.
+    mode : str, optional (default="tic")
+        Analysis mode. Can be "tic" (total ion current) or "mass_per_mass".
+    chromato_cube : ndarray, optional (default=None)
+        Chromatographic cube containing individual masses if "mass_per_mass" mode is used.
+    cluster : bool, optional (default=False)
+        Indicates whether clustering should be applied to the detected blobs.
+    min_sigma : int, optional (default=10)
+        Minimum sigma value used for blob detection.
+    max_sigma : int, optional (default=30)
+        Maximum sigma value used for blob detection.
+    unique : bool, optional (default=True)
+        Indicates whether duplicate blobs should be removed.
+    
+    Returns:
+    ---------
+    tuple (ndarray, ndarray)
+        - An array containing the coordinates of the detected blobs (without the radius).
+        - An array containing the radius values of the detected blobs.
+        Uses multiprocessing for "mass_per_mass" mode to improve performance when processing multiple mass spectra.
+    """
+
     chromato, time_rn = chromato_obj
 
     if (mode == "mass_per_mass"):
@@ -612,7 +735,7 @@ def DoH(chromato_obj, mod_time, seuil, num_sigma=10, threshold_abs=0, mode="tic"
 
     else:
         #blobs_doh = blob_doh(chromato, min_sigma = 10, max_sigma=30, num_sigma=num_sigma, threshold_rel=seuil, threshold=.01)
-        blobs_doh = blob_doh(chromato, min_sigma = 10, max_sigma=30, num_sigma=num_sigma, threshold_rel=threshold_abs)
+        blobs_doh = skimage.feature.blob_doh(chromato, min_sigma = 10, max_sigma=30, num_sigma=num_sigma, threshold_rel=threshold_abs)
 
         blobs_doh = blobs_doh.astype(int)
         blobs_doh = np.array(blobs_doh)
@@ -643,12 +766,10 @@ def pers_hom_mass_per_mass_multiprocessing(chromato_cube, seuil, threshold_abs=0
 
 def pers_hom(chromato_obj, mod_time, seuil, threshold_abs=None, mode="tic", cluster=False, chromato_cube=None, unique=True):
     """
-    Computes persistent homology for peak detection in chromatographic data.
-
     This function applies persistent homology to detect significant peaks in 
     a chromatographic dataset. It supports two modes:
-    - `"mass_per_mass"`: Applies persistent homology to each mass slice individually.
-    - `"tic"` (default): Computes persistent homology directly on the chromatogram.
+    - "mass_per_mass": Applies persistent homology to each mass slice individually.
+    - `tic` (default): Computes persistent homology directly on the chromatogram.
 
     Parameters:
     -----------
@@ -673,9 +794,10 @@ def pers_hom(chromato_obj, mod_time, seuil, threshold_abs=None, mode="tic", clus
     Returns:
     --------
     np.ndarray
-        - If mode is `"mass_per_mass"`: Returns detected peak coordinates across mass slices.
+        - If mode is `"mass_per_mass"`: Returns detected peak coordinates across mass slices, using multiprocessing.
         - If mode is `"tic"`: Returns significant peak coordinates based on persistent homology.
     """
+
     chromato, time_rn = chromato_obj
     if (mode == "mass_per_mass"):
         #chromato_cube = chromato_cube[:10]
@@ -758,7 +880,7 @@ def plm_mass_per_mass_multiprocessing(chromato_cube, seuil, min_distance=1, thre
 
 def peak_local_max(chromato_obj, mod_time, seuil,  min_distance=1, mode="tic", chromato_cube=None, cluster=False, threshold_abs=0, unique=True):
     """
-    #ancien plm
+    #ancienne fct nommee plm
     Detects peaks in a chromatographic dataset using different processing modes.
 
     This function identifies local maxima (peaks) in chromatographic data using 
