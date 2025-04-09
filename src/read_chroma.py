@@ -69,7 +69,7 @@ def read_chroma(filename, mod_time, max_val=None):
     Parameters
     ----------
     filename :
-        Chromatogram full filename.
+        Chromatogram full filename. .cdf
     mod_time : optional
         Modulation time
     max_val : int, optional
@@ -94,9 +94,15 @@ def read_chroma(filename, mod_time, max_val=None):
     >>> tic_chromato, time_rn, spectra_obj = chromato_obj
     """
 
+    if not filename.endswith(".cdf"):
+        raise ValueError("The file must be a .cdf")
+
     ds = nc.Dataset(filename)
     tic_chromato = ds['total_intensity']
-    Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) <
+    abs_point_count = np.abs(ds["point_count"])
+    # print("point count", abs_point_count[:10])
+    # print("mass_values", ds["mass_values"][:10])
+    Timepara = ds["scan_acquisition_time"][abs_point_count <
                                            np.iinfo(np.int32).max]
     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
     l1 = math.floor(sam_rate * mod_time)

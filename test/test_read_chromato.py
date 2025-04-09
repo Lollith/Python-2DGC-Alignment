@@ -7,7 +7,7 @@ import mass_spec
 import skimage
 import baseline_correction
 
-# lancer : test/pytest test_read_chromato.py
+# lancer : pytest test/test_read_chromato.py
 
 @patch('read_chroma.read_chroma')  # Mock de la fonction read_chroma
 @patch('mass_spec.read_full_spectra_centroid')  # Mock de read_full_spectra_centroid
