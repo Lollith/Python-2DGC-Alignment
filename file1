@@ -1,46 +1,173 @@
-Check read_chroma
-tic: cf chromato.csv
-duree de chromato: cf chromato1.csv
-spectre de masse:
-spectra l1 150
-spectra l2 2187
-spectra masse value [ 39.04689572  39.89312009  39.94080997 ... 475.15124356 477.02875063
- 491.11644106]
-spectra intensity [2.81948109e+04 3.18942628e+05 5.41638214e+05 ... 3.17579296e+02
- 4.56282141e+02 9.17584494e+02]
-spectra range min 40
-spectra range max 500
----------------------------------
-Check read_full_spectra_centroid
---- 65.43060183525085 seconds --- to compute full spectra centroid
-(array([[[4.00000000e+01, 4.10000000e+01, 4.20000000e+01, ...,
-         4.98000000e+02, 4.99000000e+02, 5.00000000e+02],
-        [9.03782688e+05, 8.72542280e+05, 1.42741668e+05, ...,
-         0.00000000e+00, 0.00000000e+00, 2.81948109e+04]],
+📂 Dimensions disponibles : ['_2_byte_string', '_4_byte_string', '_8_byte_string', '_16_byte_string', '_32_byte_string', '_64_byte_string', '_128_byte_string', '_255_byte_string', 'range', 'point_number', 'error_number', 'scan_number']
+📊 Variables disponibles : ['error_log', 'a_d_sampling_rate', 'a_d_coaddition_factor', 'scan_acquisition_time', 'scan_duration', 'inter_scan_time', 'resolution', 'actual_scan_number', 'total_intensity', 'mass_range_min', 'mass_range_max', 'time_range_min', 'time_range_max', 'scan_index', 'point_count', 'flag_count', 'mass_values', 'intensity_values']
 
-       [[4.00000000e+01, 4.10000000e+01, 4.20000000e+01, ...,
-         4.98000000e+02, 4.99000000e+02, 5.00000000e+02],
-        [9.03160539e+05, 8.72687634e+05, 1.43235597e+05, ...,
-         0.00000000e+00, 0.00000000e+00, 2.83122703e+04]],
+📑 Attributs globaux :
+dataset_completeness : C1+C2
+ms_template_revision : 1.0.1
+netcdf_revision : 3.6.3
+languages : English
+netcdf_file_date_time_stamp : 20250408091133+0100
+experiment_date_time_stamp : 20230110185346+0100
+experiment_type : Centroided Mass Spectrum
+sample_state : Other State
+test_separation_type : Gas-Liquid Chromatography
+test_ms_inlet : Capillary Direct
+test_ionization_mode : Electron Impact
+test_ionization_polarity : Positive Polarity
+test_detector_type : Electron Multiplier
+test_resolution_type : Constant Resolution
+test_scan_function : Mass Scan
+test_scan_direction : Up
+test_scan_law : Linear
+raw_data_mass_format : Double
+raw_data_time_format : Short
+raw_data_intensity_format : Double
+units : Seconds
+starting_scan_number : 0
 
-       [[4.00000000e+01, 4.10000000e+01, 4.20000000e+01, ...,
-         4.98000000e+02, 4.99000000e+02, 5.00000000e+02],
-        [9.03439215e+05, 8.71643479e+05, 1.44253415e+05, ...,
-         0.00000000e+00, 0.00000000e+00, 2.83828844e+04]],
+🧐 Détails des variables :
+Nom : error_log
+Dimensions : ('error_number', '_64_byte_string')
+Taille : 64
+Type de données : |S1
+Attributs : []
+----
 
-       ...,
+Nom : a_d_sampling_rate
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
 
-       [[4.00000000e+01, 4.10000000e+01, 4.20000000e+01, ...,
-         4.98000000e+02, 4.99000000e+02, 5.00000000e+02],
-        [3.40136257e+05, 3.83245332e+04, 1.49182533e+04, ...,
-         0.00000000e+00, 0.00000000e+00, 0.00000000e+00]],
+Nom : a_d_coaddition_factor
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : int16
+Attributs : []
+----
 
-       [[4.00000000e+01, 4.10000000e+01, 4.20000000e+01, ...,
-         4.98000000e+02, 4.99000000e+02, 5.00000000e+02],
-        [3.39039077e+05, 3.89751207e+04, 1.46651084e+04, ...,
-         0.00000000e+00, 0.00000000e+00, 0.00000000e+00]],
+Nom : scan_acquisition_time
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
 
-       [[4.00000000e+01, 4.10000000e+01, 4.20000000e+01, ...,
-         4.98000000e+02, 4.99000000e+02, 5.00000000e+02],
-        [3.37525789e+05, 4.06403219e+04, 1.46341027e+04, ...,
-         0.00000000e+00, 0.00000000e+00, 0.00000000e+00]]]), array([       0,      245,      472, ..., 61353909, 61354147, 61354395]), array([     244,      471,      693, ..., 61354146, 61354394, 61354647]))
+Nom : scan_duration
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
+
+Nom : inter_scan_time
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
+
+Nom : resolution
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
+
+Nom : actual_scan_number
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : int32
+Attributs : []
+----
+
+Nom : total_intensity
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : ['units']
+----
+
+Nom : mass_range_min
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
+
+Nom : mass_range_max
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
+
+Nom : time_range_min
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
+
+Nom : time_range_max
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : float64
+Attributs : []
+----
+
+Nom : scan_index
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : int32
+Attributs : []
+----
+
+Nom : point_count
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : int32
+Attributs : []
+----
+
+Nom : flag_count
+Dimensions : ('scan_number',)
+Taille : 328125
+Type de données : int32
+Attributs : []
+----
+
+Nom : mass_values
+Dimensions : ('point_number',)
+Taille : 61354648
+Type de données : float64
+Attributs : ['units']
+----
+
+Nom : intensity_values
+Dimensions : ('point_number',)
+Taille : 61354648
+Type de données : float64
+Attributs : ['units']
+----
+
+point count is not object
+total_intensity [15974499.63954097 15943862.03871114 15939385.98558136 15932633.86287273
+ 15931075.29439884 15933352.52590856 15921391.31012323 15896209.42367944
+ 15863151.54278661 15836825.02016334]
+acquisition time [510.      510.00832 510.01664 510.02496 510.03328 510.0416  510.04992
+ 510.05824 510.06656 510.07488]
+mass [39.04689572 39.89312009 39.94080997 40.05694416 40.95276026 41.06157652
+ 41.20982266 41.94869473 42.93249794 43.92385277]
+intensity [  28194.81086097  318942.62786964  541638.21430383   43201.84535235
+  816683.45384199   33303.63351827   22555.19307081  142741.66801709
+  153874.16705175 1795062.65848733]
+mass range min [39.01671406 39.01671406 39.01671406 39.01671406 39.01671406 39.01671406
+ 39.01671406 39.01671406 39.01671406 39.01671406]
+mass range max [500.99517556 500.99517556 500.99517556 500.99517556 500.99517556
+ 500.99517556 500.99517556 500.99517556 500.99517556 500.99517556]
+point count [245 227 222 218 216 216 216 217 217 215]
+type int32
+donnee [245 227 222 ... 238 248 253]
+mydonnee [ True  True  True  True]
