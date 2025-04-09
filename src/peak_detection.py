@@ -6,7 +6,7 @@ from imagepers import persistence
 from skimage.feature import blob_dog, blob_log, blob_doh
 import math
 import numpy as np
-import pywt
+# import pywt
 import matplotlib.pyplot as plt
 from sklearn.cluster import DBSCAN
 
@@ -244,6 +244,7 @@ import multiprocessing
 #     fig.tight_layout()
 #     plt.show()
 #     return peak_local_max((HH, time_rn), mod_time, seuil)
+
 
 def clustering(coordinates_all_mass, chromato):
     """

@@ -50,9 +50,9 @@ def matching_nist_lib_from_chromato_cube(chromato_obj, chromato_cube, coordinate
         coordinates, time_rn, mod_time, chromato.shape)
 
     search = pyms_nist_search.Engine(
-                    "C:/NIST14/MSSEARCH/mainlib/",
+                    "/media/camille/DATA1/mainlib/",
                     pyms_nist_search.NISTMS_MAIN_LIB,
-                    "C:/Users/Stan/Test",
+                    "/media/camille/DATA1/tmp", # stocker des fichiers temporaires, creation dossier tmp
                     )
     logger=logging.getLogger('pyms_nist_search')
     logger.setLevel('ERROR')

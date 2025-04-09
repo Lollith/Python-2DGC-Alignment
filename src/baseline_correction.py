@@ -66,7 +66,7 @@ def chromato_cube_corrected_baseline(chromato_cube):
     """
     cpu_count = multiprocessing.cpu_count()
     chromato_cube_no_baseline = []
-    with multiprocessing.Pool(processes = cpu_count) as pool:
+    with multiprocessing.Pool(processes=cpu_count) as pool:
         for i, result in enumerate(pool.starmap(chromato_no_baseline, [(m_chromato, j) for j, m_chromato in enumerate(chromato_cube)])):
             chromato_cube_no_baseline.append(result)
     return chromato_cube_no_baseline

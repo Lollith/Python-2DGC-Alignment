@@ -7,61 +7,63 @@ from projection import matrix_to_chromato, chromato_to_matrix
 from scipy.signal import argrelextrema
 import baseline_correction
 from skimage.restoration import estimate_sigma
+import skimage.restoration
 import os
 
-def print_chroma_header(filename):
-    r"""Print chromato header.
+# def print_chroma_header(filename):
+#     r"""Print chromato header.
 
-    Parameters
-    ----------
-    filename :
-        Chromatogram full filename.
-    ----------
-    Returns
-    -------
-    Examples
-    --------
-    >>> import read_chroma
-    >>> read_chroma.print_chroma_header(filename)
-    """
-    ds = nc.Dataset(filename)
-    print(ds)
-    range_min = math.ceil(ds["mass_range_min"][0])
-    range_max = math.floor(ds["mass_range_max"][0])
-    print(range_min)
-    print(range_max)
+#     Parameters
+#     ----------
+#     filename :
+#         Chromatogram full filename.
+#     ----------
+#     Returns
+#     -------
+#     Examples
+#     --------
+#     >>> import read_chroma
+#     >>> read_chroma.print_chroma_header(filename)
+#     """
+#     ds = nc.Dataset(filename)
+#     print(ds)
+#     range_min = math.ceil(ds["mass_range_min"][0])
+#     range_max = math.floor(ds["mass_range_max"][0])
+#     print(range_min)
+#     print(range_max)
 
-def read_only_chroma(filename, mod_time = 1.25):
-    r"""Read chromatogram file.
+# def read_only_chroma(filename, mod_time = 1.25):
+#     r"""Read chromatogram file.
 
-    Parameters
-    ----------
-    filename :
-        Chromatogram full filename.
-    mod_time : optional
-        Modulation time
-    -------
-    Returns
-    -------
-    A: tuple
-        Return the created chromato object wrapping (chromato TIC), (time_rn).
-    --------
-    Examples
-    --------
-    >>> import read_chroma
-    >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
-    """
-    ds = nc.Dataset(filename)
-    chromato = ds['total_intensity']
-    Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
-    sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
-    l1 = math.floor(sam_rate * mod_time)
-    l2 = math.floor(len(chromato) / l1)
-    chromato = np.reshape(chromato[:l1*l2], (l2,l1))
+#     Parameters
+#     ----------
+#     filename :
+#         Chromatogram full filename.
+#     mod_time : optional
+#         Modulation time
+#     -------
+#     Returns
+#     -------
+#     A: tuple
+#         Return the created chromato object wrapping (chromato TIC), (time_rn).
+#     --------
+#     Examples
+#     --------
+#     >>> import read_chroma
+#     >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
+#     """
+#     ds = nc.Dataset(filename)
+#     chromato = ds['total_intensity']
+#     Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
+#     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
+#     l1 = math.floor(sam_rate * mod_time)
+#     l2 = math.floor(len(chromato) / l1)
+#     chromato = np.reshape(chromato[:l1*l2], (l2,l1))
 
-    return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
+#     return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
 
-def read_chroma(filename, mod_time = 1.25, max_val = None):
+
+def read_chroma(filename, mod_time, max_val=None):
     r"""Read chromatogram file.
 
     Parameters
@@ -71,7 +73,8 @@ def read_chroma(filename, mod_time = 1.25, max_val = None):
     mod_time : optional
         Modulation time
     max_val : int, optional
-        The maximum number of mass and intensity values to load. If not specified, all values are loaded.
+        The maximum number of mass and intensity values to load. If not
+        specified, all values are loaded.
     -------
     Returns
     -------
@@ -81,21 +84,23 @@ def read_chroma(filename, mod_time = 1.25, max_val = None):
         - A numpy array representing the acquisition times (time_rn).
         - A tuple containing additional information:
             - The dimensions of the chromatogram (l1, l2).
-            - The mass values (`mv`), intensity values (`iv`), and the minimum and maximum mass range (`range_min`, `range_max`).
+            - The mass values, intensity values, and the minimum
+            and maximum mass range (`range_min`, `range_max`).
     -------
     Examples
     --------
     >>> import read_chroma
     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
-    >>> chromato,time_rn,spectra_obj = chromato_obj
+    >>> tic_chromato, time_rn, spectra_obj = chromato_obj
     """
 
     ds = nc.Dataset(filename)
-    chromato = ds['total_intensity']
-    Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
+    tic_chromato = ds['total_intensity']
+    Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) <
+                                           np.iinfo(np.int32).max]
     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
     l1 = math.floor(sam_rate * mod_time)
-    l2 = math.floor(len(chromato) / l1)
+    l2 = math.floor(len(tic_chromato) / l1)
 
     if (max_val):
         mv = ds["mass_values"][:max_val]
@@ -107,57 +112,62 @@ def read_chroma(filename, mod_time = 1.25, max_val = None):
     range_min = math.ceil(ds["mass_range_min"][:].min())
     range_max = math.floor(ds["mass_range_max"][:].max())
 
-    chromato = np.reshape(chromato[:l1*l2], (l2,l1))
-    return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60), (l1, l2, mv, iv, range_min, range_max)
+    tic_chromato = np.reshape(tic_chromato[:l1*l2], (l2, l1))
+    start_time = ds['scan_acquisition_time'][0] / 60
+    end_time = ds['scan_acquisition_time'][-1] / 60
+    return (tic_chromato, (start_time, end_time),
+            (l1, l2, mv, iv, range_min, range_max))
 
-def read_chromato_cube(filename, mod_time=1.25, pre_process=True):
-    r"""Read chromatogram file and compute TIC chromatogram, 3D chromatogram and noise std.
+# def read_chromato_cube(filename, mod_time=1.25, pre_process=True):
+#     r"""Read chromatogram file and compute TIC chromatogram, 3D chromatogram and noise std.
 
-    Parameters
-    ----------
-    filename :
-        Chromatogram full filename.
-    mod_time : optional
-        Modulation time
-    pre_process : optional
-        If pre_process is True the background of the TIC chromatogram and the background of the 3D chromatogram are corrected.
-    -------
-    Returns
-    -------
-    A: tuple
-        Return the created chromato object wrapping (chromato TIC), (time_rn), (spectra_obj).
-    chromato_cube:
-        3D chromatogram.
-    sigma:
-        Gaussian white noise std.
-    -------
-    Examples
-    --------
-    >>> import read_chroma
-    >>> chromato_obj, chromato_cube, sigma=read_chroma.read_chromato_cube(filename, mod_time=1.25, pre_process=True)
-    """
-    start_time=time.time()
-    chromato_obj = read_chroma(filename, mod_time)
-    chromato,time_rn,spectra_obj = chromato_obj
-    print("chromato read", time.time()-start_time)
-    start_time=time.time()
-    full_spectra = mass_spec.read_full_spectra_centroid(spectra_obj=spectra_obj)
-    print("full spectra computed", time.time()-start_time)
+#     Parameters
+#     ----------
+#     filename :
+#         Chromatogram full filename.
+#     mod_time : optional
+#         Modulation time
+#     pre_process : optional
+#         If pre_process is True the background of the TIC chromatogram and the background of the 3D chromatogram are corrected.
+#     -------
+#     Returns
+#     -------
+#     A: tuple
+#         Return the created chromato object wrapping (chromato TIC), (time_rn), (spectra_obj).
+#     chromato_cube:
+#         3D chromatogram.
+#     sigma:
+#         Gaussian white noise std.
+#     -------
+#     Examples
+#     --------
+#     >>> import read_chroma
+#     >>> chromato_obj, chromato_cube, sigma=read_chroma.read_chromato_cube(filename, mod_time=1.25, pre_process=True)
+#     """
+#     start_time=time.time()
+#     chromato_obj = read_chroma(filename, mod_time)
+#     chromato,time_rn,spectra_obj = chromato_obj
+#     print("chromato read", time.time()-start_time)
+#     start_time=time.time()
+#     full_spectra = mass_spec.read_full_spectra_centroid(spectra_obj=spectra_obj)
+#     print("full spectra computed", time.time()-start_time)
 
-    spectra, debuts, fins = full_spectra
-    chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra, spectra_obj=spectra_obj)
+#     spectra, debuts, fins = full_spectra
+#     chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra, spectra_obj=spectra_obj)
     
-    # baseline correction
-    if(pre_process):
-        chromato = baseline_correction.chromato_no_baseline(chromato)
-        chromato_cube = np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube))
+#     # baseline correction
+#     if(pre_process):
+#         chromato = baseline_correction.chromato_no_baseline(chromato)
+#         chromato_cube = np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube))
     
-    sigma = estimate_sigma(chromato, channel_axis=None)
-    return (chromato,time_rn,spectra_obj), chromato_cube, sigma
+#     sigma = skimage.restoration.estimate_sigma(chromato, channel_axis=None)
+#     return (chromato,time_rn,spectra_obj), chromato_cube, sigma
 
 
 def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
-    r"""Same as read_chromato_cube but do not returns full spectra_obj (only range_min and range_max) because of RAM issue.
+    r"""Same as read_chromato_cube(Read chromatogram file and compute TIC
+    chromatogram, 3D chromatogram and noise std.) but do not returns full
+    spectra_obj (only range_min and range_max) because of RAM issue.
 
     Parameters
     ----------
@@ -166,44 +176,55 @@ def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
     mod_time : optional
         Modulation time
     pre_process : optional
-        If pre_process is True the background of the TIC chromatogram and the background of the 3D chromatogram are corrected.
+        If pre_process is True the background of the TIC chromatogram and the
+        background of the 3D chromatogram are corrected.
     -------
     Returns
     -------
-    chromato:
+    tic_chromato:
         chromato TIC
-    time_rn : 
+    time_rn :
         Time range
     chromato_cube:
         3D chromatogram.
     sigma:
         Gaussian white noise std.
-    A: 
-    range_min and range_max
+    A tuple:
+        range_min and range_max
     -------
     Examples
     --------
     >>> import read_chroma
-    >>> chromato, time_rn, chromato_cube, sigma, (range_min, range_max)=read_chroma.read_chromato_and_chromato_cube(filename, mod_time=1.25, pre_process=True)
+    >>> chromato, time_rn, chromato_cube, sigma, \
+        (range_min, range_max)=read_chroma.read_chromato_and_chromato_cube(
+        filename, mod_time=1.25, pre_process=True)
     """
-    start_time=time.time()
+
+    start_time = time.time()
     chromato_obj = read_chroma(filename, mod_time)
-    chromato,time_rn,spectra_obj = chromato_obj
+    tic_chromato, time_rn, spectra_obj = chromato_obj
     (l1, l2, mv, iv, range_min, range_max) = spectra_obj
     print("chromato read", time.time()-start_time, 's')
-    start_time=time.time()
-    full_spectra = mass_spec.read_full_spectra_centroid(spectra_obj=spectra_obj)
+
+    start_time = time.time()
+    full_spectra = mass_spec.read_full_spectra_centroid(
+        spectra_obj=spectra_obj)
     print("full spectra computed", time.time()-start_time, 's')
 
     spectra, debuts, fins = full_spectra
-    chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra, spectra_obj=spectra_obj)
-    
+    chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra,
+                                                  spectra_obj=spectra_obj)
+
     # baseline correction
-    if(pre_process):
-        chromato = baseline_correction.chromato_no_baseline(chromato)
-        chromato_cube = np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube))
+    if (pre_process):
+        chromato = baseline_correction.chromato_no_baseline(tic_chromato)
+        chromato_cube = np.array(
+            baseline_correction.chromato_cube_corrected_baseline(
+                chromato_cube))
         print("baseline corrected")
-    sigma = estimate_sigma(chromato, channel_axis=None)
+    else:
+        chromato = tic_chromato
+    sigma = skimage.restoration.estimate_sigma(chromato, channel_axis=None)
     return chromato, time_rn, chromato_cube, sigma, (range_min, range_max)
 
 def centroided_to_mass_nominal_chromatogram(filename, cdf_name, mod_time = 1.25):

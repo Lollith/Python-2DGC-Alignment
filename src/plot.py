@@ -5,7 +5,8 @@ from projection import matrix_to_chromato, chromato_to_matrix
 from matplotlib import cm
 import time
 import glob
-from mass_spec import read_hmdb_spectrum
+# from mass_spec import read_hmdb_spectrum
+import mass_spec
 import pandas as pd
 import seaborn as sn
 import pandas as pd
@@ -460,7 +461,7 @@ def plot_hmdb_id_spectra(path, hmdb_id):
     tmp = path + "/" + hmdb_id + "*"
     hmdb_id_files = glob.glob(tmp)
     for hmdb_id_file in hmdb_id_files:
-        m, v = read_hmdb_spectrum(hmdb_id_file.replace("\\", "/"))
+        m, v = mass_spec.read_hmdb_spectrum(hmdb_id_file.replace("\\", "/"))
         plot_mass(m, v, hmdb_id_file[len(path + "/") - 1:])
 
 def plot_scores_array(scores_array, similarity_measure):

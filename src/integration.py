@@ -81,6 +81,33 @@ def get_all_contour(blobs):
 
 
 def similarity_cluestering(chromato_cube, coordinates, ref_point, similarity_threshold=0.01):
+    """
+    Groups chromatographic peak coordinates based on spectral similarity using DBSCAN clustering.
+
+    Parameters:
+    -----------
+    chromato_cube : numpy.ndarray
+        A 3D array representing the chromatographic data cube, where the first axis corresponds 
+        to the mass spectrum, and the other two axes correspond to chromatographic dimensions.
+    coordinates : list of tuples
+        A list of (x, y) coordinates representing detected peaks in the chromatographic data.
+    ref_point : tuple
+        The (x, y) coordinate of the reference peak used for clustering.
+    similarity_threshold : float, optional (default=0.01)
+        The cosine distance threshold for clustering peaks. Lower values create more restrictive clusters.
+
+    Returns:
+    --------
+    numpy.ndarray
+        An array of (x, y) coordinates representing the peaks clustered together with the reference peak.
+
+    Notes:
+    ------
+    - Uses **DBSCAN** clustering with **cosine similarity** as the distance metric.
+    - Extracts the **mass spectrum** for each peak and groups similar spectra.
+    - The reference peak defines the cluster of interest, and only peaks with the same label are returned.
+    """
+    
     intensity_values_list = []
     ref_point_index = 0
 
