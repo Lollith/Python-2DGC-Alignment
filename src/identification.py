@@ -136,7 +136,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,
 
     # Compléter les lignes plus courtes ou tronquer les lignes trop longues
     matches = [match + [None] * (max_len - len(match)) if len(match) < max_len else match[:max_len] for match in matches]
-    matches = np.array(matches, dtype=object) #TODO fin ajout ici
+    matches = np.array(matches, dtype=object) #TODO
 
     for match in matches:
         coord = match[2]
@@ -146,7 +146,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,
             similarity_threshold=similarity_threshold)
         area = integration.compute_area(chromato, blob)
         height = chromato[coord[0], coord[1]]
- 
+
         identification_data_dict = dict()
         identification_data_dict['casno'] = match[1]['casno']
         identification_data_dict['compound_name'] = match[1]['compound_name']
@@ -253,7 +253,25 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
         coordinates...
     PATH : optional
         Path to the resulting formatted peak table.
+
+    Returns
+    -------
+    None
+        The function writes a CSV file, containing one line per identified 
+        compound:
+        - Name : Chemical compound name (e.g., Toluene)
+        - Casno : CAS number (unique compound identifier)
+        - Formula : Molecular formula (e.g., C7H8)
+        - hit_prob : Hit probability (%), confidence in the identification
+        - match_factor : Match factor between observed and library spectra
+        - reverse_match_factor : Reverse match factor ignoring unmatched peaks
+        in the sample
+        - rt1 : Retention time in the 1st dimension
+        - rt2 : Retention time in the 2nd dimension
+        - Area : Peak area (proportional to the compound abundance)
+        - Height : Peak height (related to concentration)
     """
+
     with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
 
