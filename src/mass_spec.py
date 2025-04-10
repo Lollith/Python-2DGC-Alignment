@@ -235,21 +235,11 @@ def centroid_to_full_nominal(spectra_obj, mass_values, int_values):
     This function works by rounding the mass values to the nearest integer
     and adding the corresponding intensities to an intensity array.
     """
-    
-# #TODO debug
-#     # Debugging step: check the content of spectra_obj
-#     print("spectra_obj:", spectra_obj)
-#     print("Length of spectra_obj:", len(spectra_obj))
-    
-    # Si spectra_obj n'a pas la bonne taille, lever une erreur ou ajuster
-    # if len(spectra_obj) < 6:
-    #     raise ValueError(f"Expected spectra_obj to have 6 elements, but got {len(spectra_obj)}")
-    
+
     # (l1, l2, mv, iv, range_min, range_max) = spectra_obj
-    range_min, range_max = spectra_obj  #TODO corection ici???
-    # range_min, range_max = spectra_obj  # TODO corection ici???
-    # print("range_min", range_min)
-    # print("range_max", range_max)
+    range_min, range_max = spectra_obj
+    # print(range_min)
+    # print(range_max)
 
     # mv = np.linspace(range_min, range_max, range_max - range_min + 1).astype(int)
     intensity_v = np.zeros((range_max - range_min + 1))

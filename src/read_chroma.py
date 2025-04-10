@@ -100,10 +100,10 @@ def read_chroma(filename, mod_time, max_val=None):
     ds = nc.Dataset(filename)
     tic_chromato = ds['total_intensity']
     abs_point_count = np.abs(ds["point_count"])
-    # print("point count", abs_point_count[:10])
-    # print("mass_values", ds["mass_values"][:10])
     Timepara = ds["scan_acquisition_time"][abs_point_count <
                                            np.iinfo(np.int32).max]
+    
+    # taux d'échantillonnage : le nombre d'échantillons (points) par unité de temps (par exemple, en Hz).
     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
     l1 = math.floor(sam_rate * mod_time)
     l2 = math.floor(len(tic_chromato) / l1)
@@ -119,8 +119,10 @@ def read_chroma(filename, mod_time, max_val=None):
     range_max = math.floor(ds["mass_range_max"][:].max())
 
     tic_chromato = np.reshape(tic_chromato[:l1*l2], (l2, l1))
+
     start_time = ds['scan_acquisition_time'][0] / 60
     end_time = ds['scan_acquisition_time'][-1] / 60
+
     return (tic_chromato, (start_time, end_time),
             (l1, l2, mv, iv, range_min, range_max))
 
