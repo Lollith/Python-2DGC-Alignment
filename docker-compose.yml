@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  jupyterlab:
+    image: jupyterlab-app
+    container_name: jupyterlab_app
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"
+    # volumes:
+    #   - ./app:/app
+    env_file:
+      - .env
