@@ -372,7 +372,7 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
         OUTPUT_PATH="/path/to/results/")
     """
 
-    print('Identification, output path: ', OUTPUT_PATH)
+    print('Identification started\n')
     try:
         full_filename = path + file
         matches_identification = \
