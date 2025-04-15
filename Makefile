@@ -15,4 +15,10 @@ restart:
 logs:
 	docker compose logs -f
 
-.PHONY: all install start stop restart logs
+clean: stop
+		sudo docker system prune -af
+
+re: clean
+	make all
+
+.PHONY: all install start stop restart logs clean re

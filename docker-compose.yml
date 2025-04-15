@@ -10,7 +10,16 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8888:8888"
-    # volumes:
-    #   - ./app:/app
+    volumes:
+    - type: bind
+      source: /media/camille/DATA1/cdf centroid/ #TODO modifier sur le serveur
+      target: /app/data
+      read_only: true
+      # TODO modifier sur le serveur
+    - type: bind
+      source: .
+      target: /app
+    environment:
+      - PYTHONPATH=/app/src
     env_file:
       - .env
