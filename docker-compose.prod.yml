@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  jupyterlab:
+    image: jupyterlab-app
+    container_name: jupyterlab_app
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8888:8888"
+    volumes:
+    - type: bind
+      source: /media/camille/DATA1/cdf centroid/ #TODO modifier sur le serveur
+      target: /app/data
+      read_only: true
+    environment:
+      - PYTHONPATH=/app/src
+    env_file:
+      - .env
