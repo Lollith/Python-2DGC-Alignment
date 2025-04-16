@@ -6,9 +6,7 @@ COPY requirements.txt .
 
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install voila
 
 EXPOSE 8888
 
-# CMD ["jupyter", "lab", "--notebook-dir=/app/notebooks", "--ip=0.0.0.0", "--port=8888", "--allow-root", "--NotebookApp.token=''"]
-CMD ["voila", "notebooks/interface_peak_detection_new.ipynb", "--port=8888", "--no-browser", "--allow-root"] 
+CMD ["jupyter", "notebook", "--notebook-dir=/app/notebooks", "--ip=0.0.0.0", "--port=8888", "--allow-root", "--NotebookApp.token=''"]
