@@ -1,9 +1,25 @@
-version: '3.8'
-
 services:
-  jupyterlab:
-    image: jupyterlab-app
-    container_name: jupyterlab_app
+  nist:
+    image: domdfcoding/pywine-pyms-nist
+    container_name: nist_engine
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - type: bind
+        source: /home/camille/Documents/volume_data/mainlib
+        target: /app/data/mainlib
+      - type: bind
+        source: /home/camille/Documents/volume_data/tmp
+        target: /app/data/tmp
+    environment:
+      - LIBTYPE=1 # 1: mainlib, 2: sublib
+    networks:
+      - nist_network 
+  
+  2dgc_id:
+    image: 2dgc_id-app
+    container_name: 2dgc_id_app
     restart: unless-stopped
     build:
       context: .
@@ -17,5 +33,15 @@ services:
       read_only: true
     environment:
       - PYTHONPATH=/app/src
+      - NIST_HOME=/app/data/mainlib
+      - NIST_TMP=/app/data/tmp
     env_file:
       - .env
+    depends_on:
+      - nist
+    networks:
+      - nist_network
+
+networks:
+  nist_network:
+    driver: bridge
