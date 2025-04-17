@@ -107,6 +107,13 @@ git clone https://github.com/Lollith/Python-2DGC-Alignment.git
 make
 ```
 
+### NIST Integration
+
+The application uses NIST for mass spectrometry identification.
+
+To use NIST, you need to place your NIST database files in the `..../..../volume_data/` directory.
+
+
 ### Make Commands
 
 The project uses a Makefile to simplify common operations. Here are the main commands:
