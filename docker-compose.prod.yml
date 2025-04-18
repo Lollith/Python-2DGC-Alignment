@@ -12,10 +12,16 @@ services:
       - type: bind
         source: /home/camille/Documents/volume_data/tmp
         target: /app/data/tmp
+        # ICI ajout
+      - type: bind
+        source: /home/camille/Documents/volume_data/
+        target: /app/data/
     environment:
       - LIBTYPE=1 # 1: mainlib, 2: sublib
+      - NIST_HOME=/app/data/mainlib
+      - NIST_TMP=/app/data/tmp
     networks:
-      - nist_network 
+      - nist_network
   
   2dgc_id:
     image: 2dgc_id-app
@@ -33,8 +39,6 @@ services:
       read_only: true
     environment:
       - PYTHONPATH=/app/src
-      - NIST_HOME=/app/data/mainlib
-      - NIST_TMP=/app/data/tmp
     env_file:
       - .env
     depends_on:

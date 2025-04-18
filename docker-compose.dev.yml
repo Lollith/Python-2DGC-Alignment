@@ -19,6 +19,8 @@ services:
         target: /app/data/
     environment:
       - LIBTYPE=1 # 1: mainlib, 2: sublib
+      - NIST_HOME=/app/data/mainlib
+      - NIST_TMP=/app/data/tmp
     networks:
       - nist_network 
 
@@ -40,8 +42,8 @@ services:
       target: /app
     environment:
       - PYTHONPATH=/app/src
-      - NIST_HOME=/app/data/mainlib
-      - NIST_TMP=/app/data/tmp
+      # - NIST_HOME=/app/data/mainlib
+      # - NIST_TMP=/app/data/tmp
     env_file:
       - .env
     depends_on:
@@ -52,3 +54,4 @@ services:
 networks:
   nist_network:
     driver: bridge
+  

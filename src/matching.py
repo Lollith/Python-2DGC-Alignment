@@ -21,7 +21,72 @@ import pyms_nist_search
 
 # '''def check_match_nist_lib(match):
 #     return np.array([casno for casno in match[:, 1] if casno in present])'''
-    
+
+# from pyms_nist_search import LocalEngine  
+# import os
+# from pyms_nist_search import RemoteEngine, NISTMS_MAIN_LIB
+# import os
+import requests
+import time
+# from pyms.Spectrum import MassSpectrum
+import sdjson
+# from pyms_nist_search.search_result import hit_list_with_ref_data_from_json
+# from pyms_nist_search.utils import sdjson  # ou un import équivalent selon version
+import json
+from typing import List, Tuple
+from nist_utils.reference_data import ReferenceData
+from pyms_nist_search.search_result import SearchResult
+
+def hit_list_with_ref_data_from_json(json_data: str) -> List[Tuple[SearchResult, ReferenceData]]:
+	"""
+	Parse json data into a list of (SearchResult, ReferenceData) tuples.
+
+	:param json_data: str
+	"""
+
+	raw_output = json.loads(json_data)
+
+	hit_list = []
+
+	for hit, ref_data in raw_output:
+		hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
+
+	return hit_list
+
+def full_search_with_ref_data(
+			mass_spectrum,
+			n_hits: int = 20,
+			) -> List[Tuple[SearchResult, ReferenceData]]:
+		"""
+		Perform a Full Spectrum Search of the mass spectral library, including reference data.
+
+		:param mass_spec: The mass spectrum to search against the library.
+		:param n_hits: The number of hits to return.
+
+		:return: List of tuples containing possible identities
+			for the mass spectrum, and the reference data.
+		"""
+
+		if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
+			raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
+
+		retry_count = 0
+
+		# Keep trying until it works
+		while retry_count < 240:
+			try:
+				res = requests.post(
+						f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
+						json=sdjson.dumps(mass_spectrum)
+						)
+				print(f"Server response: {res.status_code}")
+				print(f"Server response text: {res.text}")
+				return hit_list_with_ref_data_from_json(res.text)
+			except requests.exceptions.ConnectionError:
+				time.sleep(0.5)
+				retry_count += 1
+
+		raise TimeoutError("Unable to communicate with the search server.")
 
 def matching_nist_lib_from_chromato_cube(
         chromato_obj, chromato_cube, coordinates, mod_time,
@@ -54,18 +119,19 @@ def matching_nist_lib_from_chromato_cube(
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(
         coordinates, time_rn, mod_time, chromato.shape)
+    
+    # search = pyms_nist_search.Engine(
+    #                 "C:/NIST14/MSSEARCH/mainlib/",
+    #                 pyms_nist_search.NISTMS_MAIN_LIB,
+    #                 "C:/Users/Stan/Test",
+    #                 )
 
-    search = pyms_nist_search.Engine(
-        host="localhost",  # service Docker created in docker-compose
-        port=5001,
-        lib_path="/app/data/mainlib/",
-        lib_type=pyms_nist_search.NISTMS_MAIN_LIB,
-        tmp_path="/app/data/tmp",  # stocker des fichiers temporaires, creation dossier tmp
-        )
-    logger = logging.getLogger('pyms_nist_search')
-    logger.setLevel('ERROR')
-    logger = logging.getLogger('pyms')
-    logger.setLevel('ERROR')
+
+        
+    # logger = logging.getLogger('pyms_nist_search')
+    # logger.setLevel('ERROR')
+    # logger = logging.getLogger('pyms')
+    # logger.setLevel('ERROR')
 
     match = []
     try:
@@ -83,7 +149,12 @@ def matching_nist_lib_from_chromato_cube(
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
-        res = search.full_search_with_ref_data(mass_spectrum)
+
+###################
+        res = full_search_with_ref_data(mass_spectrum)
+# ##############
+# 
+        # res = search.full_search_with_ref_data(mass_spectrum)
         #  res = search.full_spectrum_search(mass_spectrum)
         if (res[0][0].match_factor < match_factor_min):
             continue
@@ -110,7 +181,7 @@ def matching_nist_lib_from_chromato_cube(
             d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)'''
 
         match.append([[(coordinates_in_chromato[i][0]),
-                       (coordinates_in_chromato[i][1])], d_tmp, coord])
+                    (coordinates_in_chromato[i][1])], d_tmp, coord])
         del res
     print("nb match:")
     print(len(coordinates))
