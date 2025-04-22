@@ -1,0 +1,11 @@
+
+FROM domdfcoding/pywine-pyms-nist
+
+ENV NIST_HOME=/app/data/mainlib \
+    NIST_TMP=/app/data/tmp \
+    LIBTYPE=1
+
+# Crée un lien symbolique pour Wine
+RUN ln -s /app/data/mainlib /mainlib
+
+CMD ["wine", "/opt/wineprefix/drive_c/Python/python.exe", "-m", "pyms_nist_search_search_engine"]

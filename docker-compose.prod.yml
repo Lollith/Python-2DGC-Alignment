@@ -1,6 +1,9 @@
 services:
   nist:
-    image: domdfcoding/pywine-pyms-nist
+    image: pywine-pyms-nist-mainlib
+    build:
+      context: .
+      dockerfile: Dockerfile.nist
     container_name: nist_engine
     restart: unless-stopped
     ports:
@@ -18,10 +21,14 @@ services:
         target: /app/data/
     environment:
       - LIBTYPE=1 # 1: mainlib, 2: sublib
-      - NIST_HOME=/app/data/mainlib
-      - NIST_TMP=/app/data/tmp
     networks:
       - nist_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
   
   2dgc_id:
     image: 2dgc_id-app
@@ -42,7 +49,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - nist
+      nist:
+        condition: service_healthy
     networks:
       - nist_network
 

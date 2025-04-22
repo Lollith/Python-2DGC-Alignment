@@ -79,8 +79,6 @@ def full_search_with_ref_data(
 						f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
 						json=sdjson.dumps(mass_spectrum)
 						)
-				print(f"Server response: {res.status_code}")
-				print(f"Server response text: {res.text}")
 				return hit_list_with_ref_data_from_json(res.text)
 			except requests.exceptions.ConnectionError:
 				time.sleep(0.5)
