@@ -10,15 +10,15 @@ services:
       - "5001:5001"
     volumes:
       - type: bind
-        source: /home/camille/Documents/volume_data/mainlib
-        target: /app/data/mainlib
+        source: ${HOST_VOLUME_PATH}/mainlib
+        target: ${DOCKER_VOLUME_PATH}/mainlib
       - type: bind
-        source: /home/camille/Documents/volume_data/tmp
-        target: /app/data/tmp
+        source: ${HOST_VOLUME_PATH}/tmp
+        target: ${DOCKER_VOLUME_PATH}/tmp
         # ICI ajout
       - type: bind
-        source: /home/camille/Documents/volume_data/
-        target: /app/data/
+        source: ${HOST_VOLUME_PATH}/
+        target: ${DOCKER_VOLUME_PATH}/
     environment:
       - LIBTYPE=1 # 1: mainlib, 2: sublib
     networks:
@@ -41,8 +41,8 @@ services:
       - "8888:8888"
     volumes:
     - type: bind
-      source: /media/camille/DATA1/cdf centroid/ #TODO modifier sur le serveur
-      target: /app/data
+      source: ${HOST_VOLUME_PATH}/
+      target: ${DOCKER_VOLUME_PATH}/
       read_only: true
     environment:
       - PYTHONPATH=/app/src

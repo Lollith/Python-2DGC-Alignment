@@ -219,7 +219,6 @@ def identification(filename, mod_time, method, mode, seuil, hit_prob_min,
                                                     pre_process=True
                                                     ))
     MIN_SEUIL = seuil * sigma * 100 / np.max(chromato)
-    print("chromato read")
     # find 2D peaks
     coordinates = peak_detection.peak_detection(
         (chromato, time_rn, mass_range), None, chromato_cube, MIN_SEUIL,
@@ -393,16 +392,16 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
         if (OUTPUT_PATH is not None):
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification, OUTPUT_PATH)
-            print('txt created')
+            print('.txt created')
             cohort_identification_to_csv(file[:-4], matches_identification,
                                          OUTPUT_PATH)
-            print("csv created")
+            print(".csv created")
         else:
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification)
-            print('txt created')
+            print('.txt created')
             cohort_identification_to_csv(file[:-4], matches_identification)
-            print("csv created")
+            print(".csv created")
 
     except Exception as e:
         print(f"Erreur lors du traitement du fichier {file}: {e}")
