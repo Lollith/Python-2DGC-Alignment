@@ -2,12 +2,13 @@ import numpy as np
 import projection
 import mass_spec
 import pyms
-import logging
-# from write_masspec import mass_spectra_to_mgf
-# from matchms.importing import load_from_mgf
-import pyms_nist_search
-import pyms_nist_search
-# import mass_spec
+import requests
+import time
+import sdjson
+import json
+from typing import List, Tuple
+from nist_utils.reference_data import ReferenceData
+from pyms_nist_search.search_result import SearchResult
 
 # present = {"HMDB0031018": [[23.43, 0.008]], "HMDB0061859": [[32.22, 0.042]], "HMDB0030469": [[28.15, 0.008]],
 #            "HMDB0031264": [[15.59, 0.017]], "HMDB0033848": [[18.41, 0.025]], "HMDB0031291": [[13.10, 1.231]],
@@ -22,21 +23,6 @@ import pyms_nist_search
 # '''def check_match_nist_lib(match):
 #     return np.array([casno for casno in match[:, 1] if casno in present])'''
 
-# from pyms_nist_search import LocalEngine  
-# import os
-# from pyms_nist_search import RemoteEngine, NISTMS_MAIN_LIB
-# import os
-import requests
-import time
-# from pyms.Spectrum import MassSpectrum
-import sdjson
-# from pyms_nist_search.search_result import hit_list_with_ref_data_from_json
-# from pyms_nist_search.utils import sdjson  # ou un import équivalent selon version
-import json
-from typing import List, Tuple
-from nist_utils.reference_data import ReferenceData
-from pyms_nist_search.search_result import SearchResult
-
 def hit_list_with_ref_data_from_json(json_data: str) -> List[Tuple[SearchResult, ReferenceData]]:
 	"""
 	Parse json data into a list of (SearchResult, ReferenceData) tuples.
@@ -50,7 +36,6 @@ def hit_list_with_ref_data_from_json(json_data: str) -> List[Tuple[SearchResult,
 
 	for hit, ref_data in raw_output:
 		hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
-
 	return hit_list
 
 def full_search_with_ref_data(
@@ -104,6 +89,13 @@ def matching_nist_lib_from_chromato_cube(
     hit_prob_min :
         Filter compounds with hit_prob < hit_prob_min
     match_factor_min : optional
+        Match factor between our spectrum and the library spectrum NIST.
+        The match factor is a measure of how well the two spectra       
+        match. It is calculated as the sum of the squares of the
+        differences between the intensities of the two spectra.     
+        A match factor of 1000 or higher is considered a good match.
+        A match factor of 800 or higher is considered a fair match.
+        A match factor of 600 or lower is considered a poor match.
         Filter compounds with match_factor < match_factor_min
     -------
     Returns
@@ -118,19 +110,6 @@ def matching_nist_lib_from_chromato_cube(
     coordinates_in_chromato = projection.matrix_to_chromato(
         coordinates, time_rn, mod_time, chromato.shape)
     
-    # search = pyms_nist_search.Engine(
-    #                 "C:/NIST14/MSSEARCH/mainlib/",
-    #                 pyms_nist_search.NISTMS_MAIN_LIB,
-    #                 "C:/Users/Stan/Test",
-    #                 )
-
-
-        
-    # logger = logging.getLogger('pyms_nist_search')
-    # logger.setLevel('ERROR')
-    # logger = logging.getLogger('pyms')
-    # logger.setLevel('ERROR')
-
     match = []
     try:
         (l1, l2, mv, iv, range_min, range_max) = spectra_obj
@@ -148,11 +127,7 @@ def matching_nist_lib_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
 
-###################
         res = full_search_with_ref_data(mass_spectrum)
-# ##############
-# 
-        # res = search.full_search_with_ref_data(mass_spectrum)
         #  res = search.full_spectrum_search(mass_spectrum)
         if (res[0][0].match_factor < match_factor_min):
             continue

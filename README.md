@@ -85,15 +85,26 @@ This project is basedon the work of [Nicolas Romano]( https://github.com/Easy47/
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how to use the package.
-
 ### Prerequisites
+#### Volumes
 
-* Python
-* Rscript
-* Set NIST database location in **matching_nist_lib_from_chromato_cube()** in **matching.py**
-  * Update the path to the NIST database location by setting the **lib_path** argument line 53
-  * Set the **work_dir** line 55
+Create a folder on your host machine that will be mounted into the Docker container.
+For easier usage, it is recommended to use a path that ends with .../app/data, so the volume is properly mapped inside the container.
+
+#### .env
+
+Create a .env file at the root of the project with the following variables:
+```
+# Password hash for JupyterLab login (can be generated with `IPython.lib.passwd()`)
+JUPYTER_PASSWORD_HASH= ...
+
+# Absolute path to the folder on your host machine that will be mounted into the Docker container
+HOST_VOLUME_PATH= .../app/data
+
+# Path inside the container where data will be available
+DOCKER_VOLUME_PATH=/app/data 
+ 
+```
 
 ### Installation
 
@@ -109,7 +120,14 @@ make
 
 ### NIST Integration
 
-The application uses NIST for mass spectrometry identification.
+In this project, we integrated the NIST mass spectral search engine using Docker to automate the identification of chemical compounds. 
+We could not directly call the NIST Docker container from inside our own container. To resolve this, we took the following approach:
+- Custom Docker Container for NIST:
+    Instead of relying solely on the pre-built NIST image from Docker Hub, we built our own Docker container based on domdfcoding/pywine-pyms-nist. This allowed us to mount our own NIST library (mainlib) and temporary directory.
+- Service Communication via Docker Compose:
+    The app can call NIST using http://nist:5001
+- Keeping NIST Persistent:
+    We can rebuild our app without affecting the NIST container.
 
 To use NIST, you need to place your NIST database files in the `..../..../volume_data/` directory.
 
