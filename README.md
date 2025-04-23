@@ -90,6 +90,7 @@ This project is basedon the work of [Nicolas Romano]( https://github.com/Easy47/
 
 Create a folder on your host machine that will be mounted into the Docker container.
 For easier usage, it is recommended to use a path that ends with .../app/data, so the volume is properly mapped inside the container.
+Inside this folder, create a mainlib folder, containing the Nist Library, and a tmp folder(empty).
 
 #### .env
 

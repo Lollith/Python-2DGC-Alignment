@@ -48,13 +48,13 @@ rebuild_prod:
 	docker compose -f $(PROD_COMPOSE) build --no-cache
 	echo "Image Docker reconstruite avec succès."
 
-clean:
+clean: stop
 	sudo docker compose -f $(PROD_COMPOSE) rm -sfv 2dgc_id
 	sudo docker compose -f $(DEV_COMPOSE) rm -sfv 2dgc_id
 	sudo docker rmi 2dgc_id-app || true
 	echo "Conteneurs, réseaux, images, volumes des environnements PROD et DEV supprimés."
 
-clean_nist:
+clean_nist: stop
 	sudo docker compose -f $(PROD_COMPOSE) rm -sfv nist
 	sudo docker compose -f $(DEV_COMPOSE) rm -sfv nist
 	sudo docker rmi pywine-pyms-nist-mainlib || true
