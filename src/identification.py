@@ -392,20 +392,24 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
         if (OUTPUT_PATH is not None):
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification, OUTPUT_PATH)
-            print('.txt created')
+            # print('.txt created')
             cohort_identification_to_csv(file[:-4], matches_identification,
                                          OUTPUT_PATH)
-            print(".csv created")
+            # print(".csv created")
+            return (OUTPUT_PATH + file[:-4] + '.txt',
+                    OUTPUT_PATH + file[:-4] + '.csv', "created")
         else:
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification)
-            print('.txt created')
+            # print('.txt created')
             cohort_identification_to_csv(file[:-4], matches_identification)
-            print(".csv created")
+            # print(".csv created")
+            return (OUTPUT_PATH + file[:-4] + '.txt',
+                    OUTPUT_PATH + file[:-4] + '.csv', "created")
 
     except Exception as e:
-        print(f"Erreur lors du traitement du fichier {file}: {e}")
         traceback.print_exc()
+        return (f"Erreur lors du traitement du fichier {file}: {e}")
 
 
 # def read_process_input_and_launch_sample_identification(PATH, filename, OUTPUT_PATH, method='persistent_homology', mode='tic', seuil=5, hit_prob_min=15, ABS_THRESHOLDS=None, cluster=True, min_distance=1, sigma_ratio=1.6, num_sigma=10, formated_spectra=True, match_factor_min=700):

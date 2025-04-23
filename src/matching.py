@@ -96,7 +96,7 @@ def matching_nist_lib_from_chromato_cube(
         A match factor of 1000 or higher is considered a good match.
         A match factor of 800 or higher is considered a fair match.
         A match factor of 600 or lower is considered a poor match.
-        Filter compounds with match_factor < match_factor_min
+        Filter compounds with match_factor <pmatch_factor_min
     -------
     Returns
     -------
