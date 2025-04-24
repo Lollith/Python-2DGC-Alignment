@@ -248,23 +248,27 @@ import multiprocessing
 
 def clustering(coordinates_all_mass, chromato):
     """
-    Applies DBSCAN clustering algorithm to group points based on their spatial proximity in the chromatogram. 
-    The function identifies clusters and returns the coordinates of the points with the highest intensity within each cluster.
+    Applies DBSCAN clustering algorithm to group points based on their spatial
+    proximity in the chromatogram.
+    The function identifies clusters and returns the coordinates of the points
+    with the highest intensity within each cluster.
 
     Parameters:
-        coordinates_all_mass (numpy.ndarray): An array of coordinates (2D or 3D) where each point represents a mass/retention time pair or triplet.
+        coordinates_all_mass (numpy.ndarray): An array of coordinates (2D or
+        3D) where each point represents a mass/retention time pair or triplet.
         chromato (numpy.ndarray): The chromatogram matrix.
 
     Returns:
-        numpy.ndarray: An array of coordinates corresponding to the points with the highest intensity in each cluster.
+        numpy.ndarray: An array of coordinates corresponding to the points
+        with the highest intensity in each cluster.
 
     Example:
         clustering(coordinates_all_mass, chromato)
     """
 
-    if(not len(coordinates_all_mass)):
+    if (not len(coordinates_all_mass)):
         return np.array([])
-    clustering = DBSCAN(eps=3, min_samples=1).fit(coordinates_all_mass[:,:2])
+    clustering = DBSCAN(eps=3, min_samples=1).fit(coordinates_all_mass[:, :2])
     # Regroup points per clusters
     clusters = []
     for i in range((np.max(clustering.labels_) + 1)):
@@ -856,7 +860,7 @@ def plm_mass_per_mass_multiprocessing(chromato_cube, seuil, min_distance=1, thre
     cpu_count = multiprocessing.cpu_count()
     #pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
-    with multiprocessing.Pool(processes = cpu_count) as pool:
+    with multiprocessing.Pool(processes=cpu_count) as pool:
         for i, result in enumerate(pool.starmap(plm_kernel, [(i, chromato_cube[i], min_distance, seuil, threshold_abs) for i in range(len(chromato_cube))])):
             for x,y in result:
                 coordinates_all_mass.append([i,x,y])
