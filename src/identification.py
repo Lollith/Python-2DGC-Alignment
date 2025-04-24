@@ -10,6 +10,7 @@ import numpy as np
 # import os
 import traceback
 # import argparse
+import time
 
 
 def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
@@ -372,6 +373,7 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
     """
 
     print('Identification started\n')
+    start_time = time.time()
     try:
         full_filename = path + file
         matches_identification = \
@@ -388,24 +390,21 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
                            num_sigma=num_sigma,
                            formated_spectra=formated_spectra,
                            match_factor_min=match_factor_min)
-        print("Identification done")
+        print("Identification done", time.time()-start_time, 's')
         if (OUTPUT_PATH is not None):
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification, OUTPUT_PATH)
-            # print('.txt created')
             cohort_identification_to_csv(file[:-4], matches_identification,
                                          OUTPUT_PATH)
-            # print(".csv created")
-            return (OUTPUT_PATH + file[:-4] + '.txt',
-                    OUTPUT_PATH + file[:-4] + '.csv', "created")
+            return (f'{OUTPUT_PATH + file[:-4]}.txt & '
+                    + f'{OUTPUT_PATH + file[:-4]}.csv created')
+        
         else:
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification)
-            # print('.txt created')
             cohort_identification_to_csv(file[:-4], matches_identification)
-            # print(".csv created")
-            return (OUTPUT_PATH + file[:-4] + '.txt',
-                    OUTPUT_PATH + file[:-4] + '.csv', "created")
+            return (f'{OUTPUT_PATH + file[:-4]}.txt & '
+                    + f'{OUTPUT_PATH + file[:-4]}.csv created')
 
     except Exception as e:
         traceback.print_exc()
