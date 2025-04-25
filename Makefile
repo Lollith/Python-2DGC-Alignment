@@ -18,6 +18,9 @@ all_dev: build_dev start_dev
 build_dev: 
 	docker compose -f $(DEV_COMPOSE) build 2dgc_id
 
+rebuild_dev: 
+	docker compose -f $(DEV_COMPOSE) build --no-cache
+
 
 # check_image:
 # 	@if [ -z "$$(docker images -q 2dgc_id-app)" ]; then \

@@ -86,13 +86,33 @@ This project is basedon the work of [Nicolas Romano]( https://github.com/Easy47/
 ## Getting Started
 
 ### Prerequisites
-#### Volumes
+
+#### Installation
+  Clone the repo
+```bash
+git clone https://github.com/Lollith/Python-2DGC-Alignment.git
+```
+
+##### Volumes
 
 Create a folder on your host machine that will be mounted into the Docker container.
 For easier usage, it is recommended to use a path that ends with .../app/data, so the volume is properly mapped inside the container.
 Inside this folder, create a mainlib folder, containing the Nist Library, and a tmp folder(empty).
 
-#### .env
+#### NIST Integration
+
+In this project, we integrated the NIST mass spectral search engine using Docker to automate the identification of chemical compounds. 
+We could not directly call the NIST Docker container from inside our own container. To resolve this, we took the following approach:
+- Custom Docker Container for NIST:
+    Instead of relying solely on the pre-built NIST image from Docker Hub, we built our own Docker container based on domdfcoding/pywine-pyms-nist. This allowed us to mount our own NIST library (mainlib) and temporary directory.
+- Service Communication via Docker Compose:
+    The app can call NIST using http://nist:5001
+- Keeping NIST Persistent:
+    We can rebuild our app without affecting the NIST container.
+
+To use NIST, you need to place your NIST database files in the `..../..../volume_data/` directory.
+
+##### .env
 
 Create a .env file at the root of the project with the following variables:
 ```
@@ -107,33 +127,14 @@ DOCKER_VOLUME_PATH=/app/data
  
 ```
 
-### Installation
-
-1. Clone the repo
-```bash
-git clone https://github.com/Lollith/Python-2DGC-Alignment.git
-```
-
-2. Open a terminal in the project directory and run:
+### Run
+ Open a terminal in the project directory and run:
 ```bash
 make
 ```
 
-### NIST Integration
 
-In this project, we integrated the NIST mass spectral search engine using Docker to automate the identification of chemical compounds. 
-We could not directly call the NIST Docker container from inside our own container. To resolve this, we took the following approach:
-- Custom Docker Container for NIST:
-    Instead of relying solely on the pre-built NIST image from Docker Hub, we built our own Docker container based on domdfcoding/pywine-pyms-nist. This allowed us to mount our own NIST library (mainlib) and temporary directory.
-- Service Communication via Docker Compose:
-    The app can call NIST using http://nist:5001
-- Keeping NIST Persistent:
-    We can rebuild our app without affecting the NIST container.
-
-To use NIST, you need to place your NIST database files in the `..../..../volume_data/` directory.
-
-
-### Make Commands
+##### Make Commands
 
 The project uses a Makefile to simplify common operations. Here are the main commands:
 
@@ -162,7 +163,7 @@ The analysis will be performed using the selected parameters and the results wil
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Usage Examples
+#### Usage Examples
 
 Here are some examples of how to use the tool:
 
