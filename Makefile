@@ -54,13 +54,13 @@ rebuild_prod:
 clean: stop
 	sudo docker compose -f $(PROD_COMPOSE) rm -sfv 2dgc_id
 	sudo docker compose -f $(DEV_COMPOSE) rm -sfv 2dgc_id
-	sudo docker rmi 2dgc_id-app || true
+	sudo docker rmi python-2dgc-alignment-2dgc_id || true
 	echo "Conteneurs, réseaux, images, volumes des environnements PROD et DEV supprimés."
 
 clean_nist: stop
 	sudo docker compose -f $(PROD_COMPOSE) rm -sfv nist
 	sudo docker compose -f $(DEV_COMPOSE) rm -sfv nist
-	sudo docker rmi pywine-pyms-nist-mainlib || true
+	sudo docker rmi python-2dgc-alignment-nist || true
 	echo "Conteneurs, réseaux, images, volumes de l'environnement NIST supprimés."
 
 re_dev: clean
