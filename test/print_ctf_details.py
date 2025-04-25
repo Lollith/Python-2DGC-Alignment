@@ -2,7 +2,7 @@ import netCDF4 as nc
 import numpy as np  
 
 
-fichier = '/media/camille/DATA1/cdf centroid/G0/G0-1-100123.cdf'
+fichier = '/home/camille/Documents/app/data/input/G0/G0-1-120123.cdf'
 
 
 def print_ctf_details():
@@ -74,6 +74,7 @@ def print_intensity():
     mass_range_min = data['mass_range_min']
     mass_range_max = data['mass_range_max']
     point_count = data['point_count']
+    # mod_time = data['mod_time']
 
     print("total_intensity", chromato[:10])
     print("acquisition time", time_rn[:10])
@@ -82,7 +83,13 @@ def print_intensity():
     print("mass range min", mass_range_min[:10])
     print("mass range max", mass_range_max[:10])
     print("point count", point_count[:])
+    # print("mod time", mod_time[:10])
 
+    if 'mod_time' in data.ncattrs():
+        mod_time = data.getncattr('mod_time')  # Extraire la valeur du mod_time
+        print(f"Modulation Time (mod_time) : {mod_time}")
+    else:
+        print("mod_time non trouvé dans les métadonnées.")
 
 def check_and_convert_point_count(filename):
     ds = nc.Dataset(filename)
