@@ -235,7 +235,8 @@ def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
     sigma = skimage.restoration.estimate_sigma(chromato, channel_axis=None)
     return chromato, time_rn, chromato_cube, sigma, (range_min, range_max)
 
-def centroided_to_mass_nominal_chromatogram(filename, cdf_name, mod_time = 1.25):
+
+def centroided_to_mass_nominal_chromatogram(filename, cdf_name, mod_time):
     r"""Read centroided chromatogram, convert and save it as nominal mass chromatogramm cdf file.
 
     Parameters

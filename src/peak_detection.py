@@ -883,7 +883,7 @@ def plm_mass_per_mass_multiprocessing(chromato_cube, seuil, min_distance=1, thre
 
 #     return np.array(coordinates_all_mass)
 
-def peak_local_max(chromato_obj, mod_time, seuil,  min_distance=1, mode="tic", chromato_cube=None, cluster=False, threshold_abs=0, unique=True):
+def peak_local_max(chromato_obj, mod_time, dynamic_threshold_fact,  min_distance=1, mode="tic", chromato_cube=None, cluster=False, threshold_abs=0, unique=True):
     """
     #ancienne fct nommee plm
     Detects peaks in a chromatographic dataset using different processing modes.
@@ -900,7 +900,7 @@ def peak_local_max(chromato_obj, mod_time, seuil,  min_distance=1, mode="tic", c
         Tuple containing the chromatogram (2D array) and retention times.
     mod_time : float
         Modulation time for chromatographic analysis.
-    seuil : float
+    dynamic_threshold_fact : float
         Relative intensity threshold for peak detection.
     min_distance : int, optional (default=1)
         Minimum distance between detected peaks.
@@ -949,7 +949,7 @@ def peak_local_max(chromato_obj, mod_time, seuil,  min_distance=1, mode="tic", c
     # Compute peak_local_max for very mass slices in the chromato cube 
     elif (mode == "mass_per_mass"):
        
-        coordinates_all_mass = plm_mass_per_mass_multiprocessing(chromato_cube, seuil, min_distance=1, threshold_abs=threshold_abs)
+        coordinates_all_mass = plm_mass_per_mass_multiprocessing(chromato_cube, dynamic_threshold_fact, min_distance=1, threshold_abs=threshold_abs)
         # We delete masse dimension
         if (len(coordinates_all_mass) > 0):
             coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
@@ -960,10 +960,15 @@ def peak_local_max(chromato_obj, mod_time, seuil,  min_distance=1, mode="tic", c
         return clustering(coordinates_all_mass, chromato)
     # Use TIC
     else:
-        coordinates = skimage.feature.peak_local_max(chromato, min_distance=min_distance, threshold_rel=seuil)
+        coordinates = skimage.feature.peak_local_max(chromato, min_distance=min_distance, threshold_rel=dynamic_threshold_fact)
         return coordinates
-        
-def peak_detection(chromato_obj, spectra, chromato_cube, seuil, ABS_THRESHOLDS, mod_time=1.25, method = "persistent_homology", mode='tic', cluster=True, min_distance=1, sigma_ratio=1.6, num_sigma=10, unique=True):
+
+
+def peak_detection(chromato_obj, spectra, chromato_cube, dynamic_threshold_fact, 
+                   ABS_THRESHOLDS,
+                   mod_time, method="persistent_homology", mode='tic',
+                   cluster=True, min_distance=1, sigma_ratio=1.6, num_sigma=10,
+                   unique=True):
     r"""Detect peaks in a 2D or 3D chromatogram.
 
     Parameters
@@ -973,21 +978,36 @@ def peak_detection(chromato_obj, spectra, chromato_cube, seuil, ABS_THRESHOLDS, 
     chromato_cube: ndarray
         3D Chromatogram.
     seuil: float
-        Threshold to filter peaks. A float between 0 and 1. A peak is returned if its intensity in chromato is greater than the maximum value in the chromatogram multiply by seuil.
+        Threshold to filter peaks. A float between 0 and 1. A peak is returned
+        if its intensity in chromato is greater than the maximum value in the 
+        chromatogram multiply by seuil.
     ABS_THRESHOLDS: optional
-        If mode='mass_per_mass' or mode='3D', ABS_THRESHOLDS is the threshold relative to a slice of the 3D chromatogram or a slice of the 3D chromatogram.
+        If mode='mass_per_mass' or mode='3D', ABS_THRESHOLDS is the threshold
+        relative to a slice of the 3D chromatogram or a slice of the 3D
+        chromatogram.
     mod_time: optional
         The modulation time of the chromatogram.
     method: optional
-        The method to use. The default method is "persistent_homology" but it can be "peak_local_max", "LoG", "DoG", or "DoH".
+        The method to use. The default method is "persistent_homology" but it
+        can be "peak_local_max", "LoG", "DoG", or "DoH".
     cluster: optional
-        Whether to cluster or not the 3D coordinates when mode='mass_per_mass' or mode='3D'. When peaks are detected in each slice of the 3D chromatogram, coordinates associated to the same peak may differ a little. 3D peak coordinates (rt1, rt2, mass slice) which are really close in the first two dimensions are merged and the coordinates with the highest intensity in the TIC chromatogram is kept.
+        Whether to cluster or not the 3D coordinates when mode='mass_per_mass'
+        or mode='3D'. When peaks are detected in each slice of the 3D
+        chromatogram, coordinates associated to the same peak may differ a
+        little. 3D peak coordinates (rt1, rt2, mass slice) which are really
+        close in the first two dimensions are merged and the coordinates with
+        the highest intensity in the TIC chromatogram is kept.
     min_distance: optional
-        peak_local_max method parameter. The minimal allowed distance separating peaks. To find the maximum number of peaks, use min_distance=1.
+        peak_local_max method parameter. The minimal allowed distance
+        separating peaks. To find the maximum number of peaks, use
+        min_distance=1.
     sigma_ratio: optional
-        DoG method parameter. The ratio between the standard deviation of Gaussian Kernels used for computing the Difference of Gaussians.
+        DoG method parameter. The ratio between the standard deviation of
+        Gaussian Kernels used for computing the Difference of Gaussians.
     num_sigma: optional
-        LoG/DoH method parameter. The number of intermediate values of standard deviations to consider between min_sigma (1) and max_sigma (30).
+        LoG/DoH method parameter. The number of intermediate values of
+        standard deviations to consider between min_sigma (1) and max_sigma
+        (30).
     Returns
     -------
     A: ndarray
@@ -1000,11 +1020,15 @@ def peak_detection(chromato_obj, spectra, chromato_cube, seuil, ABS_THRESHOLDS, 
     >>> from skimage.restoration import estimate_sigma
     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
     >>> chromato,time_rn,spectra_obj = chromato_obj
-    >>> # seuil=MIN_SEUIL is computed as the ratio between 5 times the estimated gaussian white noise standard deviation (sigma) in the chromatogram and the max value in the chromatogram.
+    >>> # seuil=MIN_SEUIL is computed as the ratio between 5 times the
+    estimated gaussian white noise standard deviation (sigma) in the
+    chromatogram and the max value in the chromatogram.
     >>> sigma = estimate_sigma(chromato, channel_axis=None)
     >>> MIN_SEUIL = 5 * sigma * 100 / np.max(chromato)
-    >>> chromato_cube = read_chroma.full_spectra_to_chromato_cube(full_spectra=full_spectra, spectra_obj=spectra_obj)
-    >>> coordinates = peak_detection.peak_detection(chromato_obj=(chromato, time_rn, spectra_obj), chromato_cube=chromato_cube, seuil=MIN_SEUIL)
+    >>> chromato_cube = read_chroma.full_spectra_to_chromato_cube(
+    full_spectra=full_spectra, spectra_obj=spectra_obj)
+    >>> coordinates = peak_detection.peak_detection(chromato_obj=(chromato,
+    time_rn, spectra_obj), chromato_cube=chromato_cube, seuil=MIN_SEUIL)
 
     """
     chromato, time_rn, spectra_obj = chromato_obj
@@ -1012,24 +1036,45 @@ def peak_detection(chromato_obj, spectra, chromato_cube, seuil, ABS_THRESHOLDS, 
     radius = None
     if (method == "peak_local_max"):
         coordinates = peak_local_max(chromato_obj=(
-                    chromato, time_rn), mod_time=mod_time, seuil=seuil, min_distance=min_distance, mode=mode, chromato_cube=chromato_cube, cluster=cluster, threshold_abs=ABS_THRESHOLDS, unique=unique)
-    elif(method=="DoG"):
+                    chromato, time_rn), mod_time=mod_time,
+                    dynamic_threshold_factor=dynamic_threshold_fact,
+                    min_distance=min_distance, mode=mode,
+                    chromato_cube=chromato_cube, cluster=cluster,
+                    threshold_abs=ABS_THRESHOLDS, unique=unique)
+    elif (method == "DoG"):
         coordinates, radius = DoG(chromato_obj=(
-                    chromato, time_rn), mod_time=mod_time, seuil=seuil, sigma_ratio=sigma_ratio, mode=mode, chromato_cube=chromato_cube, cluster=cluster, threshold_abs=ABS_THRESHOLDS, unique=unique)
-    elif(method=="LoG"):
+                    chromato, time_rn), mod_time=mod_time,
+                    dynamic_threshold_factor=dynamic_threshold_fact,
+                    sigma_ratio=sigma_ratio, mode=mode,
+                    chromato_cube=chromato_cube, cluster=cluster,
+                    threshold_abs=ABS_THRESHOLDS, unique=unique)
+    elif (method == "LoG"):
         coordinates, radius = LoG(chromato_obj=(
-                    chromato, time_rn), mod_time=mod_time, seuil=seuil, num_sigma=num_sigma, mode=mode, chromato_cube=chromato_cube, cluster=cluster, threshold_abs=ABS_THRESHOLDS, unique=unique)
-    elif(method=="DoH"):
+                    chromato, time_rn), mod_time=mod_time,
+                    dynamic_threshold_factor=dynamic_threshold_fact,
+                    num_sigma=num_sigma, mode=mode,
+                    chromato_cube=chromato_cube,
+                    cluster=cluster, threshold_abs=ABS_THRESHOLDS,
+                    unique=unique)
+    elif (method == "DoH"):
         coordinates, radius = DoH(chromato_obj=(
-                    chromato, time_rn), mod_time=mod_time, seuil=seuil, num_sigma=num_sigma, mode=mode, chromato_cube=chromato_cube, cluster=cluster, threshold_abs=ABS_THRESHOLDS, unique=unique)
-    elif(method=="persistent_homology"):
+                    chromato, time_rn), mod_time=mod_time,
+                    dynamic_threshold_factor=dynamic_threshold_fact,
+                    num_sigma=num_sigma, mode=mode,
+                    chromato_cube=chromato_cube, cluster=cluster,
+                    threshold_abs=ABS_THRESHOLDS, unique=unique)
+    elif (method == "persistent_homology"):
         coordinates = pers_hom(chromato_obj=(
-                chromato, time_rn), mod_time=mod_time, seuil=seuil, mode=mode, chromato_cube=chromato_cube, cluster=cluster, threshold_abs=ABS_THRESHOLDS, unique=unique)
+                chromato, time_rn), mod_time=mod_time,
+                dynamic_threshold_fact=dynamic_threshold_fact, mode=mode,
+                chromato_cube=chromato_cube, cluster=cluster,
+                threshold_abs=ABS_THRESHOLDS, unique=unique)
     else:
         print("Unknown method")
         return None
     coordinates = np.array(
-            [[x, y] for x, y in coordinates if chromato[x, y] > seuil * max_peak_val])
+            [[x, y] for x, y in coordinates if chromato[x, y]
+             > dynamic_threshold_fact * max_peak_val])
     return coordinates
 
 
