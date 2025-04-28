@@ -14,7 +14,9 @@ import time
 
 
 def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
-    return compound_name + "\t" + "\"" + str(rt1 * 60) + " , " + str(rt2) + "\"" + "\t" + str(area) + "\t" + "T" + "\t" + formatted_spectrum + "\n"
+    return (compound_name + "\t" + "\"" + str(rt1 * 60) + " , " + str(rt2)
+            + "\"" + "\t" + str(area) + "\t" + "T" + "\t" + formatted_spectrum
+            + "\n")
 
 # def takeSecond(elem):
 #     return elem[1]
@@ -169,7 +171,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,
     return matches_identification
 
 
-def identification(filename, mod_time, method, mode, seuil, hit_prob_min,
+def identification(filename, mod_time, method, mode, filtering_factor, hit_prob_min,
                    ABS_THRESHOLDS, cluster, min_distance, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min):
     r"""Takes a chromatogram as file and returns identified compounds.
@@ -182,7 +184,7 @@ def identification(filename, mod_time, method, mode, seuil, hit_prob_min,
         Method used to detect peaks.
     mode : optional
         Mode used to detect peaks. Can be either tic or mass_per_mass or 3D.
-    seuil : optional
+    filtering_factor :
         Used to compute theshold as seuil * estimated gaussian white noise.
     hit_prob_min : optional
         Filter compounds with hit_prob < hit_prob_min
@@ -219,11 +221,17 @@ def identification(filename, mod_time, method, mode, seuil, hit_prob_min,
         read_chroma.read_chromato_and_chromato_cube(filename, mod_time,
                                                     pre_process=True
                                                     ))
-    MIN_SEUIL = seuil * sigma * 100 / np.max(chromato)
+    
+    dynamic_threshold_fact = filtering_factor * sigma * 100 / np.max(chromato)
+    # if chromatogram is very noisy : avoid detecting noise as if it were real 
+    # peaks.
+    # if chonmatogram  is very clean: detect weaker peaks 
+    
     # find 2D peaks
     coordinates = peak_detection.peak_detection(
-        (chromato, time_rn, mass_range), None, chromato_cube, MIN_SEUIL,
-        ABS_THRESHOLDS, method=method, mode=mode, cluster=cluster,
+        (chromato, time_rn, mass_range), None, chromato_cube,
+        dynamic_threshold_fact, ABS_THRESHOLDS, method=method,
+        mode=mode, cluster=cluster,
         min_distance=min_distance, sigma_ratio=sigma_ratio,
         num_sigma=num_sigma)
     print("nb peaks", len(coordinates))
@@ -324,7 +332,7 @@ def cohort_identification_alignment_input_format_txt(
 
 
 def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
-                          seuil, hit_prob_min, ABS_THRESHOLDS, cluster,
+                          filtering_factor, hit_prob_min, ABS_THRESHOLDS, cluster,
                           min_distance, sigma_ratio, num_sigma,
                           formated_spectra, match_factor_min):
     r"""Read sample chromatogram and generate the associated peak table.
@@ -345,7 +353,7 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
         Method used for peak detection.
     mode : str, default='tic'
         Mode of chromatogram analysis.
-    seuil : int, default=5
+    filtering_factor : int, default=1
         Detection threshold for peaks.
     hit_prob_min : int, default=15
         Minimum hit probability for compound identification.
@@ -381,7 +389,7 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
                            mod_time=mod_time,
                            method=method,
                            mode=mode,
-                           seuil=seuil,
+                           filtering_factor=filtering_factor,
                            hit_prob_min=hit_prob_min,
                            ABS_THRESHOLDS=ABS_THRESHOLDS,
                            cluster=cluster,
