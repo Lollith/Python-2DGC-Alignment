@@ -1,5 +1,5 @@
 DEV_COMPOSE=docker-compose.dev.yml
-PROD_COMPOSE=docker-compose.prod.yml
+PROD_COMPOSE=docker-compose.yml
 
 
 all:  start_prod 
