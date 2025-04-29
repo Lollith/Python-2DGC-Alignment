@@ -221,11 +221,10 @@ def identification(filename, mod_time, method, mode, filtering_factor, hit_prob_
         read_chroma.read_chromato_and_chromato_cube(filename, mod_time,
                                                     pre_process=True
                                                     ))
-    
     dynamic_threshold_fact = filtering_factor * sigma * 100 / np.max(chromato)
-    # if chromatogram is very noisy : avoid detecting noise as if it were real 
+    # if chromatogram is very noisy : avoid detecting noise as if it were real
     # peaks.
-    # if chonmatogram  is very clean: detect weaker peaks 
+    # if chonmatogram  is very clean: detect weaker peaks
     
     # find 2D peaks
     coordinates = peak_detection.peak_detection(
