@@ -143,29 +143,39 @@ DOCKER_VOLUME_PATH=/app/data
 ```
 
 ### Run
- Open a terminal in the project directory and run:
-```bash
-make
-```
+- Linux:
+  - Open a terminal in the project directory and run:
+    ```bash
+      make
+    ```
 
+  - Make Commands:
+    The project uses a Makefile to simplify common operations. Here are the main commands:
 
-##### Make Commands
+    - `make` : Checks if the Docker image is built, builds it if necessary, then starts the container
+    - `make stop` : Stops all containers
+    - `make clean` : Cleans Docker images and volumes
+    - `make re` : Restarts the application (cleans and rebuilds)
+    - `make re_dev` : Cleans, rebuild and starts the development environment
+    - `make logs_dev` : Shows development environment logs
 
-The project uses a Makefile to simplify common operations. Here are the main commands:
-
-- `make` : Checks if the Docker image is built, builds it if necessary, then starts the container
-- `make stop` : Stops all containers
-- `make clean` : Cleans Docker images and volumes
-- `make re` : Restarts the application (cleans and rebuilds)
-- `make re_dev` : Cleans, rebuild and starts the development environment
-- `make logs_dev` : Shows development environment logs
+- Windows:
+  - Terminal:
+      ```bash
+      docker compose -f docker-compose.yml up
+      ```
+  - Docker Desktop: 
+    Run the 2 dockers: NIST and 2dgc_id.
 
 
 ### Usage
 
 The project uses a Jupyter notebook interface for parameter selection and analysis:
 
-1. Open your browser and navigate to http://localhost:8888
+1. Open your browser and go to 
+  - http://localhost:8888 if you're using the browser on the same machine running the server.
+
+  - http://{IP}:8888 replace the server's IP address if you're accessing it from another computer.
 
 2. Enter password (instead of copying the Jupyter URL with token, you now just enter a password)
 
