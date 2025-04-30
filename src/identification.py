@@ -171,7 +171,8 @@ def compute_matches_identification(matches, chromato, chromato_cube,
     return matches_identification
 
 
-def identification(filename, mod_time, method, mode, filtering_factor, hit_prob_min,
+def identification(filename, mod_time, method, mode, filtering_factor, 
+                   hit_prob_min,
                    ABS_THRESHOLDS, cluster, min_distance, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min):
     r"""Takes a chromatogram as file and returns identified compounds.
