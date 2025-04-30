@@ -40,7 +40,6 @@ services:
     - type: bind
       source: ${HOST_VOLUME_PATH}/
       target: ${DOCKER_VOLUME_PATH}/
-      read_only: true
     environment:
       - PYTHONPATH=/app/src
     env_file:
