@@ -203,7 +203,7 @@ def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
     Examples
     --------
     >>> import read_chroma
-    >>> chromato, time_rn, chromato_cube, sigma, \
+    >>> tic_chromato, time_rn, chromato_cube, sigma, \
         (range_min, range_max)=read_chroma.read_chromato_and_chromato_cube(
         filename, mod_time=1.25, pre_process=True)
     """
@@ -219,21 +219,19 @@ def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
         spectra_obj=spectra_obj)
     print("full spectra computed", time.time()-start_time, 's')
 
-    spectra, debuts, fins = full_spectra
+    # spectra, debuts, fins = full_spectra
     chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra,
                                                   spectra_obj=spectra_obj)
 
     # baseline correction
     if (pre_process):
-        chromato = baseline_correction.chromato_no_baseline(tic_chromato)
+        tic_chromato = baseline_correction.chromato_no_baseline(tic_chromato)
         chromato_cube = np.array(
             baseline_correction.chromato_cube_corrected_baseline(
                 chromato_cube))
         print("baseline corrected")
-    else:
-        chromato = tic_chromato
-    sigma = skimage.restoration.estimate_sigma(chromato, channel_axis=None)
-    return chromato, time_rn, chromato_cube, sigma, (range_min, range_max)
+    sigma = skimage.restoration.estimate_sigma(tic_chromato, channel_axis=None)
+    return tic_chromato, time_rn, chromato_cube, sigma, (range_min, range_max)
 
 
 def centroided_to_mass_nominal_chromatogram(filename, cdf_name, mod_time):
@@ -264,7 +262,7 @@ def centroided_to_mass_nominal_chromatogram(filename, cdf_name, mod_time):
     full_spectra = mass_spec.read_full_spectra_centroid(spectra_obj=(l1, l2, mv, iv, range_min, range_max))
     chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra, spectra_obj=(l1, l2, mv, iv, range_min, range_max))
     # compute chromatogram from chromato cube
-    new_chromato_TIC=np.sum(chromato_cube, -1)
+    new_chromato_TIC = np.sum(chromato_cube, -1)
     ## write new chromatogram as cdf file
     # compute mass values and intensities
     mv=np.tile(np.linspace(range_min, range_max, range_max-range_min+1).astype(int), l1*l2)

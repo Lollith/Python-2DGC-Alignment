@@ -306,7 +306,7 @@ def LoG_mass_per_mass_multiprocessing(chromato_cube, seuil, num_sigma=10, min_si
     cpu_count = multiprocessing.cpu_count()
     #pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
-    with multiprocessing.Pool(processes = cpu_count) as pool:
+    with multiprocessing.Pool(processes=cpu_count) as pool:
         for i, result in enumerate(pool.starmap(blob_log_kernel, [(i, chromato_cube[i], min_sigma, max_sigma, seuil, threshold_abs, num_sigma) for i in range(len(chromato_cube))])):
             for coord in result:
                 t1, t2, r = coord
