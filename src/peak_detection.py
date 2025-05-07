@@ -2,7 +2,7 @@ from plot import visualizer
 # from skimage.feature import peak_local_max
 import skimage.feature
 from scipy import ndimage as ndi
-from imagepers import persistence
+import imagepers
 from skimage.feature import blob_dog, blob_log, blob_doh
 import math
 import numpy as np
@@ -742,7 +742,7 @@ def DoH(chromato_obj, seuil, num_sigma=10, threshold_abs=0, mode="tic", chromato
         return np.delete(blobs_doh, 2 ,-1), blobs_doh[:,2]
 
 def pers_hom_kernel(i, m_chromato, dynamic_threshold_fact, threshold_abs):
-    g0 = persistence(m_chromato)
+    g0 = imagepers.persistence(m_chromato)
     pts = []
     max_peak_val = np.max(m_chromato)
     for i, homclass in enumerate(g0):
@@ -812,9 +812,9 @@ def pers_hom(chromato_obj, dynamic_threshold_fact, threshold_abs=None, mode="tic
             return coordinates_all_mass
         return clustering(coordinates_all_mass, chromato)
     else:
-        g0 = persistence(chromato)
+        g0 = imagepers.persistence(chromato)
         pts = []
-        max_peak_val = np.max(chromato)
+        # max_peak_val = np.max(chromato)
         for i, homclass in enumerate(g0):
             p_birth, bl, pers, p_death = homclass
             x, y = p_birth

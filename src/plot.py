@@ -442,13 +442,14 @@ def visualizer(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_window
         ))
         fig.show()
 
-def plot_3d_chromato(chromato,rstride=10, cstride=10, plot_map=True):
+
+def plot_3d_chromato(chromato, rstride=10, cstride=10, plot_map=True):
     sub_chrom = chromato.copy()
     wsize = sub_chrom.shape[0] // 2
     hsize = sub_chrom.shape[1] // 2
     x_sup = wsize if sub_chrom.shape[0] % 2 == 0 else wsize + 1
     y_sup = hsize if sub_chrom.shape[1] % 2 == 0 else hsize + 1
-    Y,X = np.mgrid[-wsize:x_sup,-hsize:y_sup]
+    Y,X = np.mgrid[-wsize:x_sup, -hsize:y_sup]
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     #ax.plot_surface(X, Y, sub_chrom)
