@@ -103,48 +103,96 @@ def iter_neighbors(p, w, h):
         yield j, i
 
 
-def persistence(im):
-    h, w = im.shape
+def persistence(image):
+    """
+    Compute topological persistence of maxima in a 2D image using Union-Find.
 
-    # Get indices orderd by value from high to low
-    indices = [(i, j) for i in range(h) for j in range(w)]
-    indices.sort(key=lambda p: get(im, p), reverse=True)
+    Parameters
+    ----------
+    image : ndarray
+        2D image (e.g., chromatogram or heatmap) where pixel intensities
+        indicate signal strength.
+
+    Returns
+    -------
+    List[Tuple[Tuple[int, int], float, float, Tuple[int, int]]]
+        A list of maxima with their persistence values.
+        Each tuple contains:
+            - coordinates of the dying maximum,
+            - its birth intensity (when it was the highest),
+            - persistence (birth - death intensity),
+            - coordinates where the merge occurred.
+        The list is sorted by decreasing persistence.
+
+    Notes
+    -----
+    This function implements a 2D max-pooling persistence algorithm.
+    High-persistence maxima correspond to dominant peaks, while 
+    low-persistence ones can be considered noise.
+
+    Example
+    -------
+    >>> output = persistence(my_image)
+    >>> # Keep only the most persistent peaks
+    >>> dominant_peaks = [entry for entry in output if entry[2] > threshold]
+    """
+
+    height, width = image.shape
+
+    # Sort all pixel coordinates by intensity in descending order
+    pixel_coords = [(i, j) for i in range(height) for j in range(width)]
+    pixel_coords.sort(key=lambda p: get(image, p), reverse=True)
 
     # Maintains the growing sets
     uf = UnionFind()
 
+    # Dictionary to store birth, persistence, and merge location of each 
+    # maximum
     groups0 = {}
 
-    def get_comp_birth(p):
-        return get(im, uf[p])
+    def get_component_birth_intensity(coord):
+        return get(image, uf[coord])
 
-    # Process pixels from high to low
-    for i, p in enumerate(indices):
+    # # Process pixels from highest to lowest intensity
+    for i, coord in enumerate(pixel_coords):
         #print(p)
-        v = get(im, p)
-        # Search the coordinates of the maximum for each pts in the neighborhood
-        ni = [uf[q] for q in iter_neighbors(p, w, h) if q in uf]
-        # Duplicates not allowed in set (merge the same points) in the neighborhood et sort them by their comp birth (intensity)
-        nc = sorted([(get_comp_birth(q), q) for q in set(ni)], reverse=True)
+        current_intensity = get(image, coord)
+        # Search the coordinates of the maximum for each pts in the
+        # neighborhood
+        neighborhood = [
+            uf[n] for n in iter_neighbors(coord, width, height) if n in uf
+            ]
+
+        # Duplicates not allowed in set (merge the same points) in the
+        # neighborhood et sort them by their comp birth (intensity)
+        # Unique neighboring components, sorted by their birth intensity (descending)
+        neighbor_components = sorted([(get_component_birth_intensity(c), c) for c in set(neighborhood)], reverse=True)
+        
+        # First pixel: initialize as a maximum
         if i == 0:
-            groups0[p] = (v, v, None)
+            groups0[coord] = (current_intensity, current_intensity, None)
 
-        uf.add(p, -i)
+        # Add current point as a new set in Union-Find
+        uf.add(coord, -i) # -index ensures older entries have higher priority
 
-        if len(nc) > 0:
+        if len(neighbor_components) > 0:
             # Among the maxima (pts coordinates) which belong each pts in the neighborhood of the points get the coordinates of the highest
             # Ex: nc = [(44820405.83064588, (1154, 15)), (3495593.1969386637, (2096, 126))] -> (1154, 15)
-            oldp = nc[0][1]
+            # Identify the dominant neighbor component
+            dominant_coord = neighbor_components[0][1]
             # Merge the sets containing the items
-            uf.union(oldp, p)
+            uf.union(dominant_coord, coord)
 
-            # Merge all others with oldp
-            for bl, q in nc[1:]:
-                if uf[q] not in groups0:
+            #  Merge all other neighbor components with the dominant one
+            for birth_intensity, neighbor_coord in neighbor_components[1:]:
+                # If this neighbor component hasn't already been recorded 
+                # (i.e., it's being merged into a stronger one), record its persistence
+                if uf[neighbor_coord] not in groups0:
                     #print(i, ": Merge", uf[q], "with", oldp, "via", p)
                     #bl: intensity, v: point's intensity, p: point's coordinates
-                    groups0[uf[q]] = (bl, bl-v, p)
-                uf.union(oldp, q)
+                    persistence_value = birth_intensity - current_intensity
+                    groups0[uf[neighbor_coord]] = (birth_intensity, persistence_value , coord)
+                uf.union(dominant_coord, neighbor_coord)
 
     groups0 = [(k, groups0[k][0], groups0[k][1], groups0[k][2]) for k in groups0]
     # Sort the maxima by their persistence (difference between their max intensity and their intensity)

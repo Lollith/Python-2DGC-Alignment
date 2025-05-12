@@ -20,7 +20,9 @@ def baseline_als(y, lam, p, niter=10):
     w = p * (y > z) + (1-p) * (y < z)
   return z
 
-def chromato_no_baseline(chromato, j=None):
+
+# def chromato_no_baseline(chromato, j=None): #rename
+def chromato_reduced_noise(chromato, j=None):  #rename
     r"""Correct baseline and apply savgol filter.
     ----------
     chromato : ndarray
@@ -38,11 +40,16 @@ def chromato_no_baseline(chromato, j=None):
     >>> chromato = baseline_correction.chromato_no_baseline(chromato)
     """
     tmp = np.empty_like(chromato)
-    for i in range (tmp.shape[1]):
-        tmp[:,i] = savgol_filter(chromato[:,i] - pybaselines.whittaker.asls(chromato[:,i], lam=1000.0, p=0.05)[0], 5, 2, mode='nearest')
+    for i in range(tmp.shape[1]):
+        tmp[:, i] = savgol_filter(
+           chromato[:, i] - pybaselines.whittaker.asls(chromato[:, i],
+                                                       lam=1000.0, # 1000
+                                                       p=0.05)[0],
+           window_length=5,  # 5, 11 pour un lissage + fort
+           polyorder=2,
+           mode='nearest')
     tmp[tmp < .0] = 0
     return tmp
-
 
 
 def chromato_cube_corrected_baseline(chromato_cube):
@@ -67,6 +74,6 @@ def chromato_cube_corrected_baseline(chromato_cube):
     cpu_count = multiprocessing.cpu_count()
     chromato_cube_no_baseline = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(chromato_no_baseline, [(m_chromato, j) for j, m_chromato in enumerate(chromato_cube)])):
+        for i, result in enumerate(pool.starmap(chromato_reduced_noise, [(m_chromato, j) for j, m_chromato in enumerate(chromato_cube)])):
             chromato_cube_no_baseline.append(result)
     return chromato_cube_no_baseline

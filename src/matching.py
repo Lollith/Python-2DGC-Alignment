@@ -118,7 +118,7 @@ def matching_nist_lib_from_chromato_cube(
         
     mass_values = np.linspace(
         range_min, range_max, range_max - range_min + 1).astype(int)
-    # nb_analyte = 0
+    nb_analyte = 0
     print("nb_peaks: ", len(coordinates))
     for i, coord in enumerate(coordinates):
         
@@ -149,9 +149,9 @@ def matching_nist_lib_from_chromato_cube(
         d_tmp['match_factor'] = match_factor
         d_tmp['reverse_match_factor'] = reverse_match_factor
         d_tmp['spectra'] = int_values
-        # if (res[0][0].hit_prob < hit_prob_min):
-        #     nb_analyte = nb_analyte + 1
-        #     d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
+        if (res[0][0].hit_prob < hit_prob_min):
+            nb_analyte = nb_analyte + 1
+            d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
 
         match.append([[(coordinates_in_chromato[i][0]),
                     (coordinates_in_chromato[i][1])], d_tmp, coord])

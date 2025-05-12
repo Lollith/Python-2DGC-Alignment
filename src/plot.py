@@ -259,7 +259,7 @@ def plot(chromato_obj):
     plt.show()
     
 
-def visualizer(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_window = 5, rt2_window = 0.1, plotly = False, title = "", points = None, radius=None, pt_shape = ".", log_chromato=True, casnos_dict=None, contour=[], center_pt=None, center_pt_window_1 = None, center_pt_window_2 = None, save=False):
+def visualizer(chromato_obj, mod_time, rt1 = None, rt2 = None, rt1_window = 5, rt2_window = 0.1, plotly = False, title = "", points = None, radius=None, pt_shape = ".", log_chromato=True, casnos_dict=None, contour=[], center_pt=None, center_pt_window_1 = None, center_pt_window_2 = None, save=False):
     r"""Plot mass spectrum
 
     Parameters
