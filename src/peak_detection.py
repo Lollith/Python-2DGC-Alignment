@@ -741,17 +741,56 @@ def DoH(chromato_obj, seuil, num_sigma=10, threshold_abs=0, mode="tic", chromato
         blobs_doh = np.array(blobs_doh)
         return np.delete(blobs_doh, 2 ,-1), blobs_doh[:,2]
 
-def pers_hom_kernel(i, m_chromato, dynamic_threshold_fact, threshold_abs):
-    g0 = imagepers.persistence(m_chromato)
-    pts = []
-    max_peak_val = np.max(m_chromato)
-    for i, homclass in enumerate(g0):
-        p_birth, bl, pers, p_death = homclass
-        x, y = p_birth
-        if (m_chromato[x, y] < threshold_abs * max_peak_val):
+# def pers_hom_kernel(i, m_chromato, dynamic_threshold_fact, threshold_abs):
+#     g0 = imagepers.persistence(m_chromato)
+#     pts = []
+#     max_peak_val = np.max(m_chromato)
+#     for i, homclass in enumerate(g0):
+#         p_birth, bl, pers, p_death = homclass
+#         x, y = p_birth
+#         if (m_chromato[x, y] < threshold_abs * max_peak_val):
+#             continue
+#         pts.append((x, y))
+#     return pts
+
+def pers_hom_kernel(m_chromato, min_persistence, threshold_abs=0.01):
+    """
+    Detect robust peaks in a 2D chromatogram using topological persistence
+    and intensity-based filtering.
+
+    Parameters
+    ----------
+    m_chromato : ndarray
+        2D matrix (e.g., chromatogram) with intensity values.
+    threshold_abs : float
+        Minimum intensity required (as a fraction of max intensity).
+
+    Returns
+    -------
+    List[Tuple[int, int]]
+        List of (x, y) coordinates corresponding to robust peak positions.
+    """
+    persistent_groups = imagepers.persistence(m_chromato)
+    max_intensity = np.max(m_chromato)
+    peak_coords = []
+
+    for birth_coord, birth_val, persistence_val, death_coord in persistent_groups:
+        x, y = birth_coord
+
+        # Skip low absolute intensity
+        if m_chromato[x, y] < threshold_abs * max_intensity:
             continue
-        pts.append((x, y))
-    return pts
+
+        # Skip low persistence
+        if persistence_val < min_persistence * max_intensity:
+            continue
+
+        # Otherwise, keep this peak
+        peak_coords.append((x, y))
+
+    return peak_coords
+
+
 
 
 def pers_hom_mass_per_mass_multiprocessing(
