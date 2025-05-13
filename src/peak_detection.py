@@ -793,20 +793,40 @@ def pers_hom_kernel(m_chromato, min_persistence, threshold_abs=0.01):
 
 
 
+
 def pers_hom_mass_per_mass_multiprocessing(
-        chromato_cube, dynamic_threshold_fact, threshold_abs=0):
+        chromato_cube, min_persistence, threshold_abs=0):
     cpu_count = multiprocessing.cpu_count()
+    """
+    Process each mass slice in parallel to detect peaks.
+    
+    Parameters
+    ----------
+    chromato_cube : ndarray
+        3D array (mass, retention time, intensity)
+    dynamic_threshold_fact : float
+        Minimum persistence value relative to max intensity
+    threshold_abs : float
+        Minimum absolute intensity relative to max intensity
+        
+    Returns
+    -------
+    ndarray
+        Array of [mass_idx, x, y] coordinates for detected peaks
+    """
+    cpu_count = multiprocessing.cpu_count()
+    coordinates_all_mass = []
     # pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(pers_hom_kernel, [(i, chromato_cube[i], dynamic_threshold_fact, threshold_abs) for i in range(len(chromato_cube))])):
+        for i, result in enumerate(pool.starmap(pers_hom_kernel, [(i, chromato_cube[i], min_persistence, threshold_abs) for i in range(len(chromato_cube))])):
             for x,y in result:
                 coordinates_all_mass.append([i,x,y])
 
     return np.array(coordinates_all_mass)
 
 
-def pers_hom(chromato_obj, dynamic_threshold_fact, threshold_abs=None, mode="tic", cluster=False, chromato_cube=None, unique=True):
+def pers_hom(chromato_obj, min_persistence, threshold_abs=None, mode="tic", cluster=False, chromato_cube=None, unique=True):
     """
     This function applies persistent homology to detect significant peaks in 
     a chromatographic dataset. It supports two modes:
@@ -840,8 +860,12 @@ def pers_hom(chromato_obj, dynamic_threshold_fact, threshold_abs=None, mode="tic
 
     chromato, time_rn = chromato_obj
     if (mode == "mass_per_mass"):
-        #chromato_cube = chromato_cube[:10]
-        coordinates_all_mass = pers_hom_mass_per_mass_multiprocessing(chromato_cube, dynamic_threshold_fact, threshold_abs=threshold_abs)
+        if chromato_cube is None:
+            raise ValueError("chromato_cube is required for mass_per_mass mode")
+        
+        coordinates_all_mass = pers_hom_mass_per_mass_multiprocessing(
+            chromato_cube, min_persistence, threshold_abs=threshold_abs)
+        
         # We delete masse dimension
         if (len(coordinates_all_mass) > 0):
             coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
@@ -853,13 +877,31 @@ def pers_hom(chromato_obj, dynamic_threshold_fact, threshold_abs=None, mode="tic
     else:
         g0 = imagepers.persistence(chromato)
         pts = []
-        # max_peak_val = np.max(chromato)
+        # # max_peak_val = np.max(chromato)
+        # for i, homclass in enumerate(g0):
+        #     p_birth, bl, pers, p_death = homclass
+        #     x, y = p_birth
+        #     '''if (chromato[x,y] < seuil * max_peak_val):
+        #         continue'''
+        #     pts.append((x, y))
+        # return np.array(pts)
         for i, homclass in enumerate(g0):
-            p_birth, bl, pers, p_death = homclass
+            p_birth, birth_val, pers_val, p_death = homclass
             x, y = p_birth
-            '''if (chromato[x,y] < seuil * max_peak_val):
-                continue'''
+            
+            # Apply thresholds
+            max_peak_val = np.max(chromato)
+            
+            # Skip low absolute intensity
+            if threshold_abs is not None and chromato[x, y] < threshold_abs * max_peak_val:
+                continue
+                
+            # Skip low persistence
+            if pers_val < min_persistence * max_peak_val:
+                continue
+                
             pts.append((x, y))
+        
         return np.array(pts)
 
 
@@ -1013,7 +1055,7 @@ def peak_detection(chromato_obj, spectra, chromato_cube,
                    dynamic_threshold_fact,
                    ABS_THRESHOLDS, method="persistent_homology", mode='tic',
                    cluster=True, min_distance=1, sigma_ratio=1.6, num_sigma=10,
-                   unique=True):
+                   unique=True, min_persistence=0.01):
     r"""Detect peaks in a 2D or 3D chromatogram.
 
     Parameters
@@ -1109,7 +1151,7 @@ def peak_detection(chromato_obj, spectra, chromato_cube,
     elif (method == "persistent_homology"):
         coordinates = pers_hom(chromato_obj=(
                 chromato, time_rn),
-                dynamic_threshold_fact=dynamic_threshold_fact, mode=mode,
+                min_persistence=min_persistence, mode=mode,
                 chromato_cube=chromato_cube, cluster=cluster,
                 threshold_abs=ABS_THRESHOLDS, unique=unique)
     else:

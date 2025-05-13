@@ -174,7 +174,8 @@ def compute_matches_identification(matches, chromato, chromato_cube,
 def identification(filename, mod_time, method, mode, filtering_factor, 
                    hit_prob_min,
                    ABS_THRESHOLDS, cluster, min_distance, sigma_ratio,
-                   num_sigma, formated_spectra, match_factor_min):
+                   num_sigma, formated_spectra, match_factor_min, 
+                   min_persistence):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -233,7 +234,8 @@ def identification(filename, mod_time, method, mode, filtering_factor,
         dynamic_threshold_fact, ABS_THRESHOLDS, method=method,
         mode=mode, cluster=cluster,
         min_distance=min_distance, sigma_ratio=sigma_ratio,
-        num_sigma=num_sigma)
+        num_sigma=num_sigma, 
+        min_persistence=min_persistence)
     print("nb peaks", len(coordinates))
 
     # 2D peaks identification
@@ -332,9 +334,10 @@ def cohort_identification_alignment_input_format_txt(
 
 
 def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
-                          filtering_factor, hit_prob_min, ABS_THRESHOLDS, cluster,
+                          filtering_factor, hit_prob_min, ABS_THRESHOLDS,
+                          cluster,
                           min_distance, sigma_ratio, num_sigma,
-                          formated_spectra, match_factor_min):
+                          formated_spectra, match_factor_min, min_persistence):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -397,7 +400,8 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
                            sigma_ratio=sigma_ratio,
                            num_sigma=num_sigma,
                            formated_spectra=formated_spectra,
-                           match_factor_min=match_factor_min)
+                           match_factor_min=match_factor_min,
+                           min_persistence=min_persistence)
         print("Identification done", time.time()-start_time, 's')
         if (OUTPUT_PATH is not None):
             cohort_identification_alignment_input_format_txt(
