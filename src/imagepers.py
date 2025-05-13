@@ -110,8 +110,7 @@ def persistence(image):
     Parameters
     ----------
     image : ndarray
-        2D image (e.g., chromatogram or heatmap) where pixel intensities
-        indicate signal strength.
+        2D image where pixel intensities indicate signal strength.
 
     Returns
     -------
