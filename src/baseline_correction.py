@@ -22,7 +22,7 @@ def baseline_als(y, lam, p, niter=10):
 
 
 # def chromato_no_baseline(chromato, j=None): #rename
-def chromato_reduced_noise(chromato, j=None):  #rename
+def chromato_reduced_noise(chromato, j=None):
     r"""Correct baseline and apply savgol filter.
     ----------
     chromato : ndarray

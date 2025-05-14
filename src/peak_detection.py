@@ -9,6 +9,7 @@ import numpy as np
 # import pywt
 import matplotlib.pyplot as plt
 from sklearn.cluster import DBSCAN
+from concurrent.futures import ProcessPoolExecutor
 
 import multiprocessing
 # from multiprocessing import Pool
@@ -793,10 +794,8 @@ def pers_hom_kernel(m_chromato, min_persistence, threshold_abs=0.01):
 
 
 
-
 def pers_hom_mass_per_mass_multiprocessing(
         chromato_cube, min_persistence, threshold_abs=0):
-    cpu_count = multiprocessing.cpu_count()
     """
     Process each mass slice in parallel to detect peaks.
     
@@ -814,14 +813,28 @@ def pers_hom_mass_per_mass_multiprocessing(
     ndarray
         Array of [mass_idx, x, y] coordinates for detected peaks
     """
-    cpu_count = multiprocessing.cpu_count()
+    # cpu_count = multiprocessing.cpu_count()
+    # coordinates_all_mass = []
+    # # pool = multiprocessing.Pool(processes = cpu_count)
+    # with multiprocessing.Pool(processes=cpu_count) as pool:
+    #     for i, result in enumerate(pool.starmap(pers_hom_kernel, [(i, chromato_cube[i], min_persistence, threshold_abs) for i in range(len(chromato_cube))])):
+    #         for x,y in result:
+    #             coordinates_all_mass.append([i,x,y])
+
+    # return np.array(coordinates_all_mass)
+
     coordinates_all_mass = []
-    # pool = multiprocessing.Pool(processes = cpu_count)
-    coordinates_all_mass = []
-    with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(pers_hom_kernel, [(i, chromato_cube[i], min_persistence, threshold_abs) for i in range(len(chromato_cube))])):
-            for x,y in result:
-                coordinates_all_mass.append([i,x,y])
+
+    # Fonction auxiliaire pour traiter les résultats correctement
+    def process_slice(i):
+        result = pers_hom_kernel(
+            i, chromato_cube[i], min_persistence, threshold_abs)
+        return [[i, x, y] for x, y in result]
+
+    with ProcessPoolExecutor() as executor:
+        results = executor.map(process_slice, range(len(chromato_cube)))
+        for result in results:
+            coordinates_all_mass.extend(result)
 
     return np.array(coordinates_all_mass)
 
