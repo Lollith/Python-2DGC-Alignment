@@ -374,6 +374,8 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
         Whether to format spectra before identification.
     match_factor_min : int, default=700
         Minimum match factor for compound identification.
+    min_persistence : flaot
+        Minimum persistence for peak detection with method persistent_homology.
 
     Examples
     --------
