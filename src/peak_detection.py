@@ -461,6 +461,7 @@ def LoG(chromato_obj, seuil, num_sigma=10, threshold_abs=0, mode="tic", chromato
 
 
 def blob_dog_kernel(i, m_chromato, min_sigma, max_sigma, seuil, threshold_abs, sigma_ratio):
+    #TODO seuil a surpprimer
     #blobs_dog = blob_dog(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=seuil, threshold=threshold_abs, sigma_ratio=sigma_ratio)
     blobs_dog = skimage.feature.blob_dog(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=threshold_abs, sigma_ratio=sigma_ratio)
 
@@ -473,7 +474,7 @@ def DoG_mass_per_mass_multiprocessing(chromato_cube, seuil, sigma_ratio=1.6, min
     cpu_count = multiprocessing.cpu_count()
     #pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
-    with multiprocessing.Pool(processes = cpu_count) as pool:
+    with multiprocessing.Pool(processes=cpu_count) as pool:
         for i, result in enumerate(pool.starmap(blob_dog_kernel, [(i, chromato_cube[i], min_sigma, max_sigma, seuil, threshold_abs, sigma_ratio) for i in range(len(chromato_cube))])):
             for coord in result:
                 t1, t2, r = coord
@@ -754,15 +755,19 @@ def DoH(chromato_obj, seuil, num_sigma=10, threshold_abs=0, mode="tic", chromato
 #         pts.append((x, y))
 #     return pts
 
-def pers_hom_kernel(m_chromato, min_persistence, threshold_abs=0.01):
+def pers_hom_kernel(mass_idx, m_chromato, min_persistence, threshold_abs=0.01):
     """
     Detect robust peaks in a 2D chromatogram using topological persistence
     and intensity-based filtering.
 
     Parameters
     ----------
+    mass_idx : int
+        index/mass number
     m_chromato : ndarray
         2D matrix (e.g., chromatogram) with intensity values.
+     min_persistence : float
+        Minimum persistence value as fraction of max intensity
     threshold_abs : float
         Minimum intensity required (as a fraction of max intensity).
 
@@ -771,10 +776,13 @@ def pers_hom_kernel(m_chromato, min_persistence, threshold_abs=0.01):
     List[Tuple[int, int]]
         List of (x, y) coordinates corresponding to robust peak positions.
     """
+    if m_chromato.size == 0:
+        return []
+    
     persistent_groups = imagepers.persistence(m_chromato)
-    max_intensity = np.max(m_chromato)
-    peak_coords = []
+    max_intensity = np.max(m_chromato) if np.max(m_chromato) > 0 else 1.0
 
+    peak_coords = []
     for birth_coord, birth_val, persistence_val, death_coord in persistent_groups:
         x, y = birth_coord
 
@@ -786,13 +794,16 @@ def pers_hom_kernel(m_chromato, min_persistence, threshold_abs=0.01):
         if persistence_val < min_persistence * max_intensity:
             continue
 
-        # Otherwise, keep this peak
         peak_coords.append((x, y))
 
     return peak_coords
 
 
+def process_slice(mass_idx, chromato_cube, min_persistence, threshold_abs):
+    result = pers_hom_kernel(mass_idx, chromato_cube[mass_idx], min_persistence, threshold_abs)
+    return [[mass_idx, x, y] for x, y in result]
 
+from functools import partial
 
 def pers_hom_mass_per_mass_multiprocessing(
         chromato_cube, min_persistence, threshold_abs=0):
@@ -804,6 +815,8 @@ def pers_hom_mass_per_mass_multiprocessing(
     chromato_cube : ndarray
         3D array (mass, retention time, intensity)
     dynamic_threshold_fact : float
+        Minimum persistence value relative to max intensity
+    min_persistence : float
         Minimum persistence value relative to max intensity
     threshold_abs : float
         Minimum absolute intensity relative to max intensity
@@ -822,17 +835,17 @@ def pers_hom_mass_per_mass_multiprocessing(
     #             coordinates_all_mass.append([i,x,y])
 
     # return np.array(coordinates_all_mass)
-
+    
     coordinates_all_mass = []
 
-    # Fonction auxiliaire pour traiter les résultats correctement
-    def process_slice(i):
-        result = pers_hom_kernel(
-            i, chromato_cube[i], min_persistence, threshold_abs)
-        return [[i, x, y] for x, y in result]
+    # using partial to use map() with different parameters
+    partial_func = partial(process_slice,
+                           chromato_cube=chromato_cube,
+                           min_persistence=min_persistence,
+                           threshold_abs=threshold_abs)
 
     with ProcessPoolExecutor() as executor:
-        results = executor.map(process_slice, range(len(chromato_cube)))
+        results = list(executor.map(partial_func, range(len(chromato_cube))))
         for result in results:
             coordinates_all_mass.extend(result)
 
