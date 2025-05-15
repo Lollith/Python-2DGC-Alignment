@@ -259,7 +259,26 @@ def plot(chromato_obj):
     plt.show()
     
 
-def visualizer(chromato_obj, mod_time, rt1 = None, rt2 = None, rt1_window = 5, rt2_window = 0.1, plotly = False, title = "", points = None, radius=None, pt_shape = ".", log_chromato=True, casnos_dict=None, contour=[], center_pt=None, center_pt_window_1 = None, center_pt_window_2 = None, save=False):
+def visualizer(
+        chromato_obj,
+        mod_time,
+        rt1=None,
+        rt2=None,
+        rt1_window=5,
+        rt2_window=0.1,
+        plotly=False,
+        title="",
+        points=None,
+        radius=None,
+        pt_shape=".",
+        log_chromato=True,
+        casnos_dict=None,
+        contour=[],
+        center_pt=None,
+        center_pt_window_1=None,
+        center_pt_window_2=None,
+        save=False
+               ):
     r"""Plot mass spectrum
 
     Parameters
@@ -355,7 +374,7 @@ def visualizer(chromato_obj, mod_time, rt1 = None, rt2 = None, rt1_window = 5, r
 
         chromato = chromato[center_pt1_minusrt1window:center_pt1_plusrt1window + 1, center_pt2_minusrt2window:center_pt2_plusrt2window + 1]
         position_in_chromato = np.array([[center_pt1_minusrt1window, center_pt2_minusrt2window], [center_pt1_plusrt1window, center_pt2_plusrt2window]])
-        indexes = matrix_to_chromato(position_in_chromato,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
+        indexes = matrix_to_chromato(position_in_chromato, time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
         #indexes_in_chromato = matrix_to_chromato(indexes,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
         indexes_in_chromato=indexes
 
