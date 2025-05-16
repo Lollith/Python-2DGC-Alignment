@@ -304,13 +304,43 @@ def blob_log_kernel(i, m_chromato, min_sigma, max_sigma, seuil, threshold_abs, n
     return blobs_log
 
 def LoG_mass_per_mass_multiprocessing(chromato_cube, seuil, num_sigma=10, min_sigma=10, max_sigma=30, threshold_abs=0):
+    ):
+    """
+    Applies Laplacian of Gaussian (LoG) blob detection to each mass slice of a chromatographic data cube
+    using multiprocessing. All detected blobs are preserved, including duplicates at the same time coordinates
+    but from different masses.
+
+    Parameters:
+    -----------
+    chromato_cube : np.ndarray
+        3D chromatographic cube of shape (n_masses, t1, t2), where each slice represents a chromatogram for a specific mass.
+    seuil : float
+        Relative threshold used for blob detection (passed to threshold_rel).
+    num_sigma : int, optional (default=10)
+        Number of standard deviation values used for multi-scale LoG detection.
+    min_sigma : float, optional (default=10)
+        Minimum standard deviation for LoG kernel.
+    max_sigma : float, optional (default=30)
+        Maximum standard deviation for LoG kernel.
+    threshold_abs : float, optional (default=0)
+        Absolute threshold for LoG detection. Values below this are ignored.
+
+    Returns:
+    --------
+    np.ndarray
+        Array of shape (N, 4), where each row contains [mass_index, t1, t2, radius] for a detected blob.
+        Duplicates (blobs with same t1/t2 but different masses or radii) are not removed.
+    """
+
     cpu_count = multiprocessing.cpu_count()
-    #pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
+
     with multiprocessing.Pool(processes=cpu_count) as pool:
         for i, result in enumerate(pool.starmap(blob_log_kernel, [(i, chromato_cube[i], min_sigma, max_sigma, seuil, threshold_abs, num_sigma) for i in range(len(chromato_cube))])):
             for coord in result:
                 t1, t2, r = coord
+
+                # TODO supprime les doublons : peut etre prefrer les garder
                 is_in = False
                 for j in range(len(coordinates_all_mass)):
                     m, cam_t1, cam_t2, cam_r = coordinates_all_mass[j]
@@ -322,6 +352,9 @@ def LoG_mass_per_mass_multiprocessing(chromato_cube, seuil, num_sigma=10, min_si
                         break
                 if (not is_in):
                     coordinates_all_mass.append([i, t1, t2, r])
+                #a supprimer jusquici
+                #a rajouter a la place:
+                # coordinates_all_mass.append([i, t1, t2, r])
 
     return np.array(coordinates_all_mass)
 
