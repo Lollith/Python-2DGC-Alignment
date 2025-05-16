@@ -67,6 +67,7 @@ src/build/
 src/dist/
 src/cython_debug/
 src/*.spec
+figs/
 
 # Environment variables
 .env
