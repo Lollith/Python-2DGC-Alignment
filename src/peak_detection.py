@@ -304,7 +304,6 @@ def blob_log_kernel(i, m_chromato, min_sigma, max_sigma, seuil, threshold_abs, n
     return blobs_log
 
 def LoG_mass_per_mass_multiprocessing(chromato_cube, seuil, num_sigma=10, min_sigma=10, max_sigma=30, threshold_abs=0):
-    ):
     """
     Applies Laplacian of Gaussian (LoG) blob detection to each mass slice of a chromatographic data cube
     using multiprocessing. All detected blobs are preserved, including duplicates at the same time coordinates
