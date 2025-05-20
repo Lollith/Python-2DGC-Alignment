@@ -4,9 +4,11 @@ WORKDIR /app
 
 COPY . .
 
+COPY config/jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
+
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8888
 
-CMD ["jupyter", "lab", "--notebook-dir=/app/notebooks", "--ip=0.0.0.0", "--port=8888", "--allow-root", "--NotebookApp.token=''"]
+CMD ["jupyter", "lab", "--notebook-dir=/app/notebooks", "--ip=0.0.0.0", "--port=8888", "--allow-root"]
