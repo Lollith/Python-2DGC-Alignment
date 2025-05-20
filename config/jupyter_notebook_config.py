@@ -3,6 +3,7 @@ import os
 from traitlets.config import get_config
 
 c = get_config()  #noqa
+
 c.NotebookApp.password = os.getenv("JUPYTER_PASSWORD_HASH", "")
 c.NotebookApp.token = ''
 c.NotebookApp.ip = '0.0.0.0'
