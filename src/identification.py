@@ -171,10 +171,11 @@ def compute_matches_identification(matches, chromato, chromato_cube,
     return matches_identification
 
 
-def identification(filename, mod_time, method, mode, filtering_factor, 
+def identification(filename, mod_time, method, mode, noise_factor,
                    hit_prob_min,
-                   ABS_THRESHOLDS, cluster, min_distance, sigma_ratio,
-                   num_sigma, formated_spectra, match_factor_min, 
+                   abs_threshold, rel_threshold, cluster, min_distance,
+                   min_sigma, max_sigma, sigma_ratio,
+                   num_sigma, formated_spectra, match_factor_min,
                    min_persistence):
     r"""Takes a chromatogram as file and returns identified compounds.
 
@@ -219,34 +220,38 @@ def identification(filename, mod_time, method, mode, filtering_factor,
         coordinates...
     --------
     """
-    chromato, time_rn, chromato_cube, sigma, mass_range = (
+    chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
         read_chroma.read_chromato_and_chromato_cube(filename, mod_time,
                                                     pre_process=True
                                                     ))
-    dynamic_threshold_fact = filtering_factor * sigma * 100 / np.max(chromato)
-    # if chromatogram is very noisy : avoid detecting noise as if it were real
-    # peaks.
-    # if chonmatogram  is very clean: detect weaker peaks
-    
     # find 2D peaks
     coordinates = peak_detection.peak_detection(
-        (chromato, time_rn, mass_range), None, chromato_cube,
-        dynamic_threshold_fact, ABS_THRESHOLDS, method=method,
-        mode=mode, cluster=cluster,
-        min_distance=min_distance, sigma_ratio=sigma_ratio,
-        num_sigma=num_sigma, 
+        (chromato_tic, time_rn, mass_range),
+        chromato_cube=chromato_cube,
+        sigma=sigma,
+        noise_factor=noise_factor,
+        abs_threshold=abs_threshold,
+        rel_threshold=rel_threshold,
+        method=method,
+        mode=mode,
+        cluster=cluster,
+        min_distance=min_distance,
+        min_sigma=min_sigma,
+        max_sigma=max_sigma,
+        sigma_ratio=sigma_ratio,
+        num_sigma=num_sigma,
         min_persistence=min_persistence)
     print("nb peaks", len(coordinates))
 
     # 2D peaks identification
     matches = matching.matching_nist_lib_from_chromato_cube(
-        (chromato, time_rn, mass_range), chromato_cube, coordinates,
+        (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
         mod_time, hit_prob_min=hit_prob_min,
         match_factor_min=match_factor_min)
     print("nb match", len(matches))
 
     matches_identification = compute_matches_identification(
-        matches, chromato, chromato_cube, mass_range,
+        matches, chromato_tic, chromato_cube, mass_range,
         formated_spectra, similarity_threshold=0.001)
     return matches_identification
 
@@ -333,10 +338,12 @@ def cohort_identification_alignment_input_format_txt(
                                formatted_spectrum))
 
 
-def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
-                          filtering_factor, hit_prob_min, ABS_THRESHOLDS,
+def sample_identification(path, file, output_path, mod_time, method, mode,
+                          noise_factor, hit_prob_min, abs_thresholds,
+                          rel_thresholds,
                           cluster,
-                          min_distance, sigma_ratio, num_sigma,
+                          min_distance, min_sigma, max_sigma, sigma_ratio,
+                          num_sigma,
                           formated_spectra, match_factor_min, min_persistence):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
@@ -391,34 +398,37 @@ def sample_identification(path, file, OUTPUT_PATH, mod_time, method, mode,
         full_filename = path + file
         matches_identification = \
             identification(full_filename,
-                           mod_time=mod_time,
-                           method=method,
-                           mode=mode,
-                           filtering_factor=filtering_factor,
-                           hit_prob_min=hit_prob_min,
-                           ABS_THRESHOLDS=ABS_THRESHOLDS,
-                           cluster=cluster,
-                           min_distance=min_distance,
-                           sigma_ratio=sigma_ratio,
-                           num_sigma=num_sigma,
-                           formated_spectra=formated_spectra,
-                           match_factor_min=match_factor_min,
-                           min_persistence=min_persistence)
+                           mod_time,
+                           method,
+                           mode,
+                           noise_factor,
+                           hit_prob_min,
+                           abs_thresholds,
+                           rel_thresholds,
+                           cluster,
+                           min_distance,
+                           min_sigma,
+                           max_sigma,
+                           sigma_ratio,
+                           num_sigma,
+                           formated_spectra,
+                           match_factor_min,
+                           min_persistence)
         print("Identification done", time.time()-start_time, 's')
-        if (OUTPUT_PATH is not None):
+        if (output_path is not None):
             cohort_identification_alignment_input_format_txt(
-                file[:-4], matches_identification, OUTPUT_PATH)
+                file[:-4], matches_identification, output_path)
             cohort_identification_to_csv(file[:-4], matches_identification,
-                                         OUTPUT_PATH)
-            return (f'{OUTPUT_PATH + file[:-4]}.txt & '
-                    + f'{OUTPUT_PATH + file[:-4]}.csv created')
+                                         output_path)
+            return (f'{output_path + file[:-4]}.txt & '
+                    + f'{output_path + file[:-4]}.csv created')
         
         else:
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification)
             cohort_identification_to_csv(file[:-4], matches_identification)
-            return (f'{OUTPUT_PATH + file[:-4]}.txt & '
-                    + f'{OUTPUT_PATH + file[:-4]}.csv created')
+            return (f'{output_path + file[:-4]}.txt & '
+                    + f'{output_path + file[:-4]}.csv created')
 
     except Exception as e:
         traceback.print_exc()
