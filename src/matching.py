@@ -143,7 +143,8 @@ def matching_nist_lib_from_chromato_cube(
         match_factor = res[0][0].match_factor
         reverse_match_factor = res[0][0].reverse_match_factor
         
-        if (res[0][0].hit_prob < hit_prob_min):
+        #if (res[0][0].hit_prob < hit_prob_min):
+        if (res[0][0].match_factor < match_factor_min):
             nb_analyte = nb_analyte + 1
             d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
             d_tmp['casno'] = ''
