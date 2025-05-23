@@ -41,7 +41,7 @@ def intensity_threshold_decision_rule(
         The computed intensity threshold for peak detection.
     """
     max_peak_val = np.max(chromatogram)
-    dynamic_noise_factor = noise_factor * sigma * 100 / max_peak_val
+    dynamic_noise_factor = noise_factor * sigma  
     # if chromatogram is very noisy : avoid detecting noise as if it were real
     # peaks.
     # if chonmatogram  is very clean: detect weaker peaks

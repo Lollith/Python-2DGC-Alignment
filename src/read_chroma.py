@@ -52,7 +52,7 @@ def read_only_chroma(filename, mod_time = 1.25):
     >>> import read_chroma
     >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
     """
-    ds = nc.Dataset(filename)
+    ds = nc.Dataset(filename,encoding="latin-1")
     chromato = ds['total_intensity']
     Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
@@ -97,7 +97,7 @@ def read_chroma(filename, mod_time, max_val=None):
     if not filename.endswith(".cdf"):
         raise ValueError("The file must be a .cdf")
 
-    ds = nc.Dataset(filename)
+    ds = nc.Dataset(filename,encoding="latin-1")
     tic_chromato = ds['total_intensity']
     abs_point_count = np.abs(ds["point_count"])
     Timepara = ds["scan_acquisition_time"][abs_point_count <
@@ -247,7 +247,7 @@ def centroided_to_mass_nominal_chromatogram(filename, cdf_name, mod_time):
         Modulation time
     """
     # load centroided chromatogram
-    ds = nc.Dataset(filename)
+    ds = nc.Dataset(filename,encoding="latin-1")
     chromato = ds['total_intensity']
     sam_rate = 1 / ds['scan_duration'][0]
     l1 = math.floor(sam_rate * mod_time)
@@ -463,7 +463,7 @@ def read_chroma_spectra_loc(filename, mod_time = 1.25):
     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
     >>> chromato,time_rn,spectra_obj = chromato_obj
     """
-    ds = nc.Dataset(filename)
+    ds = nc.Dataset(filename,encoding="latin-1")
     chromato = ds['total_intensity']
     sam_rate = 1 / ds['scan_duration'][0]
     l1 = math.floor(sam_rate * mod_time)
