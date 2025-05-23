@@ -176,7 +176,7 @@ def identification(filename, mod_time, method, mode, noise_factor,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence):
+                   min_persistence, overlap, eps, min_samples):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -240,7 +240,10 @@ def identification(filename, mod_time, method, mode, noise_factor,
         max_sigma=max_sigma,
         sigma_ratio=sigma_ratio,
         num_sigma=num_sigma,
-        min_persistence=min_persistence)
+        min_persistence=min_persistence,
+        overlap=overlap,
+        eps=eps,
+        min_samples=min_samples)
     print("nb peaks", len(coordinates))
 
     # 2D peaks identification
