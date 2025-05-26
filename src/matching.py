@@ -8,7 +8,9 @@ import sdjson
 import json
 from typing import List, Tuple
 from nist_utils.reference_data import ReferenceData
+import pyms_nist_search
 from pyms_nist_search.search_result import SearchResult
+import logging
 
 # present = {"HMDB0031018": [[23.43, 0.008]], "HMDB0061859": [[32.22, 0.042]], "HMDB0030469": [[28.15, 0.008]],
 #            "HMDB0031264": [[15.59, 0.017]], "HMDB0033848": [[18.41, 0.025]], "HMDB0031291": [[13.10, 1.231]],
@@ -111,6 +113,16 @@ def matching_nist_lib_from_chromato_cube(
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(
         coordinates, time_rn, mod_time, chromato.shape)
+    search = pyms_nist_search.Engine(
+                    "C:/Users/Metabolomique/Desktop/Libraries ChromaTOF/mainlib/",
+                    pyms_nist_search.NISTMS_MAIN_LIB,
+                    "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment",
+                    )
+    logger=logging.getLogger('pyms_nist_search')
+    logger.setLevel('ERROR')
+    logger=logging.getLogger('pyms')
+    logger.setLevel('ERROR')
+	
 
     match = []
     try:
@@ -129,21 +141,9 @@ def matching_nist_lib_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
 
-        res = full_search_with_ref_data(mass_spectrum)
-        #  res = search.full_spectrum_search(mass_spectrum)
-        
-        # if (res[0][0].match_factor < match_factor_min):
-        #     continue
-        
+        #res = full_search_with_ref_data(mass_spectrum)
+        res = search.full_search_with_ref_data(mass_spectrum)
         del mass_spectrum
-        compound_casno = res[0][0].cas
-        compound_name = res[0][0].name
-        compound_formula = res[0][1].formula
-        hit_prob = res[0][0].hit_prob
-        match_factor = res[0][0].match_factor
-        reverse_match_factor = res[0][0].reverse_match_factor
-        
-        #if (res[0][0].hit_prob < hit_prob_min):
         if (res[0][0].match_factor < match_factor_min):
             nb_analyte = nb_analyte + 1
             d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
@@ -152,19 +152,22 @@ def matching_nist_lib_from_chromato_cube(
             d_tmp['hit_prob'] = ''
             d_tmp['match_factor'] = ''
             d_tmp['reverse_match_factor'] = ''
-            d_tmp['spectra'] = int_values
-        
+            d_tmp['spectra'] = int_values   
         else:
-            d_tmp['casno'] = compound_casno
+            compound_casno = res[0][0].cas
+            compound_name = res[0][0].name
+            compound_formula = res[0][1].formula
+            hit_prob = res[0][0].hit_prob
+            match_factor = res[0][0].match_factor
+            reverse_match_factor = res[0][0].reverse_match_factor
             d_tmp['compound_name'] = compound_name
+            d_tmp['casno'] = compound_casno
             d_tmp['compound_formula'] = compound_formula
             d_tmp['hit_prob'] = hit_prob
             d_tmp['match_factor'] = match_factor
             d_tmp['reverse_match_factor'] = reverse_match_factor
             d_tmp['spectra'] = int_values
-        # if (res[0][0].hit_prob < hit_prob_min):
-        #     nb_analyte = nb_analyte + 1
-            # d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
+
 
         match.append([[(coordinates_in_chromato[i][0]),
 					   (coordinates_in_chromato[i][1])], d_tmp, coord])
