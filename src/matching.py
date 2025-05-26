@@ -136,12 +136,7 @@ def matching_nist_lib_from_chromato_cube(
         #     continue
         
         del mass_spectrum
-        compound_casno = res[0][0].cas
-        compound_name = res[0][0].name
-        compound_formula = res[0][1].formula
-        hit_prob = res[0][0].hit_prob
-        match_factor = res[0][0].match_factor
-        reverse_match_factor = res[0][0].reverse_match_factor
+        
         
         #if (res[0][0].hit_prob < hit_prob_min):
         if (res[0][0].match_factor < match_factor_min):
@@ -153,8 +148,14 @@ def matching_nist_lib_from_chromato_cube(
             d_tmp['match_factor'] = ''
             d_tmp['reverse_match_factor'] = ''
             d_tmp['spectra'] = int_values
-        
+
         else:
+			compound_casno = res[0][0].cas
+			compound_name = res[0][0].name
+			compound_formula = res[0][1].formula
+			hit_prob = res[0][0].hit_prob
+			match_factor = res[0][0].match_factor
+			reverse_match_factor = res[0][0].reverse_match_factor
             d_tmp['casno'] = compound_casno
             d_tmp['compound_name'] = compound_name
             d_tmp['compound_formula'] = compound_formula

@@ -1205,7 +1205,7 @@ def peak_local_max(chromato_obj,
         intensity_threshold = intensity_threshold_decision_rule(
             abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
         cube_coordinates = skimage.feature.peak_local_max(
-            chromato_cube, threshold_abs=intensity_threshold)
+            chromato_cube, min_distance, threshold_abs=intensity_threshold)
 
         # delete mass dimension ([[2 720 128], [24 720 128]] -> [[720 128], [720 128]])
         coordinates = np.delete(cube_coordinates, 0, -1)

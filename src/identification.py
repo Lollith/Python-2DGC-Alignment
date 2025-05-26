@@ -291,7 +291,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
     """
 
     with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, delimiter=';')
 
         # header
         writer.writerow(['Name', 'Casno', 'Formula', 'hit_prob',
