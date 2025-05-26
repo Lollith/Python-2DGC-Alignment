@@ -386,7 +386,7 @@ def LoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
         Duplicates (blobs with same t1/t2 but different masses or radii) are not removed.
     """
 
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     coordinates_all_mass = []
 
     with multiprocessing.Pool(processes=cpu_count) as pool:
@@ -554,7 +554,7 @@ def blob_dog_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
 def DoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
                                       rel_threshold, noise_factor, sigma,
                                       min_sigma, max_sigma, sigma_ratio):
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     #pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
@@ -720,7 +720,7 @@ def blob_doh_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
 def DoH_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
                                       rel_threshold, noise_factor, sigma, 
                                       num_sigma, min_sigma, max_sigma):
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     # pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
     with multiprocessing.Pool(processes=cpu_count) as pool:

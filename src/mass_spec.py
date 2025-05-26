@@ -175,7 +175,8 @@ def read_full_spectra_centroid(spectra_obj, max_val=None):
 
     '''for i in range(len(spectra)):
         spectra_full_nom.append(centroid_to_full_nominal(spectra_obj, spectra[i][0], spectra[i][1]))'''
-    cpu_count = multiprocessing.cpu_count()
+    # TODO cpu= max(multiprocessing.cpu_count(),32)
+    cpu_count=min(multiprocessing.cpu_count(),32)
     mass_v = np.linspace(
         range_min, range_max, range_max - range_min + 1).astype(int)
     with multiprocessing.Pool(processes=cpu_count) as pool:
@@ -183,6 +184,7 @@ def read_full_spectra_centroid(spectra_obj, max_val=None):
             ((range_min, range_max), spectra[i][0], spectra[i][1])
             for i in range(len(spectra))])
     spectra_full_nom = [(mass_v, result) for result in results]
+
 
     # Pad with zeros to have necessary length of spectra
     required_length = l1 * l2
@@ -342,7 +344,7 @@ def peak_retrieval_kernel(spectra, spectrums_lib, similarity_measure):
 def peak_retrieval_multiprocessing(spectrums, spectrums_lib, coordinates_in_chromato, min_score=None):
     
     similarity_measure = CosineGreedy(tolerance=0.01, mz_power=1.0)
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     print(cpu_count)
     pool = multiprocessing.Pool(processes = cpu_count)
     matching = []
@@ -382,7 +384,7 @@ def read_full_spectra_full_centroid(spectra_obj, max_val = None):
         int_values = (iv[beg:end])
         spectra.append((mass_values,int_values))
     spectra_full_nom = []
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     mv = np.unique(np.around(mv,1))
     mv_index = dict()
     for i, mass in enumerate(mv):
