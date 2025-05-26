@@ -25,57 +25,57 @@ from pyms_nist_search.search_result import SearchResult
 
 
 def hit_list_with_ref_data_from_json(json_data: str) \
-	-> List[Tuple[SearchResult, ReferenceData]]:
-	"""
-	Parse json data into a list of (SearchResult, ReferenceData) tuples.
-	:param json_data: str
-	"""
+    -> List[Tuple[SearchResult, ReferenceData]]:
+    """
+    Parse json data into a list of (SearchResult, ReferenceData) tuples.
+    :param json_data: str
+    """
 
-	raw_output = json.loads(json_data)
+    raw_output = json.loads(json_data)
 
-	hit_list = []
+    hit_list = []
 
-	for hit, ref_data in raw_output:
-		hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
-	return hit_list
+    for hit, ref_data in raw_output:
+        hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
+    return hit_list
 
 def full_search_with_ref_data(
-			mass_spectrum,
-			n_hits: int = 20,
-			) -> List[Tuple[SearchResult, ReferenceData]]:
-		"""
-		Perform a Full Spectrum Search of the mass spectral library, including reference data.
+            mass_spectrum,
+            n_hits: int = 20,
+            ) -> List[Tuple[SearchResult, ReferenceData]]:
+        """
+        Perform a Full Spectrum Search of the mass spectral library, including reference data.
 
-		:param mass_spec: The mass spectrum to search against the library.
-		:param n_hits: The number of hits to return.
+        :param mass_spec: The mass spectrum to search against the library.
+        :param n_hits: The number of hits to return.
 
-		:return: List of tuples containing possible identities
-			for the mass spectrum, and the reference data.
-		"""
+        :return: List of tuples containing possible identities
+            for the mass spectrum, and the reference data.
+        """
 
-		if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
-			raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
+        if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
+            raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
 
-		retry_count = 0
+        retry_count = 0
 
-		# Keep trying until it works
-		while retry_count < 240:
-			try:
-				res = requests.post(
-						f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
-						json=sdjson.dumps(mass_spectrum)
-						)
-				return hit_list_with_ref_data_from_json(res.text)
-			except requests.exceptions.ConnectionError:
-				time.sleep(0.5)
-				retry_count += 1
+        # Keep trying until it works
+        while retry_count < 240:
+            try:
+                res = requests.post(
+                        f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
+                        json=sdjson.dumps(mass_spectrum)
+                        )
+                return hit_list_with_ref_data_from_json(res.text)
+            except requests.exceptions.ConnectionError:
+                time.sleep(0.5)
+                retry_count += 1
 
-		raise TimeoutError("Unable to communicate with the search server.")
+        raise TimeoutError("Unable to communicate with the search server.")
 
 
 def matching_nist_lib_from_chromato_cube(
-		chromato_obj, chromato_cube, coordinates, mod_time,
-		hit_prob_min, match_factor_min=800):
+        chromato_obj, chromato_cube, coordinates, mod_time,
+        hit_prob_min, match_factor_min=800):
     """Indentify retrieved peaks using NIST library.
 
     Parameters
@@ -148,14 +148,13 @@ def matching_nist_lib_from_chromato_cube(
             d_tmp['match_factor'] = ''
             d_tmp['reverse_match_factor'] = ''
             d_tmp['spectra'] = int_values
-
         else:
-			compound_casno = res[0][0].cas
-			compound_name = res[0][0].name
-			compound_formula = res[0][1].formula
-			hit_prob = res[0][0].hit_prob
-			match_factor = res[0][0].match_factor
-			reverse_match_factor = res[0][0].reverse_match_factor
+            compound_casno = res[0][0].cas
+            compound_name = res[0][0].name
+            compound_formula = res[0][1].formula
+            hit_prob = res[0][0].hit_prob
+            match_factor = res[0][0].match_factor
+            reverse_match_factor = res[0][0].reverse_match_factor
             d_tmp['casno'] = compound_casno
             d_tmp['compound_name'] = compound_name
             d_tmp['compound_formula'] = compound_formula
@@ -166,9 +165,8 @@ def matching_nist_lib_from_chromato_cube(
         # if (res[0][0].hit_prob < hit_prob_min):
         #     nb_analyte = nb_analyte + 1
             # d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
-
         match.append([[(coordinates_in_chromato[i][0]),
-					   (coordinates_in_chromato[i][1])], d_tmp, coord])
+                       (coordinates_in_chromato[i][1])], d_tmp, coord])
         del res
     print("nb match:")
     print(len(coordinates))
