@@ -62,7 +62,7 @@ def read_only_chroma(filename, mod_time = 1.25):
 
     return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
 
-
+#REname 
 def read_chroma(filename, mod_time, max_val=None):
     r"""Read chromatogram file.
 
@@ -94,10 +94,11 @@ def read_chroma(filename, mod_time, max_val=None):
     >>> tic_chromato, time_rn, spectra_obj = chromato_obj
     """
 
+    # TODO a corriger, plus besoin de check .cdf ici + recup les .npy
     if not filename.endswith(".cdf"):
         raise ValueError("The file must be a .cdf")
 
-    ds = nc.Dataset(filename,encoding="latin-1")
+    ds = nc.Dataset(filename, encoding="latin-1")
     tic_chromato = ds['total_intensity']
     abs_point_count = np.abs(ds["point_count"])
     Timepara = ds["scan_acquisition_time"][abs_point_count <

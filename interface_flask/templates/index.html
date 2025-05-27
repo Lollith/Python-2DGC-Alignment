@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Conversion CDF to NPY</title>
+</head>
+<body>
+    <h1>Convertisseur .cdf vers .npy</h1>
+    <form action="/convert" method="post" enctype="multipart/form-data">
+        <label>Fichier .cdf :</label>
+        <input type="file" name="cdf_file" required><br><br>
+        <label>Nom du fichier .npy :</label>
+        <input type="text" name="output_name" required><br><br>
+        <button type="submit">Convertir</button>
+    </form>
+</body>
+</html>
