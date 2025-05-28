@@ -1,0 +1,173 @@
+<!-- templates/next.html -->
+<!-- {# extends "base.html" #} -->
+
+{% block one %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <form method="POST" action="/analyze" id="analysis-form">
+            <div class="form-section">
+                <h2>Choisissez vos paramètres:</h2>
+                
+                <!-- Path Configuration -->
+                <div class="mb-3">
+                    <label for="path" class="form-label"><strong>Path</strong></label>
+                    <input type="text" class="form-control" id="path" name="path" value="{{ default_path }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="files" class="form-label"><strong>Files</strong></label>
+                    <input type="text" class="form-control" id="files" name="files" placeholder="ex: file1.cdf, file2.cdf">
+                    <div class="form-text">Laissez vide pour analyser tous les fichiers .cdf du dossier</div>
+                    <div id="available-files" class="mt-2">
+                        <strong>Fichiers disponibles:</strong>
+                        <ul class="list-unstyled">
+                            {% for file in available_files %}
+                            <li><span class="badge bg-secondary me-1">{{ file }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="output_path" class="form-label"><strong>Output path</strong></label>
+                    <input type="text" class="form-control" id="output_path" name="output_path" value="{{ default_output_path }}" required>
+                </div>
+                
+                <!-- Method Selection -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Method</strong></label>
+                    <div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="method1" value="persistent_homology" checked>
+                            <label class="form-check-label" for="method1">persistent_homology</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="method2" value="peak_local_max">
+                            <label class="form-check-label" for="method2">peak_local_max</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="method3" value="LoG">
+                            <label class="form-check-label" for="method3">LoG</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="method4" value="DoG">
+                            <label class="form-check-label" for="method4">DoG</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="method" id="method5" value="DoH">
+                            <label class="form-check-label" for="method5">DoH</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode Selection -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Mode</strong></label>
+                    <div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="mode" id="mode1" value="tic" checked>
+                            <label class="form-check-label" for="mode1">tic</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="mode" id="mode2" value="mass_per_mass">
+                            <label class="form-check-label" for="mode2">mass_per_mass</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="mode" id="mode3" value="3D">
+                            <label class="form-check-label" for="mode3">3D</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Noise Factor -->
+                <div class="mb-3">
+                    <label for="noise_factor" class="form-label"><strong>Noise factor</strong></label>
+                    <input type="number" step="0.01" class="form-control" id="noise_factor" name="noise_factor" value="{{ default_noise_factor }}" required>
+                    <div class="parameter-description">
+                        Noise scaling factor, used to filter detected peaks. A peak is retained if its intensity in the chromatogram is greater than the maximum intensity in the chromatogram multiplied by the noise_factor. The noise level (sigma) is estimated, then adjusted using the noise_factor to define when a signal is considered significant despite the noise. The result is normalized relative to the maximum signal in the chromatogram, so that this threshold (dynamic_threshold_fact) is proportional to the overall signal amplitude.
+                    </div>
+                </div>
+                
+                <!-- Minimum Persistence -->
+                <div class="mb-3">
+                    <label for="min_persistence" class="form-label"><strong>Minimum persistence</strong></label>
+                    <input type="number" step="0.001" class="form-control" id="min_persistence" name="min_persistence" value="{{ default_min_persistence }}" required>
+                    <div class="parameter-description">
+                        Enter a min_persistence if method="persistent_homology". min_persistence is a floating-point value used to filter detected peaks based on their topological persistence. It defines the minimum persistence threshold that a peak must exceed to be considered a true signal rather than noise. A small min_persistence will detect many peaks, including weak ones — often noise. A large min_persistence will retain only the most prominent peaks, effectively filtering out noise, but it may also miss subtle or low-intensity signals. Use estimation_min_persistence.ipynb in order to estimate it.
+                    </div>
+                </div>
+                
+                <!-- Absolute Threshold -->
+                <div class="mb-3">
+                    <label for="abs_threshold" class="form-label"><strong>Absolute threshold</strong></label>
+                    <input type="number" step="0.01" class="form-control" id="abs_threshold" name="abs_threshold" value="{{ default_abs_threshold }}" required>
+                    <div class="parameter-description">
+                        Absolute threshold, used to filter detected peaks. A peak is retained if its intensity in the chromatogram is greater than the absolute threshold.
+                    </div>
+                </div>
+                
+                <!-- Relative Threshold -->
+                <div class="mb-3">
+                    <label for="rel_threshold" class="form-label"><strong>Relative threshold</strong></label>
+                    <input type="number" step="0.001" class="form-control" id="rel_threshold" name="rel_threshold" value="{{ default_rel_threshold }}" required>
+                    <div class="parameter-description">
+                        Relative threshold is a floating-point value used to filter detected peaks based on their relative intensity.
+                    </div>
+                </div>
+                
+                <!-- Formatted Spectra -->
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="formated_spectra" name="formated_spectra" checked>
+                        <label class="form-check-label" for="formated_spectra">
+                            <strong>Formatted spectra</strong>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success btn-lg" id="run-btn">
+                        <span class="loading spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Run Analysis
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_ %}
+<script>
+$(document).ready(function() {
+    // Update file list when path changes
+    $('#path').on('change', function() {
+        const path = $(this).val();
+        $.ajax({
+            url: '/get_files',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({path: path}),
+            success: function(response) {
+                if (response.status === 'success') {
+                    let filesHtml = '<strong>Fichiers disponibles:</strong><ul class="list-unstyled">';
+                    response.files.forEach(function(file) {
+                        filesHtml += `<li><span class="badge bg-secondary me-1">${file}</span></li>`;
+                    });
+                    filesHtml += '</ul>';
+                    $('#available-files').html(filesHtml);
+                }
+            }
+        });
+    });
+    
+    // Handle form submission
+    $('#analysis-form').on('submit', function() {
+        $('#run-btn').prop('disabled', true);
+        $('.loading').show();
+        $('#run-btn').html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyzing...');
+    });
+});
+</script>
+{% endblock %}

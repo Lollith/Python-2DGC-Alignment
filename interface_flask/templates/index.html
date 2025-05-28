@@ -178,6 +178,9 @@
         <div id="loading" class="loading">
             ⏳ Conversion en cours...
         </div>
+        <form action="{{ url_for('next_page') }}" method="get">
+                <button type="submit" class="btn-secondary">➡️  Lancer l'analyse </button>
+            </form>
         
         <div id="output" class="output"></div>
     </div>

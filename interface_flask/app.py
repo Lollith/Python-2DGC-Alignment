@@ -3,14 +3,27 @@ from datetime import datetime
 from waitress import serve
 from flask import Flask, render_template, request, jsonify, send_file, Response
 from data_converter import DataConverter
+from run_docker import RunDocker
+from GCGCMSanalysis import GCGCMSAnalysis
 from datetime import datetime
 import os
 import time
 import sys
+import docker
+from datetime import timedelta
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+import os
+import netCDF4 as nc
+from werkzeug.utils import secure_filename
+import threading
+import shutil
 
 app = Flask(__name__)
 USERNAME = 'admin'
 PASSWORD = 'MasSpec'
+
+client = docker.from_env()
+
 
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'converted_data'
@@ -20,8 +33,10 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
-# Instance globale du convertisseur
+# Instances
 converter = DataConverter()
+rundocker = RunDocker(client)
+gcgcms_analyzer = GCGCMSAnalysis()
 
 
 def check_auth(username, password):
@@ -55,6 +70,7 @@ def index():
                            default_output_path=converter.default_path_output)
 
 
+
 @app.route('/api/list_files', methods=['POST'])
 def list_files():
     """API pour lister les fichiers CDF dans un dossier."""
@@ -84,7 +100,6 @@ def convert_files():
         files_list = None
     
     # Vérifier l'espace disque avant de commencer
-    import shutil
     try:
         free_space = shutil.disk_usage(output_path).free
         if free_space < 5 * 1024 * 1024 * 1024:  # Moins de 5GB libre
@@ -118,6 +133,70 @@ def download_file(filename):
     except FileNotFoundError:
         return jsonify({'error': 'File not found'}), 404
 
+@app.route('/next')
+def next_page():
+    return render_template('next.html',default_path=gcgcms_analyzer.default_path_input,
+                         default_output_path=gcgcms_analyzer.default_path_output,
+                        #  available_files=available_files,
+                         default_noise_factor=gcgcms_analyzer.noise_factor,
+                         default_min_persistence=gcgcms_analyzer.min_persistence,
+                         default_abs_threshold=gcgcms_analyzer.abs_threshold,
+                         default_rel_threshold=gcgcms_analyzer.rel_threshold)
+
+@app.route('/next/analyze', methods=['POST'])
+def analyze():
+    """Process the analysis request."""
+    messages = []
+    runsuccess = rundocker.run_containers()
+    messages.extend(runsuccess)
+
+    # Get form data
+    user_input_path = request.form.get(
+        'path', gcgcms_analyzer.default_path_input)
+    path_for_docker = user_input_path.replace(
+        gcgcms_analyzer.host_volume_path,
+        gcgcms_analyzer.docker_volume_path, 1)
+
+    user_output_path = request.form.get('output_path', gcgcms_analyzer.default_path_output)
+    output_path_for_docker = user_output_path.replace(gcgcms_analyzer.host_volume_path, 
+                                                        gcgcms_analyzer.docker_volume_path, 1)
+    
+    files_input = request.form.get('files', '')
+    files_list = [f.strip() for f in files_input.split(",") if f.strip()] if files_input else None
+    
+    method = request.form.get('method', 'persistent_homology')
+    mode = request.form.get('mode', 'tic')
+    noise_factor = float(request.form.get('noise_factor', gcgcms_analyzer.noise_factor))
+    min_persistence = float(request.form.get('min_persistence', gcgcms_analyzer.min_persistence))
+    abs_threshold = float(request.form.get('abs_threshold', gcgcms_analyzer.abs_threshold))
+    rel_threshold = float(request.form.get('rel_threshold', gcgcms_analyzer.rel_threshold))
+    formated_spectra = request.form.get('formated_spectra') == 'on'
+    
+    # Run analysis
+    result = gcgcms_analyzer.analyse(
+        path_for_docker, files_list, output_path_for_docker, user_output_path,
+        method, mode, noise_factor, min_persistence, gcgcms_analyzer._hit_prob_min,
+        abs_threshold, rel_threshold, gcgcms_analyzer._cluster,
+        gcgcms_analyzer._min_distance, gcgcms_analyzer._min_sigma, gcgcms_analyzer._max_sigma, 
+        gcgcms_analyzer._sigma_ratio, gcgcms_analyzer._num_sigma, formated_spectra,
+        gcgcms_analyzer._match_factor_min, gcgcms_analyzer._overlap, 
+        gcgcms_analyzer._eps, gcgcms_analyzer._min_samples
+    )
+    
+    return render_template('results.html', messages=result)
+    # return jsonify({'messages': messages,})   
+
+
+@app.route('/next/analyze_async', methods=['POST'])
+def analyze_async():
+    """Start analysis in background and return immediately."""
+    try:
+        # This would be useful for long-running analyses
+        # You could implement a job queue system here
+        return jsonify({"status": "started", "message": "Analysis started in background"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
 
 if __name__ == '__main__':
     # Configuration pour les gros fichiers
@@ -127,6 +206,9 @@ if __name__ == '__main__':
     
     # Configuration Flask pour gros fichiers
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    #TODO pour prod:
+    # app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=365)
+    #TODO a mettre sur false en prod
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     
     print("🚀 Serveur Flask démarré")
