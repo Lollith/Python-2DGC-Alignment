@@ -1,16 +1,314 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Conversion CDF to NPY</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Converter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus, textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #1976D2;
+        }
+        
+        .btn-secondary:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        .files-list {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .download-links {
+            margin-top: 15px;
+        }
+        
+        .download-links a {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 5px 10px;
+            background-color: #17a2b8;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .download-links a:hover {
+            background-color: #138496;
+        }
+    </style>
 </head>
 <body>
-    <h1>Convertisseur .cdf vers .npy</h1>
-    <form action="/convert" method="post" enctype="multipart/form-data">
-        <label>Fichier .cdf :</label>
-        <input type="file" name="cdf_file" required><br><br>
-        <label>Nom du fichier .npy :</label>
-        <input type="text" name="output_name" required><br><br>
-        <button type="submit">Convertir</button>
-    </form>
+    <div class="container">
+        <h1>🔄 Choisissez vos paramètres:</h1>
+        
+        <form id="converterForm">
+            <div class="form-group">
+                <label for="inputPath">📁 Chemin d'entrée (Path):</label>
+                <input type="text" id="inputPath" name="inputPath" value="{{ default_input_path }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="files">📄 Fichiers (ex: file1.cdf, file2.cdf):</label>
+                <input type="text" id="files" name="files" placeholder="Laissez vide pour tous les fichiers .cdf du dossier">
+                <div id="availableFiles" class="files-list" style="display: none;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="outputPath">💾 Chemin de sortie (Output path):</label>
+                <input type="text" id="outputPath" name="outputPath" value="{{ default_output_path }}">
+            </div>
+            
+            <div class="button-group">
+                <button type="button" id="listFilesBtn" class="btn-secondary">📋 Lister les fichiers CDF</button>
+                <button type="submit" id="runBtn" class="btn-primary">▶️ Convertir</button>
+            </div>
+        </form>
+        
+        <div id="loading" class="loading">
+            ⏳ Conversion en cours...
+        </div>
+        
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('converterForm');
+        const outputDiv = document.getElementById('output');
+        const loadingDiv = document.getElementById('loading');
+        const listFilesBtn = document.getElementById('listFilesBtn');
+        const availableFilesDiv = document.getElementById('availableFiles');
+        
+        // Fonction pour afficher les messages
+        function displayMessage(message, isError = false) {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isError ? 'error' : 'success';
+            const prefix = isError ? '❌' : '✅';
+            outputDiv.innerHTML += `<span class="${className}">[${timestamp}] ${prefix} ${message}</span>\n`;
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+        
+        // Lister les fichiers CDF
+        listFilesBtn.addEventListener('click', async function() {
+            const inputPath = document.getElementById('inputPath').value;
+            
+            if (!inputPath.trim()) {
+                displayMessage('Veuillez spécifier un chemin d\'entrée', true);
+                return;
+            }
+            
+            listFilesBtn.disabled = true;
+            listFilesBtn.textContent = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch('/api/list_files', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ path: inputPath })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.files.length > 0) {
+                        availableFilesDiv.innerHTML = `<strong>Fichiers CDF trouvés:</strong><br>${data.files.join(', ')}`;
+                        availableFilesDiv.style.display = 'block';
+                        displayMessage(`${data.files.length} fichier(s) CDF trouvé(s)`);
+                    } else {
+                        availableFilesDiv.innerHTML = '<strong>Aucun fichier CDF trouvé dans ce dossier</strong>';
+                        availableFilesDiv.style.display = 'block';
+                        displayMessage('Aucun fichier CDF trouvé', true);
+                    }
+                } else {
+                    displayMessage(data.message || 'Erreur lors de la lecture du dossier', true);
+                    availableFilesDiv.style.display = 'none';
+                }
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, true);
+            } finally {
+                listFilesBtn.disabled = false;
+                listFilesBtn.textContent = '📋 Lister les fichiers CDF';
+            }
+        });
+        
+        // Gestionnaire de soumission du formulaire
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const data = {
+                input_path: formData.get('inputPath'),
+                output_path: formData.get('outputPath'),
+                files: formData.get('files')
+            };
+            
+            // Validation
+            if (!data.input_path.trim()) {
+                displayMessage('Veuillez spécifier un chemin d\'entrée', true);
+                return;
+            }
+            
+            if (!data.output_path.trim()) {
+                displayMessage('Veuillez spécifier un chemin de sortie', true);
+                return;
+            }
+            
+            // Afficher le chargement
+            loadingDiv.style.display = 'block';
+            outputDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                // Afficher tous les messages
+                result.messages.forEach(msg => {
+                    const isError = msg.toLowerCase().includes('erreur');
+                    displayMessage(msg, isError);
+                });
+                
+                // Afficher les liens de téléchargement si la conversion a réussi
+                if (result.success && result.converted_files.length > 0) {
+                    let downloadHtml = '<div class="download-links"><strong>Fichiers convertis:</strong><br>';
+                    result.converted_files.forEach(file => {
+                        const filename = file.split('/').pop();
+                        downloadHtml += `<a href="/api/download/${encodeURIComponent(file)}" target="_blank">📥 ${filename}</a>`;
+                    });
+                    downloadHtml += '</div>';
+                    outputDiv.innerHTML += downloadHtml;
+                }
+                
+                if (result.success) {
+                    displayMessage(`✨ Conversion terminée avec succès! (${result.converted_files.length} fichier(s) converti(s))`);
+                } else {
+                    displayMessage('❌ La conversion a échoué', true);
+                }
+                
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, true);
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
