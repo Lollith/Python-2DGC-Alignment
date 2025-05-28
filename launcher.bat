@@ -1,5 +1,4 @@
 @echo off
-cd D:\Dossier Perso/Adeline/python-2dgc-alignement/interface_flask/
-call .venv\Scripts\activate
+cd "D:\Dossiers Persos\Adeline\Python-2DGC-Alignment\interface_flask"
 python app.py
 pause
