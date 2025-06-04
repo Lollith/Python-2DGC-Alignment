@@ -149,15 +149,15 @@ class DataConverter:
                     # Lire les données par chunks pour économiser la mémoire
                     data_npy = {}
                     
-                    # for var_name in ['scan_acquisition_time',
-                    #                  'mass_values',
-                    #                  'intensity_values',
-                    #                  'total_intensity',
-                    #                  'point_count',
-                    #                  'mass_range_min',
-                    #                  'mass_range_max']:
-                    for var_name in ['mass_values',
-                                     'intensity_values']:
+                    for var_name in ['scan_acquisition_time',
+                                     'mass_values',
+                                     'intensity_values',
+                                     'total_intensity',
+                                     'point_count',
+                                     'mass_range_min',
+                                     'mass_range_max']:
+                    # for var_name in ['mass_values',
+                    #                  'intensity_values']:
                         if var_name in dataset.variables:
                             var_data = dataset[var_name]
                             # Pour les gros arrays, on peut les traiter par chunks

@@ -293,7 +293,7 @@
                 
                 <div class="button-group">
                     <button type="button" id="listNpyBtn" class="btn-secondary">📋 Lister fichiers NPY</button>
-                    <button type="button" id="checkDockerBtn" class="btn-warning">🐳 Vérifier Docker</button>
+                    <button type="button" id="checkDockerBtn" class="btn-warning">🐳 Lancer Docker</button>
                     <button type="submit" id="analyzeBtn" class="btn-primary">🔬 Lancer l'analyse</button>
                 </div>
             </form>
@@ -538,7 +538,7 @@
             checkDockerBtn.textContent = '🔄 Vérification...';
             
             try {
-                const response = await fetch('/api/check_docker', {
+                const response = await fetch('/api/start_containers', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -632,7 +632,7 @@
         // Vérifier l'état Docker au chargement de la page
         window.addEventListener('load', function() {
             // Vérification automatique discrète
-            fetch('/api/check_docker', {
+            fetch('/api/start_containers', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
