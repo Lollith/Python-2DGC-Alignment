@@ -1,2 +1,4 @@
 waitress
 flask
+netCDF4==1.7.2
+numpy
