@@ -108,7 +108,6 @@ class DataConverter:
                 with nc.Dataset(full_path, 'r') as dataset:
                     # Lire les données par chunks pour économiser la mémoire
                     data_npy = {}
-                   #TODO 
                     # for var_name in ['scan_acquisition_time',
                     #                  'mass_values',
                     #                  'intensity_values',
@@ -116,6 +115,7 @@ class DataConverter:
                     #                  'point_count',
                     #                  'mass_range_min',
                     #                  'mass_range_max']:
+                #    #TODO: test 
                     for var_name in ['mass_values',
                                      'intensity_values']:
                         
