@@ -3,7 +3,6 @@ from datetime import datetime
 from waitress import serve
 from flask import Flask, render_template, request, jsonify, send_file, Response
 from data_converter import DataConverter
-# from run_docker import RunDocker
 from datetime import datetime
 import os
 import time
@@ -27,13 +26,13 @@ app = Flask(__name__)
 USERNAME = 'admin'
 PASSWORD = 'MasSpec'
 client = docker.from_env()
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['OUTPUT_FOLDER'] = 'converted_data'
+# app.config['UPLOAD_FOLDER'] = 'uploads'
+# app.config['OUTPUT_FOLDER'] = 'converted_data'
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 
 # Créer les dossiers nécessaires
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+# os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 # Instances
 converter = DataConverter()
@@ -226,19 +225,19 @@ def analyze_files():
 
     messages = []
 
-    if not analysis_path or not os.path.isdir(analysis_path):
-        return jsonify({
-            'success': False,
-            'messages': ['❌ Chemin d\'analyse invalide'],
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
+    # if not analysis_path or not os.path.isdir(analysis_path):
+    #     return jsonify({
+    #         'success': False,
+    #         'messages': ['❌ Chemin d\'analyse invalide'],
+    #         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     })
 
-    if not selected_files:
-        return jsonify({
-            'success': False,
-            'messages': ['❌ Aucun fichier sélectionné pour l\'analyse'],
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
+    # if not selected_files:
+    #     return jsonify({
+    #         'success': False,
+    #         'messages': ['❌ Aucun fichier sélectionné pour l\'analyse'],
+    #         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     })
 
     valid_files = []
     for filename in selected_files:
@@ -249,12 +248,12 @@ def analyze_files():
         else:
             messages.append(f"⚠️ Fichier non trouvé: {filename}")
 
-    if not valid_files:
-        return jsonify({
-            'success': False,
-            'messages': messages + ['❌ Aucun fichier valide trouvé'],
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
+    # if not valid_files:
+    #     return jsonify({
+    #         'success': False,
+    #         'messages': messages + ['❌ Aucun fichier valide trouvé'],
+    #         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     })
 
     try:
         # 1. Vérifier et démarrer les conteneurs Docker si nécessaire

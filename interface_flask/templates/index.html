@@ -265,8 +265,8 @@
                 </div>
                 
                 <div class="button-group">
-                    <button type="button" id="listFilesBtn" class="btn-secondary">📋 Lister les fichiers CDF</button>
-                    <button type="submit" id="runBtn" class="btn-primary">▶️ Convertir</button>
+                    <button type="button" id="listFilesBtn" class="btn-secondary">📋 Lister les fichiers .cdf</button>
+                    <button type="submit" id="runBtn" class="btn-primary">▶️ Convertir en .npy</button>
                 </div>
             </form>
         </div>
@@ -294,7 +294,7 @@
                 <div class="button-group">
                     <button type="button" id="listNpyBtn" class="btn-secondary">📋 Lister fichiers NPY</button>
                     <button type="button" id="checkDockerBtn" class="btn-warning">🐳 Lancer Docker</button>
-                    <button type="submit" id="analyzeBtn" class="btn-primary">🔬 Lancer l'analyse</button>
+                    <button type="submit" id="analyzeBtn" class="btn-primary">🔬 Jupyter lab</button>
                 </div>
             </form>
         </div>
@@ -580,15 +580,15 @@
             const selectedFiles = Array.from(npyFilesSelect.selectedOptions).map(option => option.value);
             
             // Validation
-            if (!analysisPath.trim()) {
-                displayMessage('Veuillez spécifier un chemin pour les fichiers .npy', 'error');
-                return;
-            }
+            // if (!analysisPath.trim()) {
+            //     displayMessage('Veuillez spécifier un chemin pour les fichiers .npy', 'error');
+            //     return;
+            // }
             
-            if (selectedFiles.length === 0) {
-                displayMessage('Veuillez sélectionner au moins un fichier .npy à analyser', 'error');
-                return;
-            }
+            // if (selectedFiles.length === 0) {
+            //     displayMessage('Veuillez sélectionner au moins un fichier .npy à analyser', 'error');
+            //     return;
+            // }
             
             // Afficher le chargement
             loadingDiv.style.display = 'block';
@@ -616,11 +616,11 @@
                     displayMessage(msg, isError ? 'error' : 'success');
                 });
                 
-                if (result.success) {
-                    displayMessage(`✨ Analyse terminée avec succès!`);
-                } else {
-                    displayMessage('❌ L\'analyse a échoué', 'error');
-                }
+                // if (result.success) {
+                //     displayMessage(`✨ Analyse terminée avec succès!`);
+                // } else {
+                //     displayMessage('❌ L\'analyse a échoué', 'error');
+                // }
                 
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
