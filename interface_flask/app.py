@@ -20,6 +20,9 @@ import subprocess
 import webbrowser
 from functools import wraps
 from docker_manager import DockerComposeManager, create_docker_manager
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 app = Flask(__name__)
 
