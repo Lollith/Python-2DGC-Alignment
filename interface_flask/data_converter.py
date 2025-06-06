@@ -70,15 +70,21 @@ class DataConverter:
 
     def write_var_to_hdf5(self, nc_dataset, h5_file, var_name):
         """Écrit une variable NetCDF dans un fichier HDF5 avec conversion de type et compression."""
-        if var_name in nc_dataset.variables:
-            data = nc_dataset[var_name][:]
-            if data.dtype == np.float64:
-                data = data.astype(np.float32)
+        try:
+            if var_name in nc_dataset.variables:
+                data = nc_dataset[var_name][:]
+                if data.dtype == np.float64:
+                    data = data.astype(np.float32)
 
-            h5_file.create_dataset(var_name,
-                                   data=data,
-                                   compression='lzf')
-            del data
+                h5_file.create_dataset(var_name,
+                                       data=data,
+                                       compression='lzf')
+                del data
+            else:
+                print(f"⚠️ Variable {var_name} absente du fichier NetCDF")
+
+        except Exception as e:
+            print(f"❌ Erreur lors de l'écriture de {var_name} : {e}")
 
     def convert_single_file_optimized(self, file_info):
         """Convert a single CDF file to HDF5 with float32 optimization."""
@@ -105,20 +111,19 @@ class DataConverter:
 
                 with h5py.File(hdf5_path, 'w') as h5f:
                     # Conversion mass_values en float32
-                    # for var in ['scan_acquisition_time',
-                    #             'mass_values',
-                    #              'intensity_values',
-                    #              'total_intensity',
-                    #              'point_count',
-                    #              'mass_range_min',
-                    #              'mass_range_max']:
-                    #     self.write_var_to_hdf5(dataset, h5f, var)
-
-                #    #TODO: test 
-                    for var in ['mass_values', 'intensity_values']:
+                    for var in ['scan_acquisition_time',
+                                'mass_values',
+                                'intensity_values',
+                                'total_intensity',
+                                'point_count',
+                                'mass_range_min',
+                                'mass_range_max']:
                         self.write_var_to_hdf5(dataset, h5f, var)
 
-            
+                # #    #TODO: test 
+                #     for var in ['mass_values', 'intensity_values']:
+                #         self.write_var_to_hdf5(dataset, h5f, var)
+
                     if 'scan_number' in dataset.dimensions:
                         size = dataset.dimensions['scan_number'].size
                         h5f.attrs['scan_number_size'] = size
@@ -127,10 +132,10 @@ class DataConverter:
             gc.collect()
             conversion_time = time.time() - start_time
             output_size_mb = os.path.getsize(hdf5_path) // 1024 // 1024
-            compression_ratio = (file_size / output_size_mb) if output_size_mb > 0 else 1
+            # compression_ratio = (file_size / output_size_mb) if output_size_mb > 0 else 1
             
-            # messages.append(f"✅ [{file_idx+1}/{total_files}] {file_name} terminé en {conversion_time:.1f}s")
-            messages.append(f"   📦 Taille: {file_size}MB → {output_size_mb}MB (compression {compression_ratio:.1f}x)")
+            messages.append(f"✅ [{file_idx+1}/{total_files}] {file_name} terminé en {conversion_time:.1f}s")
+            messages.append(f"   📦 Taille: {file_size // 1024 // 1024}MB → {output_size_mb}MB") # (compression {compression_ratio:.1f}x)")
             
             return True, messages, hdf5_path
             
@@ -141,11 +146,14 @@ class DataConverter:
         except Exception as e:
             messages.append(f"❌ Erreur conversion {file_name}: {str(e)}")
             return False, messages, None
-    
-                
-    
+
+    def get_max_workers(self, files):
+        cpu_count = os.cpu_count() or 1
+        max_allowed = min(2 * cpu_count, 32)
+        return min(len(files), max_allowed)
+
     # def read_cdf_to_npy(self, path, files_list, output_path, progress_callback=None, max_workers=2):
-    def convert_cdf_to_hdf5_threaded(self, path, files_list, output_path, max_workers=2):
+    def convert_cdf_to_hdf5_threaded(self, path, files_list, output_path):
         """Convert CDF files to HDF5 with float32 optimization and with threading."""
         messages = []
         converted_files = []
@@ -154,13 +162,15 @@ class DataConverter:
         messages.append(f"🚀 Conversion avec HDF5 + Float32")
         messages.append(f"📁 Dossier source: {path}")
         messages.append(f"📁 Dossier sortie: {output_path}")
-        messages.append(f"👥 Workers: {max_workers}")
         
         files_list_checked, check_messages = self.check_path(path, files_list, output_path)
         messages.extend(check_messages)
         
         if files_list_checked is None:
             return False, messages, []
+        
+        max_workers = self.get_max_workers(files_list_checked)
+        messages.append(f"👥 Workers: {max_workers}")
         
         valid_files = []
         for file in files_list_checked:
@@ -217,7 +227,7 @@ class DataConverter:
         
         # Statistiques finales
         messages.append(f"\n📈 RÉSULTATS:")
-        messages.append(f"✅ Fichiers convertis: {len(converted_files)}/{total_files}")
+        messages.append(f"Fichiers convertis: {len(converted_files)}/{total_files}")
         messages.append(f"⏱️  Temps total: {total_time:.1f}s")
         messages.append(f"⚡ Temps moyen/fichier: {total_time/total_files:.1f}s")
         

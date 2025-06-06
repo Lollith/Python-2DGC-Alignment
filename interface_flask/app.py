@@ -127,7 +127,7 @@ def convert_files():
     # Effectuer la conversion
     success, messages, converted_files = converter.convert_cdf_to_hdf5_threaded(input_path, files_list, output_path)
     end = time.time() - t0
-    messages.append(f"Conversion terminée, temps_execution_sec: {round(end, 2)}")
+    # messages.append(f"Conversion terminée, temps_execution_sec: {round(end, 2)}")
 
     return jsonify({
         'success': success,

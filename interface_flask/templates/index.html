@@ -449,17 +449,17 @@
                     displayMessage(msg, isError ? 'error' : 'success');
                 });
                 
-                // Afficher les liens de téléchargement si la conversion a réussi
                 if (result.success && result.converted_files.length > 0) {
-                    let downloadHtml = '<div class="download-links"><strong>Fichiers convertis:</strong><br>';
+                    let filesHtml = '<div class="converted-files"><strong>Fichiers convertis :</strong><br>';
                     result.converted_files.forEach(file => {
                         const filename = file.split('/').pop();
-                        downloadHtml += `<a href="/api/download/${encodeURIComponent(file)}" target="_blank">📥 ${filename}</a>`;
+                        filesHtml += `<span>📄 ${filename}</span><br>`;
                     });
-                    downloadHtml += '</div>';
-                    outputDiv.innerHTML += downloadHtml;
-                }
-                
+                    filesHtml += '</div>';
+                    outputDiv.innerHTML += filesHtml;
+                    }
+
+
                 if (result.success) {
                     displayMessage(`✨ Conversion terminée avec succès! (${result.converted_files.length} fichier(s) converti(s))`);
                 } else {
