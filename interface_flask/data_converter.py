@@ -77,10 +77,7 @@ class DataConverter:
 
             h5_file.create_dataset(var_name,
                                    data=data,
-                                   compression='lzf')  # gzip ou lzf ? + suprimer les 2 autres lignes
-                                #    compression_opts=6,  # Bon compromis vitesse/compression pour gzip
-                                #    shuffle=True
-                                #    )
+                                   compression='lzf')
             del data
 
     def convert_single_file_optimized(self, file_info):
