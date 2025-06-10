@@ -172,7 +172,6 @@ def compute_matches_identification(matches, chromato, chromato_cube,
 
 
 def identification(filename, mod_time, method, mode, noise_factor,
-                   hit_prob_min,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
@@ -249,7 +248,7 @@ def identification(filename, mod_time, method, mode, noise_factor,
     # 2D peaks identification
     matches = matching.matching_nist_lib_from_chromato_cube(
         (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
-        mod_time, hit_prob_min=hit_prob_min,
+        mod_time,
         match_factor_min=match_factor_min)
     print("nb match", len(matches))
 
@@ -342,7 +341,7 @@ def cohort_identification_alignment_input_format_txt(
 
 
 def sample_identification(path, file, output_path, mod_time, method, mode,
-                          noise_factor, hit_prob_min, abs_thresholds,
+                          noise_factor, abs_thresholds,
                           rel_thresholds,
                           cluster,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
@@ -406,7 +405,6 @@ def sample_identification(path, file, output_path, mod_time, method, mode,
                            method,
                            mode,
                            noise_factor,
-                           hit_prob_min,
                            abs_thresholds,
                            rel_thresholds,
                            cluster,
