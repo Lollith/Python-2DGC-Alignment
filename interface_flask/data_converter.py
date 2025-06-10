@@ -73,7 +73,7 @@ class DataConverter:
         try:
             if var_name in nc_dataset.variables:
                 data = nc_dataset[var_name][:]
-                if data.dtype == np.float64:
+                if data.dtype == np.float64 and var_name != 'intensity_values':
                     data = data.astype(np.float32)
 
                 h5_file.create_dataset(var_name,
@@ -127,7 +127,6 @@ class DataConverter:
                     if 'scan_number' in dataset.dimensions:
                         size = dataset.dimensions['scan_number'].size
                         h5f.attrs['scan_number_size'] = size
-
 
             gc.collect()
             conversion_time = time.time() - start_time

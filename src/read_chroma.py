@@ -9,6 +9,7 @@ import baseline_correction
 from skimage.restoration import estimate_sigma
 import skimage.restoration
 import os
+import h5py
 
 # def print_chroma_header(filename):
 #     r"""Print chromato header.
@@ -52,7 +53,7 @@ def read_only_chroma(filename, mod_time = 1.25):
     >>> import read_chroma
     >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
     """
-    ds = nc.Dataset(filename,encoding="latin-1")
+    ds = nc.Dataset(filename, encoding="latin-1")
     chromato = ds['total_intensity']
     Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
@@ -62,14 +63,13 @@ def read_only_chroma(filename, mod_time = 1.25):
 
     return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
 
-#REname 
 def read_chroma(filename, mod_time, max_val=None):
     r"""Read chromatogram file.
 
     Parameters
     ----------
     filename :
-        Chromatogram full filename. .cdf
+        Chromatogram full filename.
     mod_time : optional
         Modulation time
     max_val : int, optional
@@ -93,36 +93,28 @@ def read_chroma(filename, mod_time, max_val=None):
     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
     >>> tic_chromato, time_rn, spectra_obj = chromato_obj
     """
+    if not filename.endswith(".h5"):
+        raise ValueError("The file must be a .h5")
+    with h5py.File(filename, 'r') as f:
+        tic_chromato = f['total_intensity'][:]
+        timepara = f["scan_acquisition_time"][np.abs(f["point_count"])
+                                              < np.iinfo(np.int32).max]
+        if (max_val):
+            mv = f["mass_values"][:max_val]
+            iv = f["intensity_values"][:max_val]
+        else:
+            mv = f["mass_values"][:]
+            iv = f["intensity_values"][:]
+        range_min = math.ceil(f["mass_range_min"][:].min())
+        range_max = math.floor(f["mass_range_max"][:].max())
+        start_time = f['scan_acquisition_time'][0] / 60
+        end_time = f['scan_acquisition_time'][-1] / 60
 
-    # TODO a corriger, plus besoin de check .cdf ici + recup les .npy
-    if not filename.endswith(".cdf"):
-        raise ValueError("The file must be a .cdf")
-
-    ds = nc.Dataset(filename, encoding="latin-1")
-    tic_chromato = ds['total_intensity']
-    abs_point_count = np.abs(ds["point_count"])
-    Timepara = ds["scan_acquisition_time"][abs_point_count <
-                                           np.iinfo(np.int32).max]
-    
     # taux d'échantillonnage : le nombre d'échantillons (points) par unité de temps (par exemple, en Hz).
-    sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
+    sam_rate = 1 / np.mean(timepara[1:] - timepara[:-1])
     l1 = math.floor(sam_rate * mod_time)
     l2 = math.floor(len(tic_chromato) / l1)
-
-    if (max_val):
-        mv = ds["mass_values"][:max_val]
-        iv = ds["intensity_values"][:max_val]
-    else:
-        mv = ds["mass_values"][:]
-        iv = ds["intensity_values"][:]
-
-    range_min = math.ceil(ds["mass_range_min"][:].min())
-    range_max = math.floor(ds["mass_range_max"][:].max())
-
     tic_chromato = np.reshape(tic_chromato[:l1*l2], (l2, l1))
-
-    start_time = ds['scan_acquisition_time'][0] / 60
-    end_time = ds['scan_acquisition_time'][-1] / 60
 
     return (tic_chromato, (start_time, end_time),
             (l1, l2, mv, iv, range_min, range_max))

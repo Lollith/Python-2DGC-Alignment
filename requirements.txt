@@ -20,5 +20,4 @@ pybaselines==1.2.0
 
 jupyter==1.1.1
 ipywidgets==8.1.6
-
-h5py #TODO
+h5py
