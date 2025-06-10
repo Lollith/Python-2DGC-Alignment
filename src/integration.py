@@ -180,8 +180,12 @@ def peak_pool_similarity_check_coordinates(chromato, coordinates, coordinate, ch
     cds = similarity_cluestering(chromato_cube, cds, ref_point=coordinate, similarity_threshold=similarity_threshold)
     return cds
 
-def peak_pool_similarity_check(chromato, coordinates, coordinate, chromato_cube, threshold=0.25, similarity_threshold=0.01, plot_labels=False):
-    r"""Peak integration. Find pixels in the neighborhood of the peak passed in parameter which belong to the peak blob. It is usefull to determine the area of the peak.
+def peak_pool_similarity_check(chromato, coordinates, coordinate,
+                               chromato_cube, threshold=0.25,
+                               similarity_threshold=0.01, plot_labels=False):
+    r"""Peak integration. Find pixels in the neighborhood of the peak passed
+    in parameter which belong to the peak blob. It is usefull to determine the
+    area of the peak.
 
     Parameters
     ----------

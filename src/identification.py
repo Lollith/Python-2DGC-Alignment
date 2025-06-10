@@ -347,7 +347,8 @@ def sample_identification(path, file, output_path, mod_time, method, mode,
                           cluster,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
                           num_sigma,
-                          formated_spectra, match_factor_min, min_persistence):
+                          formated_spectra, match_factor_min, min_persistence,
+                          overlap, eps, min_samples):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -416,7 +417,10 @@ def sample_identification(path, file, output_path, mod_time, method, mode,
                            num_sigma,
                            formated_spectra,
                            match_factor_min,
-                           min_persistence)
+                           min_persistence,
+                           overlap,
+                           eps,
+                           min_samples)
         print("Identification done", time.time()-start_time, 's')
         if (output_path is not None):
             cohort_identification_alignment_input_format_txt(
