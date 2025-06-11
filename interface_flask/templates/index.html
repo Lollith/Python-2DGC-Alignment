@@ -279,20 +279,20 @@
             
             <form id="analysisForm">
                 <div class="form-group">
-                    <label for="analysisPath">📁 Chemin des fichiers .npy:</label>
+                    <label for="analysisPath">📁 Chemin des fichiers .h5:</label>
                     <input type="text" id="analysisPath" name="analysisPath" value="{{ default_output_path }}">
                 </div>
                 
                 <div class="form-group">
-                    <label for="npyFiles">📊 Fichiers .npy à analyser:</label>
-                    <select id="npyFiles" name="npyFiles" multiple size="8">
-                        <option value="">Cliquez sur "Lister fichiers NPY" pour voir les fichiers disponibles</option>
+                    <label for="h5Files">📊 Fichiers .h5 à analyser:</label>
+                    <select id="h5Files" name="h5Files" multiple size="8">
+                        <option value="">Cliquez sur "Lister fichiers HDF5" pour voir les fichiers disponibles</option>
                     </select>
                     <small style="color: #666; font-style: italic;">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers</small>
                 </div>
                 
                 <div class="button-group">
-                    <button type="button" id="listNpyBtn" class="btn-secondary">📋 Lister fichiers NPY</button>
+                    <button type="button" id="listH5Btn" class="btn-secondary">📋 Lister fichiers HDF5</button>
                     <button type="button" id="checkDockerBtn" class="btn-warning">🐳 Lancer Docker</button>
                     <button type="submit" id="analyzeBtn" class="btn-primary">🔬 Jupyter lab</button>
                 </div>
@@ -306,7 +306,7 @@
     </div>
 
     <script>
-        let selectedNpyFiles = [];
+        let selectedH5Files = [];
         
         // Gestion des onglets
         function showTab(tabName) {
@@ -474,24 +474,24 @@
         });
         
         // ANALYSIS TAB
-        const listNpyBtn = document.getElementById('listNpyBtn');
+        const listH5Btn = document.getElementById('listH5Btn');
         const checkDockerBtn = document.getElementById('checkDockerBtn');
         const analyzeBtn = document.getElementById('analyzeBtn');
         const analysisForm = document.getElementById('analysisForm');
-        const npyFilesSelect = document.getElementById('npyFiles');
+        const h5FilesSelect = document.getElementById('h5Files');
         const dockerStatusDiv = document.getElementById('dockerStatus');
         
-        // Lister les fichiers NPY
-        listNpyBtn.addEventListener('click', async function() {
+        // Lister les fichiers HDF5
+        listH5Btn.addEventListener('click', async function() {
             const analysisPath = document.getElementById('analysisPath').value;
             
             if (!analysisPath.trim()) {
-                displayMessage('Veuillez spécifier un chemin pour les fichiers .npy', 'error');
+                displayMessage('Veuillez spécifier un chemin pour les fichiers .h5', 'error');
                 return;
             }
             
-            listNpyBtn.disabled = true;
-            listNpyBtn.textContent = '🔄 Chargement...';
+            listH5Btn.disabled = true;
+            listH5Btn.textContent = '🔄 Chargement...';
             
             try {
                 const response = await fetch('/api/list_files', {
@@ -499,27 +499,27 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ path: analysisPath, extension: '.npy' })
+                    body: JSON.stringify({ path: analysisPath, extension: '.h5' })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    npyFilesSelect.innerHTML = '';
+                    h5FilesSelect.innerHTML = '';
                     if (data.files.length > 0) {
                         data.files.forEach(file => {
                             const option = document.createElement('option');
                             option.value = file;
                             option.textContent = file;
-                            npyFilesSelect.appendChild(option);
+                            h5FilesSelect.appendChild(option);
                         });
-                        displayMessage(`${data.files.length} fichier(s) .npy trouvé(s)`);
+                        displayMessage(`${data.files.length} fichier(s) .h5 trouvé(s)`);
                     } else {
                         const option = document.createElement('option');
-                        option.textContent = 'Aucun fichier .npy trouvé';
+                        option.textContent = 'Aucun fichier .h5 trouvé';
                         option.disabled = true;
-                        npyFilesSelect.appendChild(option);
-                        displayMessage('Aucun fichier .npy trouvé', 'error');
+                        h5FilesSelect.appendChild(option);
+                        displayMessage('Aucun fichier .h5 trouvé', 'error');
                     }
                 } else {
                     displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
@@ -527,8 +527,8 @@
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
             } finally {
-                listNpyBtn.disabled = false;
-                listNpyBtn.textContent = '📋 Lister fichiers NPY';
+                listH5Btn.disabled = false;
+                listH5Btn.textContent = '📋 Lister fichiers HDF5';
             }
         });
         
@@ -577,7 +577,7 @@
             e.preventDefault();
             
             const analysisPath = document.getElementById('analysisPath').value;
-            const selectedFiles = Array.from(npyFilesSelect.selectedOptions).map(option => option.value);
+            const selectedFiles = Array.from(h5FilesSelect.selectedOptions).map(option => option.value);
             
             // Validation
             // if (!analysisPath.trim()) {

@@ -125,8 +125,11 @@ def convert_files():
         pass
 
     # Effectuer la conversion
-    success, messages, converted_files = converter.convert_cdf_to_hdf5_threaded(input_path, files_list, output_path)
-    end = time.time() - t0
+    success, messages, converted_files = (
+        converter.convert_cdf_to_hdf5_threaded(
+            input_path, files_list, output_path
+            ))
+    # end = time.time() - t0
     # messages.append(f"Conversion terminée, temps_execution_sec: {round(end, 2)}")
 
     return jsonify({
@@ -221,7 +224,7 @@ def start_containers():
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_files():
-    """API pour lancer l'analyse des fichiers .npy."""
+    """API pour lancer l'analyse des fichiers .h5."""
     data = request.get_json()
     analysis_path = data.get('analysis_path', '')
     selected_files = data.get('selected_files', [])
