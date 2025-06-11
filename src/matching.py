@@ -115,25 +115,24 @@ def matching_nist_lib_from_chromato_cube(
         (l1, l2, mv, iv, range_min, range_max) = spectra_obj
     except ValueError:
         range_min, range_max = spectra_obj
-        
+
     mass_values = np.linspace(
         range_min, range_max, range_max - range_min + 1).astype(int)
-    
+
     matches = []
     nb_analyte = 0
     for i, coord in enumerate(coordinates):
-        
+
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
 
         best_hit = full_search_with_ref_data(mass_spectrum, n_hits=1)[0]
         search_result, ref_data = best_hit
-        print("best hit:")
-        print(best_hit)
+        print(f"Best hit: {search_result.name}: {search_result.cas}, "
+              f"with match_factor:{search_result.match_factor}.")
         #  res = search.full_spectrum_search(mass_spectrum)
-        
-        print("res[0][0].name:", search_result.name)
+
         match_data = {
             'spectra': int_values,
             'casno': '',
@@ -156,15 +155,13 @@ def matching_nist_lib_from_chromato_cube(
             # Composé non identifié
             nb_analyte += 1
             match_data['compound_name'] = f'Analyte{nb_analyte}'
-        
+
         matches.append([[(coordinates_in_chromato[i][0]),
                        (coordinates_in_chromato[i][1])], match_data, coord])
         del mass_spectrum
-        print("match:")
-        print(matches[-1])
     end = time.time() - start
     print(f"Matching NIST library took {end:.2f} seconds")
-    
+
     return matches
 
 

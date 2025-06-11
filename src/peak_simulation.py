@@ -870,8 +870,8 @@ def create_overlapped_cluster_in_cube(mu0, min_overlap=0.7, max_overlap=0.99):
     #overlaps=[]
     blob1=create_random_blob(mu0[0], mu0[1])
     blob_list.append(blob1)
-    cluster_min_overlap=1.0
-    cluster_max_overlap=0.
+    cluster_min_overlap = 1.0
+    cluster_max_overlap = 0.
     for i in range (random.randint(1,2)):
         it=0
         while (it<=IT_MAX):
@@ -890,9 +890,10 @@ def create_overlapped_cluster_in_cube(mu0, min_overlap=0.7, max_overlap=0.99):
                 cluster_max_overlap=max(tmp_max_overlap, cluster_max_overlap)
                 #overlaps.append((tmp_min_overlap, tmp_max_overlap))
                 break
-            it+=1
-    blob_list=(blob_list)
+            it += 1
+    blob_list = (blob_list)
     return blob_list, (cluster_min_overlap, cluster_max_overlap)
+
 
 def create_chromato_cube_with_overlapped_cluster(shape, lib_spectra, array_scores, min_overlap=0.7, max_overlap=0.99,  min_similarity=0.0, max_similarity=1.1, add_noise=True, intensity_range_min=20000, intensity_range_max=40000, noise_loc=1000.0, noise_scale=500.0, poisson_rep=0.9):
     r"""Create a 3D chromatogram with overlapped clusters
