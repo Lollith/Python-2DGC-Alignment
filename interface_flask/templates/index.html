@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Converter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+        
+        .tab:hover {
+            color: #4CAF50;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus, textarea:focus, select:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #1976D2;
+        }
+        
+        .btn-warning {
+            background-color: #FF9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #F57C00;
+        }
+        
+        .btn-secondary:disabled, .btn-primary:disabled, .btn-warning:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        .info {
+            color: #17a2b8;
+        }
+        
+        .files-list {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            padding: 5px;
+            margin: 2px 0;
+            background: white;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .file-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .file-item.selected {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .download-links {
+            margin-top: 15px;
+        }
+        
+        .download-links a {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 5px 10px;
+            background-color: #17a2b8;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .download-links a:hover {
+            background-color: #138496;
+        }
+        
+        .docker-status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .docker-running {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .docker-stopped {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Data Converter & Analysis</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('conversion')">📁 Conversion</button>
+            <button class="tab" onclick="showTab('analysis')">🔬 Analyse</button>
+        </div>
+        
+        <!-- Tab Conversion -->
+        <div id="conversion" class="tab-content active">
+            <form id="converterForm">
+                <div class="form-group">
+                    <label for="inputPath">📁 Chemin d'entrée (Path):</label>
+                    <input type="text" id="inputPath" name="inputPath" value="{{ default_input_path }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="files">📄 Fichiers (ex: file1.cdf, file2.cdf):</label>
+                    <input type="text" id="files" name="files" placeholder="Laissez vide pour tous les fichiers .cdf du dossier">
+                    <div id="availableFiles" class="files-list" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="outputPath">💾 Chemin de sortie (Output path):</label>
+                    <input type="text" id="outputPath" name="outputPath" value="{{ default_output_path }}">
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" id="listFilesBtn" class="btn-secondary">📋 Lister les fichiers .cdf</button>
+                    <button type="submit" id="runBtn" class="btn-primary">▶️ Convertir en .h5</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Tab Analysis -->
+        <div id="analysis" class="tab-content">
+            <div id="dockerStatus" class="docker-status docker-stopped">
+                🔴 État des conteneurs Docker: Non vérifié
+            </div>
+            
+            <form id="analysisForm">
+                <div class="form-group">
+                    <label for="analysisPath">📁 Chemin des fichiers .h5:</label>
+                    <input type="text" id="analysisPath" name="analysisPath" value="{{ default_output_path }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="h5Files">📊 Fichiers .h5 à analyser:</label>
+                    <select id="h5Files" name="h5Files" multiple size="8">
+                        <option value="">Cliquez sur "Lister fichiers HDF5" pour voir les fichiers disponibles</option>
+                    </select>
+                    <small style="color: #666; font-style: italic;">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers</small>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" id="listH5Btn" class="btn-secondary">📋 Lister fichiers HDF5</button>
+                    <button type="button" id="checkDockerBtn" class="btn-warning">🐳 Lancer Docker</button>
+                    <button type="submit" id="analyzeBtn" class="btn-primary">🔬 Jupyter lab</button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="loading" class="loading">
+            ⏳ Traitement en cours...
+        </div>
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        let selectedH5Files = [];
+        
+        // Gestion des onglets
+        function showTab(tabName) {
+            // Masquer tous les contenus
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Masquer tous les onglets actifs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Afficher le contenu sélectionné
+            document.getElementById(tabName).classList.add('active');
+            
+            // Activer l'onglet sélectionné
+            event.target.classList.add('active');
+            
+            // Vider l'output quand on change d'onglet
+            document.getElementById('output').innerHTML = '';
+        }
+        
+        const outputDiv = document.getElementById('output');
+        const loadingDiv = document.getElementById('loading');
+        
+        // Fonction pour afficher les messages
+        function displayMessage(message, type = 'success') {
+            const timestamp = new Date().toLocaleTimeString();
+            let className, prefix;
+            
+            switch(type) {
+                case 'error':
+                    className = 'error';
+                    prefix = '❌';
+                    break;
+                case 'info':
+                    className = 'info';
+                    prefix = 'ℹ️';
+                    break;
+                default:
+                    className = 'success';
+                    prefix = '✅';
+            }
+            
+            outputDiv.innerHTML += `<span class="${className}">[${timestamp}] ${prefix} ${message}</span>\n`;
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+        
+        // CONVERSION TAB
+        const listFilesBtn = document.getElementById('listFilesBtn');
+        const availableFilesDiv = document.getElementById('availableFiles');
+        const converterForm = document.getElementById('converterForm');
+        
+        // Lister les fichiers CDF
+        listFilesBtn.addEventListener('click', async function() {
+            const inputPath = document.getElementById('inputPath').value;
+            
+            if (!inputPath.trim()) {
+                displayMessage('Veuillez spécifier un chemin d\'entrée', 'error');
+                return;
+            }
+            
+            listFilesBtn.disabled = true;
+            listFilesBtn.textContent = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch('/api/list_files', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ path: inputPath, extension: '.cdf' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.files.length > 0) {
+                        availableFilesDiv.innerHTML = `<strong>Fichiers CDF trouvés:</strong><br>${data.files.join(', ')}`;
+                        availableFilesDiv.style.display = 'block';
+                        displayMessage(`${data.files.length} fichier(s) CDF trouvé(s)`);
+                    } else {
+                        availableFilesDiv.innerHTML = '<strong>Aucun fichier CDF trouvé dans ce dossier</strong>';
+                        availableFilesDiv.style.display = 'block';
+                        displayMessage('Aucun fichier CDF trouvé', 'error');
+                    }
+                } else {
+                    displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
+                    availableFilesDiv.style.display = 'none';
+                }
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                listFilesBtn.disabled = false;
+                listFilesBtn.textContent = '📋 Lister les fichiers CDF';
+            }
+        });
+        
+        // Gestionnaire de soumission du formulaire de conversion
+        converterForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(converterForm);
+            const data = {
+                input_path: formData.get('inputPath'),
+                output_path: formData.get('outputPath'),
+                files: formData.get('files')
+            };
+            
+            // Validation
+            if (!data.input_path.trim()) {
+                displayMessage('Veuillez spécifier un chemin d\'entrée', 'error');
+                return;
+            }
+            
+            if (!data.output_path.trim()) {
+                displayMessage('Veuillez spécifier un chemin de sortie', 'error');
+                return;
+            }
+            
+            // Afficher le chargement
+            loadingDiv.style.display = 'block';
+            outputDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                // Afficher tous les messages
+                result.messages.forEach(msg => {
+                    const isError = msg.toLowerCase().includes('erreur');
+                    displayMessage(msg, isError ? 'error' : 'success');
+                });
+                
+                if (result.success && result.converted_files.length > 0) {
+                    let filesHtml = '<div class="converted-files"><strong>Fichiers convertis :</strong><br>';
+                    result.converted_files.forEach(file => {
+                        const filename = file.split('/').pop();
+                        filesHtml += `<span>📄 ${filename}</span><br>`;
+                    });
+                    filesHtml += '</div>';
+                    outputDiv.innerHTML += filesHtml;
+                    }
+
+
+                if (result.success) {
+                    displayMessage(`✨ Conversion terminée avec succès! (${result.converted_files.length} fichier(s) converti(s))`);
+                } else {
+                    displayMessage('❌ La conversion a échoué', 'error');
+                }
+                
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+        
+        // ANALYSIS TAB
+        const listH5Btn = document.getElementById('listH5Btn');
+        const checkDockerBtn = document.getElementById('checkDockerBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const analysisForm = document.getElementById('analysisForm');
+        const h5FilesSelect = document.getElementById('h5Files');
+        const dockerStatusDiv = document.getElementById('dockerStatus');
+        
+        // Lister les fichiers HDF5
+        listH5Btn.addEventListener('click', async function() {
+            const analysisPath = document.getElementById('analysisPath').value;
+            
+            if (!analysisPath.trim()) {
+                displayMessage('Veuillez spécifier un chemin pour les fichiers .h5', 'error');
+                return;
+            }
+            
+            listH5Btn.disabled = true;
+            listH5Btn.textContent = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch('/api/list_files', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ path: analysisPath, extension: '.h5' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    h5FilesSelect.innerHTML = '';
+                    if (data.files.length > 0) {
+                        data.files.forEach(file => {
+                            const option = document.createElement('option');
+                            option.value = file;
+                            option.textContent = file;
+                            h5FilesSelect.appendChild(option);
+                        });
+                        displayMessage(`${data.files.length} fichier(s) .h5 trouvé(s)`);
+                    } else {
+                        const option = document.createElement('option');
+                        option.textContent = 'Aucun fichier .h5 trouvé';
+                        option.disabled = true;
+                        h5FilesSelect.appendChild(option);
+                        displayMessage('Aucun fichier .h5 trouvé', 'error');
+                    }
+                } else {
+                    displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
+                }
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                listH5Btn.disabled = false;
+                listH5Btn.textContent = '📋 Lister fichiers HDF5';
+            }
+        });
+        
+        // Vérifier l'état des conteneurs Docker
+        checkDockerBtn.addEventListener('click', async function() {
+            checkDockerBtn.disabled = true;
+            checkDockerBtn.textContent = '🔄 Vérification...';
+            
+            try {
+                const response = await fetch('/api/start_containers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.all_running) {
+                    dockerStatusDiv.className = 'docker-status docker-running';
+                    dockerStatusDiv.innerHTML = '🟢 Tous les conteneurs Docker sont en cours d\'exécution';
+                    displayMessage('Conteneurs Docker: Tous en cours d\'exécution');
+                } else {
+                    dockerStatusDiv.className = 'docker-status docker-stopped';
+                    dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
+                    displayMessage('Certains conteneurs Docker ne sont pas actifs', 'error');
+                }
+                
+                // Afficher les détails
+                data.status.forEach(status => {
+                    displayMessage(status, 'info');
+                });
+                
+            } catch (error) {
+                displayMessage('Erreur lors de la vérification Docker: ' + error.message, 'error');
+                dockerStatusDiv.className = 'docker-status docker-stopped';
+                dockerStatusDiv.innerHTML = '❌ Erreur lors de la vérification Docker';
+            } finally {
+                checkDockerBtn.disabled = false;
+                checkDockerBtn.textContent = '🐳 Vérifier Docker';
+            }
+        });
+        
+        // Lancer l'analyse
+        analysisForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const analysisPath = document.getElementById('analysisPath').value;
+            const selectedFiles = Array.from(h5FilesSelect.selectedOptions).map(option => option.value);
+            
+            // Validation
+            // if (!analysisPath.trim()) {
+            //     displayMessage('Veuillez spécifier un chemin pour les fichiers .npy', 'error');
+            //     return;
+            // }
+            
+            // if (selectedFiles.length === 0) {
+            //     displayMessage('Veuillez sélectionner au moins un fichier .npy à analyser', 'error');
+            //     return;
+            // }
+            
+            // Afficher le chargement
+            loadingDiv.style.display = 'block';
+            outputDiv.innerHTML = '';
+            
+            const data = {
+                analysis_path: analysisPath,
+                selected_files: selectedFiles
+            };
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                // Afficher tous les messages
+                result.messages.forEach(msg => {
+                    const isError = msg.toLowerCase().includes('erreur');
+                    displayMessage(msg, isError ? 'error' : 'success');
+                });
+                
+                // if (result.success) {
+                //     displayMessage(`✨ Analyse terminée avec succès!`);
+                // } else {
+                //     displayMessage('❌ L\'analyse a échoué', 'error');
+                // }
+                
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+        
+        // Vérifier l'état Docker au chargement de la page
+        window.addEventListener('load', function() {
+            // Vérification automatique discrète
+            fetch('/api/start_containers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.all_running) {
+                    dockerStatusDiv.className = 'docker-status docker-running';
+                    dockerStatusDiv.innerHTML = '🟢 Tous les conteneurs Docker sont en cours d\'exécution';
+                } else {
+                    dockerStatusDiv.className = 'docker-status docker-stopped';
+                    dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
+                }
+            }).catch(() => {
+                dockerStatusDiv.className = 'docker-status docker-stopped';
+                dockerStatusDiv.innerHTML = '❌ Impossible de vérifier l\'état Docker';
+            });
+        });
+    </script>
+</body>
+</html>

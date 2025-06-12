@@ -172,11 +172,10 @@ def compute_matches_identification(matches, chromato, chromato_cube,
 
 
 def identification(filename, mod_time, method, mode, noise_factor,
-                   hit_prob_min,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence):
+                   min_persistence, overlap, eps, min_samples):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -240,13 +239,16 @@ def identification(filename, mod_time, method, mode, noise_factor,
         max_sigma=max_sigma,
         sigma_ratio=sigma_ratio,
         num_sigma=num_sigma,
-        min_persistence=min_persistence)
+        min_persistence=min_persistence,
+        overlap=overlap,
+        eps=eps,
+        min_samples=min_samples)
     print("nb peaks", len(coordinates))
 
     # 2D peaks identification
     matches = matching.matching_nist_lib_from_chromato_cube(
         (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
-        mod_time, hit_prob_min=hit_prob_min,
+        mod_time,
         match_factor_min=match_factor_min)
     print("nb match", len(matches))
 
@@ -288,7 +290,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
     """
 
     with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, delimiter=';')
 
         # header
         writer.writerow(['Name', 'Casno', 'Formula', 'hit_prob',
@@ -339,12 +341,13 @@ def cohort_identification_alignment_input_format_txt(
 
 
 def sample_identification(path, file, output_path, mod_time, method, mode,
-                          noise_factor, hit_prob_min, abs_thresholds,
+                          noise_factor, abs_thresholds,
                           rel_thresholds,
                           cluster,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
                           num_sigma,
-                          formated_spectra, match_factor_min, min_persistence):
+                          formated_spectra, match_factor_min, min_persistence,
+                          overlap, eps, min_samples):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -402,7 +405,6 @@ def sample_identification(path, file, output_path, mod_time, method, mode,
                            method,
                            mode,
                            noise_factor,
-                           hit_prob_min,
                            abs_thresholds,
                            rel_thresholds,
                            cluster,
@@ -413,7 +415,10 @@ def sample_identification(path, file, output_path, mod_time, method, mode,
                            num_sigma,
                            formated_spectra,
                            match_factor_min,
-                           min_persistence)
+                           min_persistence,
+                           overlap,
+                           eps,
+                           min_samples)
         print("Identification done", time.time()-start_time, 's')
         if (output_path is not None):
             cohort_identification_alignment_input_format_txt(

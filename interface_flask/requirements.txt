@@ -1,0 +1,7 @@
+waitress
+flask
+netCDF4==1.7.2
+numpy
+docker
+python-dotenv
+h5py

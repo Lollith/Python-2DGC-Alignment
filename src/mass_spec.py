@@ -176,6 +176,8 @@ def read_full_spectra_centroid(spectra_obj, max_val=None):
     '''for i in range(len(spectra)):
         spectra_full_nom.append(centroid_to_full_nominal(spectra_obj, spectra[i][0], spectra[i][1]))'''
     cpu_count = multiprocessing.cpu_count()
+    #TODO
+    # cpu_count = min(multiprocessing.cpu_count(), len(spectra) ou 32)
     mass_v = np.linspace(
         range_min, range_max, range_max - range_min + 1).astype(int)
     with multiprocessing.Pool(processes=cpu_count) as pool:

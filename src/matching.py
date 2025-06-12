@@ -25,57 +25,57 @@ from pyms_nist_search.search_result import SearchResult
 
 
 def hit_list_with_ref_data_from_json(json_data: str) \
-	-> List[Tuple[SearchResult, ReferenceData]]:
-	"""
-	Parse json data into a list of (SearchResult, ReferenceData) tuples.
-	:param json_data: str
-	"""
+    -> List[Tuple[SearchResult, ReferenceData]]:
+    """
+    Parse json data into a list of (SearchResult, ReferenceData) tuples.
+    :param json_data: str
+    """
 
-	raw_output = json.loads(json_data)
+    raw_output = json.loads(json_data)
 
-	hit_list = []
+    hit_list = []
 
-	for hit, ref_data in raw_output:
-		hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
-	return hit_list
+    for hit, ref_data in raw_output:
+        hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
+    return hit_list
 
 def full_search_with_ref_data(
-			mass_spectrum,
-			n_hits: int = 20,
-			) -> List[Tuple[SearchResult, ReferenceData]]:
-		"""
-		Perform a Full Spectrum Search of the mass spectral library, including reference data.
+            mass_spectrum,
+            n_hits: int = 20,
+            ) -> List[Tuple[SearchResult, ReferenceData]]:
+        """
+        Perform a Full Spectrum Search of the mass spectral library, including reference data.
 
-		:param mass_spec: The mass spectrum to search against the library.
-		:param n_hits: The number of hits to return.
+        :param mass_spec: The mass spectrum to search against the library.
+        :param n_hits: The number of hits to return.
 
-		:return: List of tuples containing possible identities
-			for the mass spectrum, and the reference data.
-		"""
+        :return: List of tuples containing possible identities
+            for the mass spectrum, and the reference data.
+        """
 
-		if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
-			raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
+        if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
+            raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
 
-		retry_count = 0
+        retry_count = 0
 
-		# Keep trying until it works
-		while retry_count < 240:
-			try:
-				res = requests.post(
-						f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
-						json=sdjson.dumps(mass_spectrum)
-						)
-				return hit_list_with_ref_data_from_json(res.text)
-			except requests.exceptions.ConnectionError:
-				time.sleep(0.5)
-				retry_count += 1
+        # Keep trying until it works
+        while retry_count < 240:
+            try:
+                res = requests.post(
+                        f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
+                        json=sdjson.dumps(mass_spectrum)
+                        )
+                return hit_list_with_ref_data_from_json(res.text)
+            except requests.exceptions.ConnectionError:
+                time.sleep(0.5)
+                retry_count += 1
 
-		raise TimeoutError("Unable to communicate with the search server.")
+        raise TimeoutError("Unable to communicate with the search server.")
 
 
 def matching_nist_lib_from_chromato_cube(
-		chromato_obj, chromato_cube, coordinates, mod_time,
-		hit_prob_min, match_factor_min=800):
+        chromato_obj, chromato_cube, coordinates, mod_time,
+        match_factor_min):
     """Indentify retrieved peaks using NIST library.
 
     Parameters
@@ -86,11 +86,9 @@ def matching_nist_lib_from_chromato_cube(
         3D chromatogram.
     coordinates :
         Peaks coordinates.
-    mod_time : optional
+    mod_time : 
         Modulation time
-    hit_prob_min :
-        Filter compounds with hit_prob < hit_prob_min
-    match_factor_min : optional
+    match_factor_min :
         Match factor between our spectrum and the library spectrum NIST.
         The match factor is a measure of how well the two spectra       
         match. It is calculated as the sum of the squares of the
@@ -108,70 +106,63 @@ def matching_nist_lib_from_chromato_cube(
         reverse_match_factor
     --------
     """
+    start = time.time()
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(
         coordinates, time_rn, mod_time, chromato.shape)
 
-    match = []
     try:
         (l1, l2, mv, iv, range_min, range_max) = spectra_obj
     except ValueError:
         range_min, range_max = spectra_obj
-        
+
     mass_values = np.linspace(
         range_min, range_max, range_max - range_min + 1).astype(int)
+
+    matches = []
     nb_analyte = 0
-    print("nb_peaks: ", len(coordinates))
     for i, coord in enumerate(coordinates):
-        
-        d_tmp = dict()
+
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
 
-        res = full_search_with_ref_data(mass_spectrum)
+        best_hit = full_search_with_ref_data(mass_spectrum, n_hits=1)[0]
+        search_result, ref_data = best_hit
+        print(f"Best hit: {search_result.name}: {search_result.cas}, "
+              f"with match_factor:{search_result.match_factor}.")
         #  res = search.full_spectrum_search(mass_spectrum)
-        
-        # if (res[0][0].match_factor < match_factor_min):
-        #     continue
-        
-        del mass_spectrum
-        compound_casno = res[0][0].cas
-        compound_name = res[0][0].name
-        compound_formula = res[0][1].formula
-        hit_prob = res[0][0].hit_prob
-        match_factor = res[0][0].match_factor
-        reverse_match_factor = res[0][0].reverse_match_factor
-        
-        #if (res[0][0].hit_prob < hit_prob_min):
-        if (res[0][0].match_factor < match_factor_min):
-            nb_analyte = nb_analyte + 1
-            d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
-            d_tmp['casno'] = ''
-            d_tmp['compound_formula'] = ''
-            d_tmp['hit_prob'] = ''
-            d_tmp['match_factor'] = ''
-            d_tmp['reverse_match_factor'] = ''
-            d_tmp['spectra'] = int_values
-        
-        else:
-            d_tmp['casno'] = compound_casno
-            d_tmp['compound_name'] = compound_name
-            d_tmp['compound_formula'] = compound_formula
-            d_tmp['hit_prob'] = hit_prob
-            d_tmp['match_factor'] = match_factor
-            d_tmp['reverse_match_factor'] = reverse_match_factor
-            d_tmp['spectra'] = int_values
-        # if (res[0][0].hit_prob < hit_prob_min):
-        #     nb_analyte = nb_analyte + 1
-            # d_tmp['compound_name'] = 'Analyte' + str(nb_analyte)
 
-        match.append([[(coordinates_in_chromato[i][0]),
-					   (coordinates_in_chromato[i][1])], d_tmp, coord])
-        del res
-    print("nb match:")
-    print(len(coordinates))
-    return match
+        match_data = {
+            'spectra': int_values,
+            'casno': '',
+            'compound_name': '',
+            'compound_formula': '',
+            'hit_prob': '',
+            'match_factor': '',
+            'reverse_match_factor': ''
+            }
+        if search_result.match_factor >= match_factor_min:
+            match_data.update({
+                'casno': search_result.cas,
+                'compound_name': search_result.name,
+                'compound_formula': ref_data.formula,
+                'hit_prob': search_result.hit_prob,
+                'match_factor': search_result.match_factor,
+                'reverse_match_factor': search_result.reverse_match_factor
+                })
+        else:
+            # Composé non identifié
+            nb_analyte += 1
+            match_data['compound_name'] = f'Analyte{nb_analyte}'
+
+        matches.append([[(coordinates_in_chromato[i][0]),
+                       (coordinates_in_chromato[i][1])], match_data, coord])
+        del mass_spectrum
+    end = time.time() - start
+    print(f"Matching NIST library took {end:.2f} seconds")
+
+    return matches
 
 
 # def mass_spectra_to_mgf(spectrum_path, mass_values_list, intensity_values_list):
