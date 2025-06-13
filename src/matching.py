@@ -52,7 +52,7 @@ def full_search_with_ref_data(
         :return: List of tuples containing possible identities
             for the mass spectrum, and the reference data.
         """
-
+        # print("nb_hits", n_hits)
         if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
             raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
 
@@ -71,6 +71,44 @@ def full_search_with_ref_data(
                 retry_count += 1
 
         raise TimeoutError("Unable to communicate with the search server.")
+
+def batch_hit_list_from_json(json_data: str) -> List[List[Tuple[SearchResult, ReferenceData]]]:
+    """
+    Parse JSON data into a list of lists of (SearchResult, ReferenceData) tuples.
+    
+    Chaque spectre de masse en entrée a une liste de hits associés,
+    donc on retourne une liste de listes.
+    """
+    raw_output = json.loads(json_data)
+    all_hits = []
+
+    for hit_list in raw_output:
+        parsed_hits = []
+        for hit, ref_data in hit_list:
+            parsed_hits.append((SearchResult(**hit), ReferenceData(**ref_data)))
+        all_hits.append(parsed_hits)
+
+    return all_hits
+
+
+def full_search_batch_with_ref_data(
+    mass_spectra_list: List,
+    n_hits: int = 20,
+) -> List[List[Tuple[SearchResult, ReferenceData]]]:
+    """Traiter plusieurs spectres en une seule requête"""
+    retry_count = 0
+    while retry_count < 240:
+        try:
+            res = requests.post(
+                f"http://nist:5001/search/batch_spectrum_with_ref_data/?n_hits={n_hits}",
+                json=[sdjson.dumps(spectrum) for spectrum in mass_spectra_list],
+                timeout=30  # Ajout timeout
+            )
+            return batch_hit_list_from_json(res.text)
+        except requests.exceptions.ConnectionError:
+            time.sleep(0.5)
+            retry_count += 1
+    raise TimeoutError("Unable to communicate with the search server.")
 
 
 def matching_nist_lib_from_chromato_cube(
@@ -121,16 +159,26 @@ def matching_nist_lib_from_chromato_cube(
 
     matches = []
     nb_analyte = 0
-    for i, coord in enumerate(coordinates):
+    mass_spectra_list = []
+    for coord in coordinates:
 
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
+        mass_spectra_list.append(mass_spectrum)
+    batch_results = full_search_batch_with_ref_data(mass_spectra_list, n_hits=1)
+    print(f"Batch search with {len(batch_results)} spectra took {len(batch_results) * 0.5:.2f} seconds")
 
-        best_hit = full_search_with_ref_data(mass_spectrum, n_hits=1)[0]
+    for i, (coord, result) in enumerate(zip(coordinates, batch_results)):
+        int_values = mass_spectra_list[i].intensities  # pour garder l’info brute
+        best_hit = result[0]
         search_result, ref_data = best_hit
         print(f"Best hit: {search_result.name}: {search_result.cas}, "
-              f"with match_factor:{search_result.match_factor}.")
+            f"with match_factor:{search_result.match_factor}.")
+        # best_hit = full_search_with_ref_data(mass_spectrum, n_hits=1)[0]
+        # search_result, ref_data = best_hit
+        # print(f"Best hit: {search_result.name}: {search_result.cas}, "
+        #       f"with match_factor:{search_result.match_factor}.")
         #  res = search.full_spectrum_search(mass_spectrum)
 
         match_data = {
