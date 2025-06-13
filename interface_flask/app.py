@@ -22,12 +22,13 @@ from functools import wraps
 from docker_manager import DockerComposeManager, create_docker_manager
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()
 
 app = Flask(__name__)
 
-USERNAME = 'admin'
-PASSWORD = 'MasSpec'
+USERNAME = os.getenv("FLASK_USERNAME")
+PASSWORD = os.getenv("FLASK_PASSWORD")
+
 client = docker.from_env()
 # app.config['UPLOAD_FOLDER'] = 'uploads'
 # app.config['OUTPUT_FOLDER'] = 'converted_data'
