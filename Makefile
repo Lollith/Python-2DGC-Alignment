@@ -52,15 +52,17 @@ rebuild_prod:
 	echo "Image Docker reconstruite avec succès."
 
 clean: stop
-	sudo docker compose -f $(PROD_COMPOSE) rm -sfv 2dgc_id
-	sudo docker compose -f $(DEV_COMPOSE) rm -sfv 2dgc_id
-	sudo docker rmi python-2dgc-alignment-2dgc_id || true
+	-sudo docker compose -f $(PROD_COMPOSE) rm -sfv 2dgc_id
+	-sudo docker compose -f $(DEV_COMPOSE) rm -sfv 2dgc_id
+	-sudo docker rmi python-2dgc-alignment-2dgc_id || true
+	-sudo docker volume ls -qf "dangling=true" | xargs -r sudo docker volume rm
+	-sudo docker image prune -f
 	echo "Conteneurs, réseaux, images, volumes des environnements PROD et DEV supprimés."
 
 clean_nist: stop
-	sudo docker compose -f $(PROD_COMPOSE) rm -sfv nist
-	sudo docker compose -f $(DEV_COMPOSE) rm -sfv nist
-	sudo docker rmi python-2dgc-alignment-nist || true
+	-sudo docker compose -f $(PROD_COMPOSE) rm -sfv nist
+	-sudo docker compose -f $(DEV_COMPOSE) rm -sfv nist
+	-sudo docker rmi python-2dgc-alignment-nist || true
 	echo "Conteneurs, réseaux, images, volumes de l'environnement NIST supprimés."
 
 re_dev: clean
