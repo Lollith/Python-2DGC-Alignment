@@ -96,14 +96,17 @@ def full_search_batch_with_ref_data(
     n_hits: int = 20,
 ) -> List[List[Tuple[SearchResult, ReferenceData]]]:
     """Traiter plusieurs spectres en une seule requête"""
+    print("nombre de hits", n_hits)
     retry_count = 0
     while retry_count < 240:
         try:
             res = requests.post(
                 f"http://nist:5001/search/batch_spectrum_with_ref_data/?n_hits={n_hits}",
                 json=[sdjson.dumps(spectrum) for spectrum in mass_spectra_list],
-                timeout=30  # Ajout timeout
+                timeout=30
             )
+            print(f"Response status code: {res.status_code}")
+            
             return batch_hit_list_from_json(res.text)
         except requests.exceptions.ConnectionError:
             time.sleep(0.5)
@@ -161,7 +164,6 @@ def matching_nist_lib_from_chromato_cube(
     nb_analyte = 0
     mass_spectra_list = []
     for coord in coordinates:
-
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
@@ -206,7 +208,7 @@ def matching_nist_lib_from_chromato_cube(
 
         matches.append([[(coordinates_in_chromato[i][0]),
                        (coordinates_in_chromato[i][1])], match_data, coord])
-        del mass_spectrum
+        # del mass_spectrum
     end = time.time() - start
     print(f"Matching NIST library took {end:.2f} seconds")
 
