@@ -1,12 +1,15 @@
-# import read_chroma
+import os, sys
+path_to_scr_folder=os.path.join(os.path.dirname(os.path.abspath('')), 'src')
+sys.path.append(path_to_scr_folder)
+
 # import h5py
 import numpy as np
 import skimage.feature
-import peak_detection
+# import src.read_chroma
+from src import peak_detection, baseline_correction, read_chroma
 
 method = "peak_local_max"
 mode = "tic"
-import read_chroma
 # file_path = '/home/camille/Documents/app/data/A-F-028-817822-droite-ReCIVA.h5'
 
 
@@ -105,38 +108,49 @@ def test_skimage_tic_peak_local_max_with_low_threshold():
     expected = np.array([6, 14])  # indices des pics principaux
     assert set(detected_peaks) == set(expected), f"Expected {expected} but got {detected_peaks}"
 
-#
+#baseline correction read_chromato_and_chromato_cube---------------------------------
 
-def test_tic_peak_detection_with_noise():
+def test_baseline_correction_read():
     chromato_tic = np.array([
         10, 12, 14, 18, 23, 45, 90, 45, 23, 15, 12, 10, 11, 30, 70, 30, 12, 11, 10, 9
     ]) + np.random.normal(0, 5, size=20)  # Ajout de bruit
     print("Chromato TIC with noise:", chromato_tic)
-    chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
-        read_chroma.read_chromato_and_chromato_cube(chromato_tic, mod_time=1,
-                                                    pre_process=True
-                                                    ))
+    chromato_tic_preprocessed = baseline_correction.chromato_reduced_noise(chromato_tic)
+    print("Preprocessed Chromato TIC:", chromato_tic_preprocessed)
 
-    coordinates = peak_detection.peak_detection(chromato_tic, time_rn=None, mass_range=None),
-        chromato_cube=chromato_cube,
-        sigma=None,
-        noise_factor=noise_factor,
-        abs_threshold=abs_threshold,
-        rel_threshold=rel_threshold,
-        method=method,
-        mode=mode,
-        cluster=cluster,
-        min_distance=min_distance,
-        min_sigma=min_sigma,
-        max_sigma=max_sigma,
-        sigma_ratio=sigma_ratio,
-        num_sigma=num_sigma,
-        min_persistence=min_persistence,
-        overlap=overlap,
-        eps=eps,
-        min_samples=min_samples)
-    detected_peaks = coordinates[:, 0]
-    # print("Coordinates with noise:", coordinates)
-    expected = np.array([6, 14])  # indices des pics principaux
-    assert set(detected_peaks) == set(expected), f"Expected {expected} but got {detected_peaks}"
+
+# #peak detection---------------------------------
+
+# def test_tic_peak_detection_with_noise():
+#     chromato_tic = np.array([
+#         10, 12, 14, 18, 23, 45, 90, 45, 23, 15, 12, 10, 11, 30, 70, 30, 12, 11, 10, 9
+#     ]) + np.random.normal(0, 5, size=20)  # Ajout de bruit
+#     print("Chromato TIC with noise:", chromato_tic)
+#     # chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
+#     #     read_chroma.read_chromato_and_chromato_cube(chromato_tic, mod_time=1,
+#     #                                                 pre_process=True
+#     #                                                 ))
+
+#     coordinates = peak_detection.peak_detection(chromato_tic, time_rn=None, mass_range=None),
+#     chromato_cube=chromato_cube,
+#     sigma=sigma,
+#     noise_factor=noise_factor,
+#     abs_threshold=abs_threshold,
+#     rel_threshold=rel_threshold,
+#     method=method,
+#     mode=mode,
+#     cluster=cluster,
+#     min_distance=min_distance,
+#     min_sigma=min_sigma,
+#     max_sigma=max_sigma,
+#     sigma_ratio=sigma_ratio,
+#     num_sigma=num_sigma,
+#     min_persistence=min_persistence,
+#     overlap=overlap,
+#     eps=eps,
+#     min_samples=min_samples)
+#     detected_peaks = coordinates[:, 0]
+#     # print("Coordinates with noise:", coordinates)
+#     expected = np.array([6, 14])  # indices des pics principaux
+#     assert set(detected_peaks) == set(expected), f"Expected {expected} but got {detected_peaks}"
 
