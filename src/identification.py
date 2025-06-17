@@ -246,12 +246,13 @@ def identification(filename, mod_time, method, mode, noise_factor,
         eps=eps,
         min_samples=min_samples)
     print("nb peaks", len(coordinates))
-    coordinates_in_chromato = projection.matrix_to_chromato(
-        coordinates, time_rn, mod_time, chromato_tic.shape)
-    plot.visualizer((chromato_tic, time_rn), mod_time,
-                    title=f"peak detection with mode {mode} and method {method}",
-                    log_chromato=False, points=coordinates_in_chromato)
 
+    if mode == 'tic':
+        coordinates_in_chromato = projection.matrix_to_chromato(
+            coordinates, time_rn, mod_time, chromato_tic.shape)
+        plot.visualizer((chromato_tic, time_rn), mod_time,
+                        title=f"peak detection with mode {mode} and method {method}",
+                        log_chromato=False, points=coordinates_in_chromato)
 
     # 2D peaks identification
     matches = matching.matching_nist_lib_from_chromato_cube(
