@@ -9,6 +9,8 @@ from skimage.segmentation import watershed
 import skimage
 from sklearn.cluster import DBSCAN
 from sklearn.mixture import GaussianMixture
+
+
 def peak_pool(chromato, coordinates, coordinate, threshold=0.25, plot_labels=False):
     mask = np.zeros(chromato.shape, dtype=bool)
     mask[tuple(coordinates.T)] = True
@@ -62,8 +64,9 @@ def compute_area(chromato, blob):
     """
     '''blob = np.argwhere(blob != 0)
     return np.sum(chromato[blob])'''
-    cds=np.argwhere(blob != 0)
+    cds = np.argwhere(blob != 0)
     return np.sum(chromato[cds[:,0], cds[:,1]])
+
 
 def get_contour(blob, chromato, time_rn):
     contour=skimage.segmentation.expand_labels(blob, distance=1) - blob

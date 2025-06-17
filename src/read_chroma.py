@@ -10,6 +10,7 @@ from skimage.restoration import estimate_sigma
 import skimage.restoration
 import os
 import h5py
+import plot
 
 # def print_chroma_header(filename):
 #     r"""Print chromato header.
@@ -33,35 +34,36 @@ import h5py
 #     print(range_min)
 #     print(range_max)
 
-def read_only_chroma(filename, mod_time = 1.25):
-    r"""Read chromatogram file.
 
-    Parameters
-    ----------
-    filename :
-        Chromatogram full filename.
-    mod_time : optional
-        Modulation time
-    -------
-    Returns
-    -------
-    A: tuple
-        Return the created chromato object wrapping (chromato TIC), (time_rn).
-    --------
-    Examples
-    --------
-    >>> import read_chroma
-    >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
-    """
-    ds = nc.Dataset(filename, encoding="latin-1")
-    chromato = ds['total_intensity']
-    Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
-    sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
-    l1 = math.floor(sam_rate * mod_time)
-    l2 = math.floor(len(chromato) / l1)
-    chromato = np.reshape(chromato[:l1*l2], (l2,l1))
+# def read_only_chroma(filename, mod_time=1.25):
+#     r"""Read chromatogram file.
 
-    return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
+#     Parameters
+#     ----------
+#     filename :
+#         Chromatogram full filename.
+#     mod_time : optional
+#         Modulation time
+#     -------
+#     Returns
+#     -------
+#     A: tuple
+#         Return the created chromato object wrapping (chromato TIC), (time_rn).
+#     --------
+#     Examples
+#     --------
+#     >>> import read_chroma
+#     >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
+#     """
+#     ds = nc.Dataset(filename, encoding="latin-1")
+#     chromato = ds['total_intensity']
+#     Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
+#     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
+#     l1 = math.floor(sam_rate * mod_time)
+#     l2 = math.floor(len(chromato) / l1)
+#     chromato = np.reshape(chromato[:l1*l2], (l2,l1))
+
+    # return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
 
 def read_chroma(filename, mod_time, max_val=None):
     r"""Read chromatogram file.
@@ -204,6 +206,7 @@ def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
     start_time = time.time()
     chromato_obj = read_chroma(filename, mod_time)
     tic_chromato, time_rn, spectra_obj = chromato_obj
+    plot.visualizer((tic_chromato, time_rn), mod_time, title="Chromatogram TIC")
     (l1, l2, mv, iv, range_min, range_max) = spectra_obj
     print("chromato read", time.time()-start_time, 's')
 
