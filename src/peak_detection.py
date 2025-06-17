@@ -1330,6 +1330,7 @@ def peak_detection(chromato_obj,
                     cluster=cluster,
                     eps=eps,
                     min_samples=min_samples)
+
     elif (method == "DoG"):
         coordinates, radius = DoG(chromato_obj=(
                     chromato_tic, time_rn),
@@ -1382,7 +1383,6 @@ def peak_detection(chromato_obj,
                 chromato_cube=chromato_cube, cluster=cluster,
                 eps=eps,
                 min_samples=min_samples)
-                
     else:
         print("Unknown method")
         return None
