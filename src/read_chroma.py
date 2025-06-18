@@ -65,6 +65,18 @@ import plot
 
     # return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
 
+# def get_mod_time(scan_number):
+#     if scan_number == 328125:
+#         mod_time = 1.25
+#         print("type de donnees: G0/plasma")
+#     elif scan_number == 540035:
+#         mod_time = 1.7
+#         print("type de donnnees: air expire")
+#     else:
+#         print("scan_number non reconnu")
+#     return mod_time
+
+
 def read_chroma(filename, mod_time, max_val=None):
     r"""Read chromatogram file.
 
@@ -95,31 +107,40 @@ def read_chroma(filename, mod_time, max_val=None):
     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
     >>> tic_chromato, time_rn, spectra_obj = chromato_obj
     """
-    if not filename.endswith(".h5"):
-        raise ValueError("The file must be a .h5")
-    with h5py.File(filename, 'r') as f:
-        tic_chromato = f['total_intensity'][:]
-        timepara = f["scan_acquisition_time"][np.abs(f["point_count"])
-                                              < np.iinfo(np.int32).max]
-        if (max_val):
-            mv = f["mass_values"][:max_val]
-            iv = f["intensity_values"][:max_val]
-        else:
-            mv = f["mass_values"][:]
-            iv = f["intensity_values"][:]
-        range_min = math.ceil(f["mass_range_min"][:].min())
-        range_max = math.floor(f["mass_range_max"][:].max())
-        start_time = f['scan_acquisition_time'][0] / 60
-        end_time = f['scan_acquisition_time'][-1] / 60
+    try:
+        is_h5 = filename.endswith(".h5")
+    except AttributeError:
+        raise ValueError("The file must be a .h5 or .cdf")
+    else:
+        with (h5py.File(filename, 'r') if is_h5 else nc.Dataset(filename)) as g:
+            def get_var(key):
+                return g[key][:]
 
-    # taux d'échantillonnage : le nombre d'échantillons (points) par unité de temps (par exemple, en Hz).
-    sam_rate = 1 / np.mean(timepara[1:] - timepara[:-1])
-    l1 = math.floor(sam_rate * mod_time)
-    l2 = math.floor(len(tic_chromato) / l1)
-    tic_chromato = np.reshape(tic_chromato[:l1*l2], (l2, l1))
+            # def get_attr(key):
+            #     return g.attrs[key]
 
-    return (tic_chromato, (start_time, end_time),
-            (l1, l2, mv, iv, range_min, range_max))
+            # scan_number = get_attr('scan_number_size')
+            point_count = get_var("point_count")
+            mask = np.abs(point_count) < np.iinfo(np.int32).max
+            tic_chromato = get_var("total_intensity")
+            timepara = get_var("scan_acquisition_time")[mask]
+            mv = get_var("mass_values")[:max_val] if max_val else get_var("mass_values")
+            iv = get_var("intensity_values")[:max_val] if max_val else get_var("intensity_values")
+
+            range_min = math.ceil(get_var("mass_range_min").min())
+            range_max = math.floor(get_var("mass_range_max").max())
+            start_time = get_var("scan_acquisition_time")[0] / 60
+            end_time = get_var("scan_acquisition_time")[-1] / 60
+
+        # taux d'échantillonnage : le nombre d'échantillons (points) par unité de temps (par exemple, en Hz).
+        sam_rate = 1 / np.mean(timepara[1:] - timepara[:-1])
+        l1 = math.floor(sam_rate * mod_time)
+        l2 = math.floor(len(tic_chromato) / l1)
+        tic_chromato = np.reshape(tic_chromato[:l1*l2], (l2, l1))
+        # mod_time = get_mod_time(scan_number)
+
+        return (tic_chromato, (start_time, end_time),
+                (l1, l2, mv, iv, range_min, range_max))
 
 # def read_chromato_cube(filename, mod_time=1.25, pre_process=True):
 #     r"""Read chromatogram file and compute TIC chromatogram, 3D chromatogram and noise std.
@@ -167,7 +188,9 @@ def read_chroma(filename, mod_time, max_val=None):
 #     return (chromato,time_rn,spectra_obj), chromato_cube, sigma
 
 
-def read_chromato_and_chromato_cube(filename, mod_time, pre_process=True):
+def read_chromato_and_chromato_cube(filename, 
+                                    mod_time,
+                                    pre_process=True):
     r"""Same as read_chromato_cube(Read chromatogram file and compute TIC
     chromatogram, 3D chromatogram and noise std.) but do not returns full
     spectra_obj (only range_min and range_max) because of RAM issue.
