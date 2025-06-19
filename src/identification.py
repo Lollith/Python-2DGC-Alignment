@@ -135,16 +135,17 @@ def compute_matches_identification(matches, chromato, chromato_cube,
 
     matches_identification = []
 
-    #TODO : ajout ici
-    # Trouver la longueur maximale des éléments dans matches
     max_len = max(len(match) for match in matches)
 
     # Compléter les lignes plus courtes ou tronquer les lignes trop longues
     matches = [match + [None] * (max_len - len(match)) if len(match) < max_len else match[:max_len] for match in matches]
-    matches = np.array(matches, dtype=object) #TODO
+    matches = np.array(matches, dtype=object)
 
     for match in matches:
+        match_data_list = match[1] \
+            if isinstance(match[1], list) else [match[1]]
         coord = match[2]
+
         blob = integration.peak_pool_similarity_check(
             chromato, np.stack(matches[:, 2]), coord, chromato_cube,
             threshold=0.5, plot_labels=True,
@@ -152,29 +153,35 @@ def compute_matches_identification(matches, chromato, chromato_cube,
         area = integration.compute_area(chromato, blob)
         height = chromato[coord[0], coord[1]]
 
-        identification_data_dict = dict()
-        identification_data_dict['casno'] = match[1]['casno']
-        identification_data_dict['compound_name'] = match[1]['compound_name']
-        identification_data_dict['compound_formula'] = \
-            (match[1]['compound_formula'])
-        identification_data_dict['hit_prob'] = match[1]['hit_prob']
-        identification_data_dict['match_factor'] = match[1]['match_factor']
-        identification_data_dict['reverse_match_factor'] = \
-            (match[1]['reverse_match_factor'])
-        identification_data_dict['rt1'] = match[0][0]
-        identification_data_dict['rt2'] = match[0][1]
-        identification_data_dict['area'] = area
-        identification_data_dict['height'] = height
-        if (formated_spectra):
-            identification_data_dict['spectra'] = \
-                (mass_spectra_format(mass_range, match[1]['spectra']))
-        matches_identification.append(identification_data_dict)
+        def join_field(field):
+            return '/'.join(str(m.get(field, '')) for m in match_data_list)
 
+        identification_data_dict = {
+            'compound_name': join_field('compound_name'),
+            'casno': join_field('casno'),
+            'compound_formula': join_field('compound_formula'),
+            'hit_prob': join_field('hit_prob'),
+            'match_factor': join_field('match_factor'),
+            'reverse_match_factor': join_field('reverse_match_factor'),
+            'rt1': match[0][0],
+            'rt2': match[0][1],
+            'area': area,
+            'height': height
+        }
+
+        if formated_spectra:
+            identification_data_dict['spectra'] = '/'.join(
+                mass_spectra_format(mass_range, m['spectra'])
+                for m in match_data_list
+                if isinstance(m.get('spectra'), (list, np.ndarray)) and len(m['spectra']) > 0
+            )
+
+        matches_identification.append(identification_data_dict)
     return matches_identification
 
 
-def identification(filename, 
-                   mod_time, 
+def identification(filename,
+                   mod_time,
                    method, mode, noise_factor,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
@@ -326,34 +333,51 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
             writer.writerow(row)
 
 
+# def cohort_identification_alignment_input_format_txt(
+#         filename, matches_identification, PATH):
+#     r"""Generate formatted peak table for alignment.
+
+#     Parameters
+#     ----------
+#     filename :
+#         Chromatogram full filename.
+#     matches_identification :
+#         Array of match dictionary containing casno, name, formula, spectra,
+#         coordinates...
+#     PATH : optional
+#         Path to the resulting formatted peak table.
+#     """
+#     with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
+#         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
+#         for identification_data_dict in matches_identification:
+#             compound_name = identification_data_dict['compound_name']
+#             rt1 = identification_data_dict['rt1']
+#             rt2 = identification_data_dict['rt2']
+#             area = identification_data_dict['area']
+#             # formatted_spectrum = identification_data_dict['spectra']
+#             formatted_spectrum = identification_data_dict.get('spectra', '')
+
+#             f.write(write_line(compound_name, rt1, rt2, area,
+#                                formatted_spectrum))
+
+
 def cohort_identification_alignment_input_format_txt(
         filename, matches_identification, PATH):
-    r"""Generate formatted peak table for alignment.
-
-    Parameters
-    ----------
-    filename :
-        Chromatogram full filename.
-    matches_identification :
-        Array of match dictionary containing casno, name, formula, spectra,
-        coordinates...
-    PATH : optional
-        Path to the resulting formatted peak table.
-    """
     with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
-        for identification_data_dict in matches_identification:
-            compound_name = identification_data_dict['compound_name']
-            rt1 = identification_data_dict['rt1']
-            rt2 = identification_data_dict['rt2']
-            area = identification_data_dict['area']
-            formatted_spectrum = identification_data_dict['spectra']
-            f.write(write_line(compound_name, rt1, rt2, area,
-                               formatted_spectrum))
+        for d in matches_identification:
+            line = (
+                f"{d['compound_name']}\t"
+                f"{d['rt1']:.2f}\t"
+                f"{d['rt2']:.2f}\t"
+                f"{d['area']:.1f}\t"
+                f"{d.get('spectra', '')}\n"
+            )
+            f.write(line)
 
 
-def sample_identification(path, file, output_path, 
-                          mod_time, 
+def sample_identification(path, file, output_path,
+                          mod_time,
                           method, mode,
                           noise_factor, abs_thresholds,
                           rel_thresholds,
@@ -413,26 +437,25 @@ def sample_identification(path, file, output_path,
     start_time = time.time()
     try:
         full_filename = path + file
-        matches_identification = \
-            identification(full_filename,
-                           mod_time,
-                           method,
-                           mode,
-                           noise_factor,
-                           abs_thresholds,
-                           rel_thresholds,
-                           cluster,
-                           min_distance,
-                           min_sigma,
-                           max_sigma,
-                           sigma_ratio,
-                           num_sigma,
-                           formated_spectra,
-                           match_factor_min,
-                           min_persistence,
-                           overlap,
-                           eps,
-                           min_samples)
+        matches_identification = identification(full_filename,
+                                                mod_time,
+                                                method,
+                                                mode,
+                                                noise_factor,
+                                                abs_thresholds,
+                                                rel_thresholds,
+                                                cluster,
+                                                min_distance,
+                                                min_sigma,
+                                                max_sigma,
+                                                sigma_ratio,
+                                                num_sigma,
+                                                formated_spectra,
+                                                match_factor_min,
+                                                min_persistence,
+                                                overlap,
+                                                eps,
+                                                min_samples)
         print("Identification done", time.time()-start_time, 's')
         if (output_path is not None):
             cohort_identification_alignment_input_format_txt(
@@ -441,7 +464,7 @@ def sample_identification(path, file, output_path,
                                          output_path)
             return (f'{output_path + file[:-4]}.txt & '
                     + f'{output_path + file[:-4]}.csv created')
-        
+
         else:
             cohort_identification_alignment_input_format_txt(
                 file[:-4], matches_identification)

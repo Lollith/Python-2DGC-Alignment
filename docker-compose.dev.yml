@@ -41,7 +41,7 @@ services:
       source: ${HOST_VOLUME_PATH}/
       target: ${DOCKER_VOLUME_PATH}/
     
-      # for dev directly in the source code on docker
+      # for dev: code directly in the source code on docker
     - type: bind
       source: .
       target: /app
