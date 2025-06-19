@@ -173,7 +173,9 @@ def compute_matches_identification(matches, chromato, chromato_cube,
     return matches_identification
 
 
-def identification(filename, mod_time, method, mode, noise_factor,
+def identification(filename, 
+                   mod_time, 
+                   method, mode, noise_factor,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
@@ -222,7 +224,8 @@ def identification(filename, mod_time, method, mode, noise_factor,
     --------
     """
     chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
-        read_chroma.read_chromato_and_chromato_cube(filename, mod_time,
+        read_chroma.read_chromato_and_chromato_cube(filename, 
+                                                    mod_time,
                                                     pre_process=True
                                                     ))
     # find 2D peaks
@@ -349,7 +352,9 @@ def cohort_identification_alignment_input_format_txt(
                                formatted_spectrum))
 
 
-def sample_identification(path, file, output_path, mod_time, method, mode,
+def sample_identification(path, file, output_path, 
+                          mod_time, 
+                          method, mode,
                           noise_factor, abs_thresholds,
                           rel_thresholds,
                           cluster,
