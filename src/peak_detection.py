@@ -1386,10 +1386,6 @@ def peak_detection(chromato_obj,
     else:
         print("Unknown method")
         return None
-    #TODO a supprimer ? doucle filtrage avec la mame value seuil ?
-    # coordinates = np.array(
-    #         [[x, y] for x, y in coordinates if chromato[x, y]
-    #          > seuil * max_peak_val])
     return coordinates
 
 

@@ -65,17 +65,6 @@ import plot
 
     # return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
 
-# def get_mod_time(scan_number):
-#     if scan_number == 328125:
-#         mod_time = 1.25
-#         print("type de donnees: G0/plasma")
-#     elif scan_number == 540035:
-#         mod_time = 1.7
-#         print("type de donnnees: air expire")
-#     else:
-#         print("scan_number non reconnu")
-#     return mod_time
-
 
 def read_chroma(filename, mod_time, max_val=None):
     r"""Read chromatogram file.
@@ -116,10 +105,6 @@ def read_chroma(filename, mod_time, max_val=None):
             def get_var(key):
                 return g[key][:]
 
-            # def get_attr(key):
-            #     return g.attrs[key]
-
-            # scan_number = get_attr('scan_number_size')
             point_count = get_var("point_count")
             mask = np.abs(point_count) < np.iinfo(np.int32).max
             tic_chromato = get_var("total_intensity")
@@ -137,7 +122,6 @@ def read_chroma(filename, mod_time, max_val=None):
         l1 = math.floor(sam_rate * mod_time)
         l2 = math.floor(len(tic_chromato) / l1)
         tic_chromato = np.reshape(tic_chromato[:l1*l2], (l2, l1))
-        # mod_time = get_mod_time(scan_number)
 
         return (tic_chromato, (start_time, end_time),
                 (l1, l2, mv, iv, range_min, range_max))
@@ -266,7 +250,7 @@ def centroided_to_mass_nominal_chromatogram(filename, cdf_name, mod_time):
         Modulation time
     """
     # load centroided chromatogram
-    ds = nc.Dataset(filename,encoding="latin-1")
+    ds = nc.Dataset(filename, encoding="latin-1")
     chromato = ds['total_intensity']
     sam_rate = 1 / ds['scan_duration'][0]
     l1 = math.floor(sam_rate * mod_time)
