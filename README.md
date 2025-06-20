@@ -153,6 +153,9 @@ FLASK_DIR=C:/path/to/Python-2DGC-Alignment/interface_flask
 
 #Only for windows: Path to the Docker Desktop.exe
 DOCKER_DESKTOP_PATH=...
+
+# Only for windows: Path to your venv if you want to use it
+VENV_PATH=C:/path/to\venv\Scripts\Activate.ps1
  
 ```
 ### Build image + container

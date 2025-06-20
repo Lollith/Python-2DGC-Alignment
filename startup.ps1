@@ -31,13 +31,12 @@ Write-Host "=== Lancement de Flask ==="
 Set-Location "$env:FLASK_DIR"
 
 # Active le venv s?il existe
-if (Test-Path ".\venv\Scripts\Activate.ps1") {
-    . .\venv\Scripts\Activate.ps1
+if (Test-Path "$env:VENV_PATH") {
+    . $env:VENV_PATH
     pip install -r requirements.txt
     python app.py
     deactivate
 } else {
     Write-Host "Environnement virtuel non trouvé." -ForegroundColor Yellow
-    pip install -r requirements.txt
+    python app.py
 }
-python app.py
