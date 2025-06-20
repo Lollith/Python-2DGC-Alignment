@@ -133,6 +133,7 @@ def matching_nist_lib_from_chromato_cube(
 
     matches = []
     nb_analyte = 0
+    top_hits = []
     for i, coord in enumerate(coordinates):
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
@@ -144,7 +145,7 @@ def matching_nist_lib_from_chromato_cube(
             list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
             top_hits = filter_best_hits(list_hit, match_factor_min)
             print(f"peak {i + 1} has {len(top_hits)} hits for {coord} and with match_factor_min={match_factor_min}.")
-        
+ 
         if top_hits:
             for j, hit in enumerate(top_hits):
                 search_result, ref_data = hit
