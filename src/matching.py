@@ -87,7 +87,7 @@ def filter_best_hits(list_hits, match_factor_min):
 
 def matching_nist_lib_from_chromato_cube(
         chromato_obj, chromato_cube, coordinates, mod_time,
-        match_factor_min):
+        match_factor_min, nist):
     """Indentify retrieved peaks using NIST library.
 
     Parameters
@@ -133,17 +133,19 @@ def matching_nist_lib_from_chromato_cube(
 
     matches = []
     nb_analyte = 0
+    top_hits = []
     for i, coord in enumerate(coordinates):
-
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
-
-        list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
         match_results = []
-     
-        top_hits = filter_best_hits(list_hit, match_factor_min)
-        print(f"peak {i + 1} has {len(top_hits)} hits for {coord} and with match_factor_min={match_factor_min}.")
+
+        if nist: # TODO check ici
+            print("Matching with NIST library...")
+            list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
+            top_hits = filter_best_hits(list_hit, match_factor_min)
+            print(f"peak {i + 1} has {len(top_hits)} hits for {coord} and with match_factor_min={match_factor_min}.")
+ 
         if top_hits:
             for j, hit in enumerate(top_hits):
                 search_result, ref_data = hit

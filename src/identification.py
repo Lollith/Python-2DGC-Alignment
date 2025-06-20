@@ -1,5 +1,5 @@
 import read_chroma
-# import mass_spec
+import mass_spec
 # import baseline_correction
 import peak_detection
 import matching
@@ -13,6 +13,7 @@ import traceback
 import time
 import projection
 import plot
+import pyms
 
 
 def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
@@ -186,7 +187,7 @@ def identification(filename,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence, overlap, eps, min_samples):
+                   min_persistence, overlap, eps, min_samples, nist):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -264,16 +265,15 @@ def identification(filename,
                         title=f"peak detection with mode {mode} and method {method}",
                         log_chromato=False, points=coordinates_in_chromato)
 
-    # 2D peaks identification
     matches = matching.matching_nist_lib_from_chromato_cube(
-        (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
-        mod_time,
-        match_factor_min=match_factor_min)
+            (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
+            mod_time,
+            match_factor_min, nist)
     print("nb match", len(matches))
 
     matches_identification = compute_matches_identification(
-        matches, chromato_tic, chromato_cube, mass_range,
-        formated_spectra, similarity_threshold=0.001)
+            matches, chromato_tic, chromato_cube, mass_range,
+            formated_spectra, similarity_threshold=0.001)
     return matches_identification
 
 
@@ -385,7 +385,7 @@ def sample_identification(path, file, output_path,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
                           num_sigma,
                           formated_spectra, match_factor_min, min_persistence,
-                          overlap, eps, min_samples):
+                          overlap, eps, min_samples, nist):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -455,7 +455,8 @@ def sample_identification(path, file, output_path,
                                                 min_persistence,
                                                 overlap,
                                                 eps,
-                                                min_samples)
+                                                min_samples,
+                                                nist)
         print("Identification done", time.time()-start_time, 's')
         if (output_path is not None):
             cohort_identification_alignment_input_format_txt(
