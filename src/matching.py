@@ -9,6 +9,8 @@ import json
 from typing import List, Tuple
 from nist_utils.reference_data import ReferenceData
 from pyms_nist_search.search_result import SearchResult
+import pyms_nist_search
+import logging
 
 # present = {"HMDB0031018": [[23.43, 0.008]], "HMDB0061859": [[32.22, 0.042]], "HMDB0030469": [[28.15, 0.008]],
 #            "HMDB0031264": [[15.59, 0.017]], "HMDB0033848": [[18.41, 0.025]], "HMDB0031291": [[13.10, 1.231]],
@@ -39,6 +41,13 @@ def hit_list_with_ref_data_from_json(json_data: str) \
         hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
     return hit_list
 
+import platform
+
+def get_status():
+        """Retourne le statut de la configuration"""
+        return platform.system()
+
+
 def full_search_with_ref_data(
             mass_spectrum,
             n_hits: int = 20,
@@ -52,25 +61,40 @@ def full_search_with_ref_data(
         :return: List of tuples containing possible identities
             for the mass spectrum, and the reference data.
         """
-
         if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
             raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
+        
+        status_system = get_status()
+        if status_system == "Linux":
 
-        retry_count = 0
+            retry_count = 0
 
-        # Keep trying until it works
-        while retry_count < 240:
-            try:
-                res = requests.post(
-                        f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
-                        json=sdjson.dumps(mass_spectrum)
+            # Keep trying until it works
+            while retry_count < 240:
+                try:
+                    res = requests.post(
+                            f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
+                            json=sdjson.dumps(mass_spectrum)
+                            )
+                    return hit_list_with_ref_data_from_json(res.text)
+                except requests.exceptions.ConnectionError:
+                    time.sleep(0.5)
+                    retry_count += 1
+            raise TimeoutError("Unable to communicate with the search server.")
+
+        if status_system == "Windows":
+            search = pyms_nist_search.Engine(
+                        "/app/data/mainlib/",
+                        pyms_nist_search.NISTMS_MAIN_LIB,
+                        "/app/data/tmp/",
                         )
-                return hit_list_with_ref_data_from_json(res.text)
-            except requests.exceptions.ConnectionError:
-                time.sleep(0.5)
-                retry_count += 1
+            logger = logging.getLogger('pyms_nist_search')
+            logger.setLevel('ERROR')
+            logger = logging.getLogger('pyms')
+            logger.setLevel('ERROR')
+            print("✅ NIST Engine direct initialisé (Windows)")
 
-        raise TimeoutError("Unable to communicate with the search server.")
+            return search
 
 
 def filter_best_hits(list_hits, match_factor_min):

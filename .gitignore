@@ -68,7 +68,9 @@ src/dist/
 src/cython_debug/
 src/*.spec
 figs/
-interface_flask/converted_data/
 
 # Environment variables
 .env
+
+#mainlib
+mainlib
