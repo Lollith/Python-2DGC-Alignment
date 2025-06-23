@@ -144,7 +144,7 @@ def matching_nist_lib_from_chromato_cube(
             print("Matching with NIST library...")
             list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
             top_hits = filter_best_hits(list_hit, match_factor_min)
-            print(f"peak {i + 1} has {len(top_hits)} hits for {coord} and with match_factor_min={match_factor_min}.")
+            print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
  
         if top_hits:
             for j, hit in enumerate(top_hits):
