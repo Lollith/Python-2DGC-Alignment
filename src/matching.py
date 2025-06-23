@@ -24,53 +24,89 @@ from pyms_nist_search.search_result import SearchResult
 #     return np.array([casno for casno in match[:, 1] if casno in present])'''
 
 
-def hit_list_with_ref_data_from_json(json_data: str) \
-    -> List[Tuple[SearchResult, ReferenceData]]:
-    """
-    Parse json data into a list of (SearchResult, ReferenceData) tuples.
-    :param json_data: str
-    """
+# def hit_list_with_ref_data_from_json(json_data: str) \
+#     -> List[Tuple[SearchResult, ReferenceData]]:
+#     """
+#     Parse json data into a list of (SearchResult, ReferenceData) tuples.
+#     :param json_data: str
+#     """
 
-    raw_output = json.loads(json_data)
+#     raw_output = json.loads(json_data)
 
+#     hit_list = []
+
+#     for hit, ref_data in raw_output:
+#         hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
+#     return hit_list
+
+# def full_search_with_ref_data(
+#             mass_spectrum,
+#             n_hits: int = 20,
+#             ) -> List[Tuple[SearchResult, ReferenceData]]:
+#         """
+#         Perform a Full Spectrum Search of the mass spectral library, including reference data, using local Flask API.
+
+#         :param mass_spec: The mass spectrum to search against the library.
+#         :param n_hits: The number of hits to return.
+
+#         :return: List of tuples (SearchResult, ReferenceData)
+#         """
+
+#         if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
+#             raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
+
+#         retry_count = 0
+
+#         # Keep trying until it works
+#         while retry_count < 240:
+#             try:
+#                 res = requests.post(
+#                         f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
+#                         json=sdjson.dumps(mass_spectrum)
+#                         )
+#                 return hit_list_with_ref_data_from_json(res.text)
+#             except requests.exceptions.ConnectionError:
+#                 time.sleep(0.5)
+#                 retry_count += 1
+
+#         raise TimeoutError("Unable to communicate with the search server.")
+def hit_list_from_nist_api(result_json):
+    """
+    Transforme le résultat JSON de l'API Flask NIST en liste de tuples (SearchResult, ReferenceData)
+    """
     hit_list = []
-
-    for hit, ref_data in raw_output:
-        hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
+    for hit in result_json.get("hits", []):
+        # Adapte selon tes classes SearchResult et ReferenceData
+        search_result = SearchResult(
+            name=hit.get("name"),
+            match_factor=hit.get("match_factor"),
+            reverse_match_factor=hit.get("reverse_match"),
+            hit_prob=None,  # Si tu n'as pas cette info
+            cas=hit.get("cas_number")
+        )
+        ref_data = ReferenceData(
+            formula=hit.get("formula"),
+            molecular_weight=hit.get("molecular_weight")
+        )
+        hit_list.append((search_result, ref_data))
     return hit_list
 
-def full_search_with_ref_data(
-            mass_spectrum,
-            n_hits: int = 20,
-            ) -> List[Tuple[SearchResult, ReferenceData]]:
-        """
-        Perform a Full Spectrum Search of the mass spectral library, including reference data.
 
-        :param mass_spec: The mass spectrum to search against the library.
-        :param n_hits: The number of hits to return.
-
-        :return: List of tuples containing possible identities
-            for the mass spectrum, and the reference data.
-        """
-
-        if not isinstance(mass_spectrum, pyms.Spectrum.MassSpectrum):
-            raise TypeError("`mass_spec` must be a pyms.Spectrum.MassSpectrum object.")
-
-        retry_count = 0
-
-        # Keep trying until it works
-        while retry_count < 240:
-            try:
-                res = requests.post(
-                        f"http://nist:5001/search/spectrum_with_ref_data/?n_hits={n_hits}",
-                        json=sdjson.dumps(mass_spectrum)
-                        )
-                return hit_list_with_ref_data_from_json(res.text)
-            except requests.exceptions.ConnectionError:
-                time.sleep(0.5)
-                retry_count += 1
-
-        raise TimeoutError("Unable to communicate with the search server.")
+def nist_batch_search(list_mass_spectra, api_url="http://localhost:8080/nist/batch_search"):
+    """
+    Envoie une liste de spectres à l'API Flask NIST pour identification en lot.
+    """
+    spectra_data = [spec.to_dict() for spec in list_mass_spectra]  # Adapte si besoin
+    retry_count = 0
+    while retry_count < 10:
+        try:
+            res = requests.post(api_url, json={"spectra": spectra_data})
+            res.raise_for_status()
+            return res.json()["results"]
+        except requests.exceptions.ConnectionError:
+            time.sleep(0.5)
+            retry_count += 1
+    raise TimeoutError("Unable to communicate with the NIST API server.")
 
 
 def filter_best_hits(list_hits, match_factor_min):
@@ -142,7 +178,11 @@ def matching_nist_lib_from_chromato_cube(
 
         if nist: # TODO check ici
             print("Matching with NIST library...")
-            list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
+            # list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
+            # top_hits = filter_best_hits(list_hit, match_factor_min)
+            result_json = nist_batch_search(mass_spectrum)
+            # top_hit = hit_list_from_nist_api(result_json)
+            list_hit = hit_list_from_nist_api(result_json)
             top_hits = filter_best_hits(list_hit, match_factor_min)
             print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
  

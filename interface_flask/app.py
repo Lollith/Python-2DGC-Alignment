@@ -19,8 +19,12 @@ import requests
 import subprocess
 import webbrowser
 from functools import wraps
-from docker_manager import DockerComposeManager, create_docker_manager
+# from docker_manager import DockerComposeManager, create_docker_manager
+import docker_manager
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
+# import nist_search
+import logger
 
 load_dotenv()
 
@@ -30,17 +34,16 @@ USERNAME = os.getenv("FLASK_USERNAME")
 PASSWORD = os.getenv("FLASK_PASSWORD")
 
 client = docker.from_env()
-# app.config['UPLOAD_FOLDER'] = 'uploads'
-# app.config['OUTPUT_FOLDER'] = 'converted_data'
+
+nist_executor = ThreadPoolExecutor(max_workers=8)
+
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 
-# Créer les dossiers nécessaires
-# os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-# os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 # Instances
 converter = DataConverter()
-compose_manager = create_docker_manager("../docker-compose.yml")
+compose_manager = docker_manager.create_docker_manager("../docker-compose.yml")
+# nist_wrapper = nist_search.NISTSearchWrapper()
 
 
 def check_auth(username, password):
@@ -384,8 +387,88 @@ def open_jupyter():
         })
 
 
+######## NIST Search Endpoints ########
+
+@app.route('/nist/health', methods=['GET'])
+def nist_health():
+    """Vérification NIST disponible"""
+    return jsonify({
+        'nist_status': 'available',
+        'timestamp': time.time(),
+        'active_threads': len(nist_executor._threads) if hasattr(nist_executor, '_threads') else 0
+    })
+
+@app.route('/nist/search', methods=['POST'])
+def nist_single_search():
+    """Recherche NIST d'un spectre unique"""
+    try:
+        spectrum_data = request.json
+        
+        if not spectrum_data:
+            return jsonify({'error': 'Données de spectre manquantes'}), 400
+        
+        logger.info("Recherche NIST single spectre")
+        result = nist_wrapper.search_spectrum(spectrum_data)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Erreur NIST single search: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/nist/batch_search', methods=['POST'])
+def nist_batch_search():
+    """Recherche NIST en lot (optimisée)"""
+    try:
+        data = request.json
+        spectra = data.get('spectra', [])
+        
+        if not spectra:
+            return jsonify({'error': 'Liste de spectres vide'}), 400
+        
+        logger.info(f"Recherche NIST batch: {len(spectra)} spectres")
+        start_time = time.time()
+        
+        # Traitement parallèle avec votre pool existant
+        future_to_index = {
+            nist_executor.submit(nist_wrapper.search_spectrum, spectrum): i 
+            for i, spectrum in enumerate(spectra)
+        }
+        
+        results = [None] * len(spectra)
+        completed = 0
+        
+        for future in future_to_index:
+            index = future_to_index[future]
+            try:
+                result = future.result()
+                results[index] = result
+                completed += 1
+                
+                if completed % 10 == 0:
+                    logger.info(f"NIST progression: {completed}/{len(spectra)}")
+                    
+            except Exception as e:
+                logger.error(f"Erreur spectre {index}: {e}")
+                results[index] = {'error': str(e), 'hits': []}
+        
+        total_time = time.time() - start_time
+        logger.info(f"NIST batch terminé: {len(spectra)} spectres en {total_time:.2f}s")
+        
+        return jsonify({
+            'results': results,
+            'total_time': total_time,
+            'spectra_count': len(spectra),
+            'performance': f"{len(spectra)/total_time:.1f} spectres/sec"
+        })
+        
+    except Exception as e:
+        logger.error(f"Erreur NIST batch: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+
 if __name__ == '__main__':
-    # Configuration pour les gros fichiers
 
     # Augmenter la limite de récursion si nécessaire
     sys.setrecursionlimit(10000)
@@ -401,14 +484,8 @@ if __name__ == '__main__':
     # print("📁 Dossier d'upload:", app.config['UPLOAD_FOLDER'])
     # print("💾 Dossier de sortie:", app.config['OUTPUT_FOLDER'])
     # print("⚠️  Limite de taille fichier: 3GB")
-    print("🌐 Accédez à: http://localhost:5000")
+    # print("🌐 Accédez à: http://localhost:5000")
 
-
-    # # Pour le développement, décommentez la ligne suivante :
-    # app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
-
-    # #TODO pour la Prod
-    # # serve(app, host='0.0.0.0', port=5000)
 
     if len(sys.argv) > 1 and sys.argv[1] == 'dev':
         print("🚀 Serveur Flask démarré en mode dev")
