@@ -23,8 +23,11 @@ from functools import wraps
 import docker_manager
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
-import nist_search
-import logger
+from src import nist_search
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
@@ -431,7 +434,7 @@ def nist_batch_search():
         
         # Traitement parallèle avec votre pool existant
         future_to_index = {
-            nist_executor.submit(nist_wrapper.search_spectrum, spectrum): i 
+            nist_executor.submit(nist_wrapper.search_spectrum, spectrum): i
             for i, spectrum in enumerate(spectra)
         }
         
