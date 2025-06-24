@@ -23,7 +23,7 @@ from functools import wraps
 import docker_manager
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
-# import nist_search
+import nist_search
 import logger
 
 load_dotenv()
@@ -43,7 +43,7 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 # Instances
 converter = DataConverter()
 compose_manager = docker_manager.create_docker_manager("../docker-compose.yml")
-# nist_wrapper = nist_search.NISTSearchWrapper()
+nist_wrapper = nist_search.NISTSearchWrapper()
 
 
 def check_auth(username, password):

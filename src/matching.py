@@ -9,6 +9,7 @@ import json
 from typing import List, Tuple
 from nist_utils.reference_data import ReferenceData
 from pyms_nist_search.search_result import SearchResult
+import nist_search
 
 # present = {"HMDB0031018": [[23.43, 0.008]], "HMDB0061859": [[32.22, 0.042]], "HMDB0030469": [[28.15, 0.008]],
 #            "HMDB0031264": [[15.59, 0.017]], "HMDB0033848": [[18.41, 0.025]], "HMDB0031291": [[13.10, 1.231]],
@@ -36,7 +37,7 @@ from pyms_nist_search.search_result import SearchResult
 #     hit_list = []
 
 #     for hit, ref_data in raw_output:
-#         hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
+        # hit_list.append((SearchResult(**hit), ReferenceData(**ref_data)))
 #     return hit_list
 
 # def full_search_with_ref_data(
@@ -70,43 +71,43 @@ from pyms_nist_search.search_result import SearchResult
 #                 retry_count += 1
 
 #         raise TimeoutError("Unable to communicate with the search server.")
-def hit_list_from_nist_api(result_json):
-    """
-    Transforme le résultat JSON de l'API Flask NIST en liste de tuples (SearchResult, ReferenceData)
-    """
-    hit_list = []
-    for hit in result_json.get("hits", []):
-        # Adapte selon tes classes SearchResult et ReferenceData
-        search_result = SearchResult(
-            name=hit.get("name"),
-            match_factor=hit.get("match_factor"),
-            reverse_match_factor=hit.get("reverse_match"),
-            hit_prob=None,  # Si tu n'as pas cette info
-            cas=hit.get("cas_number")
-        )
-        ref_data = ReferenceData(
-            formula=hit.get("formula"),
-            molecular_weight=hit.get("molecular_weight")
-        )
-        hit_list.append((search_result, ref_data))
-    return hit_list
+# def hit_list_from_nist_api(result_json):
+#     """
+#     Transforme le résultat JSON de l'API Flask NIST en liste de tuples (SearchResult, ReferenceData)
+#     """
+#     hit_list = []
+#     for hit in result_json.get("hits", []):
+#         # Adapte selon tes classes SearchResult et ReferenceData
+#         search_result = SearchResult(
+#             name=hit.get("name"),
+#             match_factor=hit.get("match_factor"),
+#             reverse_match_factor=hit.get("reverse_match"),
+#             hit_prob=None,  # Si tu n'as pas cette info
+#             cas=hit.get("cas_number")
+#         )
+#         ref_data = ReferenceData(
+#             formula=hit.get("formula"),
+#             molecular_weight=hit.get("molecular_weight")
+#         )
+#         hit_list.append((search_result, ref_data))
+#     return hit_list
 
 
-def nist_batch_search(list_mass_spectra, api_url="http://localhost:8080/nist/batch_search"):
-    """
-    Envoie une liste de spectres à l'API Flask NIST pour identification en lot.
-    """
-    spectra_data = [spec.to_dict() for spec in list_mass_spectra]  # Adapte si besoin
-    retry_count = 0
-    while retry_count < 10:
-        try:
-            res = requests.post(api_url, json={"spectra": spectra_data})
-            res.raise_for_status()
-            return res.json()["results"]
-        except requests.exceptions.ConnectionError:
-            time.sleep(0.5)
-            retry_count += 1
-    raise TimeoutError("Unable to communicate with the NIST API server.")
+# def nist_batch_search(list_mass_spectra, api_url="http://localhost:8080/nist/batch_search"):
+#     """
+#     Envoie une liste de spectres à l'API Flask NIST pour identification en lot.
+#     """
+#     spectra_data = [spec.to_dict() for spec in list_mass_spectra]  # Adapte si besoin
+#     retry_count = 0
+#     while retry_count < 10:
+#         try:
+#             res = requests.post(api_url, json={"spectra": spectra_data})
+#             res.raise_for_status()
+#             return res.json()["results"]
+#         except requests.exceptions.ConnectionError:
+#             time.sleep(0.5)
+#             retry_count += 1
+#     raise TimeoutError("Unable to communicate with the NIST API server.")
 
 
 def filter_best_hits(list_hits, match_factor_min):
@@ -180,12 +181,20 @@ def matching_nist_lib_from_chromato_cube(
             print("Matching with NIST library...")
             # list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
             # top_hits = filter_best_hits(list_hit, match_factor_min)
-            result_json = nist_batch_search(mass_spectrum)
-            # top_hit = hit_list_from_nist_api(result_json)
-            list_hit = hit_list_from_nist_api(result_json)
-            top_hits = filter_best_hits(list_hit, match_factor_min)
-            print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
- 
+            nist_api = nist_search.NISTSearchWrapper()
+            if not nist_api.check_nist_health():
+                print("NIST API is not available. Skipping search.")
+                
+            else:
+                print("NIST API is available. Proceeding with search.")
+                results = nist_api.nist_batch_search(mass_spectrum)
+                # result_json = nist_batch_search(mass_spectrum)
+                # top_hit = hit_list_from_nist_api(result_json)
+                # list_hit = hit_list_from_nist_api(result_json)
+                list_hit = nist_api.hit_list_from_nist_api(results)
+                top_hits = filter_best_hits(list_hit, match_factor_min)
+                print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+    
         if top_hits:
             for j, hit in enumerate(top_hits):
                 search_result, ref_data = hit
