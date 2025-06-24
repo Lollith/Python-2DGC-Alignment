@@ -59,6 +59,9 @@ clean: stop
 	-sudo docker image prune -f
 	echo "Conteneurs, réseaux, images, volumes des environnements PROD et DEV supprimés."
 
+clean_build: stop
+	-sudo docker builder prune -f
+
 clean_nist: stop
 	-sudo docker compose -f $(PROD_COMPOSE) rm -sfv nist
 	-sudo docker compose -f $(DEV_COMPOSE) rm -sfv nist
