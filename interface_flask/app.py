@@ -21,7 +21,7 @@ from functools import wraps
 import docker_manager
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
-from src import nist_search
+# from src import nist_search
 import logging
 from flask import Flask, jsonify
 from flask_httpauth import HTTPBasicAuth
