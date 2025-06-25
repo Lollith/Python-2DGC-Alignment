@@ -113,18 +113,17 @@ We could not directly call the NIST Docker container from inside our own contain
 
 To use NIST, you need to place your NIST database files (mainlib) into a folder, which should contain the Nist library and an empty tmp folder.
 
-##### jupyter password hash
+##### jupyter & Flask password hash
 
 To avoid having to click on the address with the token each time you launch Jupyter in the browser, you can set a password. Then, you’ll only need to access http://localhost:8888 directly.
+For the api Flask you need a password too.
 
 To create a hashed password:
-```bash 
-pip install jupyter_server
-```
-Then, in a Python interpreter:
+In a Python interpreter:
 ```bash
-from jupyter_server.auth import passwd
-passwd()  # It will prompt you to enter your desired password
+from werkzeug.security import generate_password_hash
+
+print(generate_password_hash("my_password"))
 ```
 
 ##### .env
@@ -134,6 +133,10 @@ Create a .env file at the root of the project with the following variables:
 # Password hash for JupyterLab login 
 JUPYTER_PASSWORD_HASH=...
 
+# Username and Password for flask login
+USERNAME=...
+FLASK_HASHED_PASSWORD=...
+
 # Absolute path to the folder on your host machine that will be mounted into the Docker container
 HOST_VOLUME_PATH=C:/path/to/app/data/
 
@@ -142,11 +145,6 @@ HOST_VOLUME_PATH_NIST=...
 
 # Path inside the container where data will be available
 DOCKER_VOLUME_PATH=/app/data
-
-# Password for flask login
-FLASK_USERNAME=...
-FLASK_PASSWORD=...
-
 
 #Only for windows: Path to the project folder
 FLASK_DIR=C:/path/to/Python-2DGC-Alignment/interface_flask

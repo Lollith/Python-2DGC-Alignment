@@ -25,16 +25,22 @@ from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 from src import nist_search
 import logging
+from flask import Flask, jsonify
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import check_password_hash
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
+auth = HTTPBasicAuth()
 
 app = Flask(__name__)
 
-USERNAME = os.getenv("FLASK_USERNAME")
-PASSWORD = os.getenv("FLASK_PASSWORD")
+# USERNAME = os.getenv("FLASK_USERNAME")
+# PASSWORD = os.getenv("FLASK_PASSWORD")
+hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
+username = os.getenv('USERNAME')
 
 client = docker.from_env()
 
@@ -49,28 +55,36 @@ compose_manager = docker_manager.create_docker_manager("../docker-compose.yml")
 nist_wrapper = nist_search.NISTSearchWrapper()
 
 
-def check_auth(username, password):
-    return username == USERNAME and password == PASSWORD
+# def check_auth(username, password):
+#     return username == USERNAME and password == PASSWORD
+
+@auth.verify_password
+def verify_password(username, password):
+    return username == username and check_password_hash(hashed_password, password)
+
+# @app.route('/nist/health')
+# @auth.login_required
+# def nist_health():
+#     return jsonify({"status": "available"})
+
+# def authenticate():
+#     return Response(
+#         'Authentification requise.', 401,
+#         {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
 
-def authenticate():
-    return Response(
-        'Authentification requise.', 401,
-        {'WWW-Authenticate': 'Basic realm="Login Required"'})
-
-
-def requires_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
-        return f(*args, **kwargs)
-    return decorated
+# def requires_auth(f):
+#     @wraps(f)
+#     def decorated(*args, **kwargs):
+#         auth = request.authorization
+#         if not auth or not check_auth(auth.username, auth.password):
+#             return authenticate()
+#         return f(*args, **kwargs)
+#     return decorated
 
 
 @app.route('/')
-@requires_auth
+@auth.login_required
 def index():
     """Page principale avec le formulaire."""
     return render_template('index.html',
