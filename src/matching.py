@@ -187,11 +187,10 @@ def matching_nist_lib_from_chromato_cube(
                 
             else:
                 print("NIST API is available. Proceeding with search.")
-                results = nist_api.nist_batch_search([mass_spectrum])
+                # results = nist_api.nist_batch_search([mass_spectrum])
+                results = nist_api.nist_single_search(mass_spectrum)
                 print(results)
-                # result_json = nist_batch_search(mass_spectrum)
-                # top_hit = hit_list_from_nist_api(result_json)
-                # list_hit = hit_list_from_nist_api(result_json)
+                
                 list_hit = nist_api.hit_list_from_nist_api(results)
                 top_hits = filter_best_hits(list_hit, match_factor_min)
                 print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")

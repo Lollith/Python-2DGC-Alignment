@@ -16,10 +16,8 @@ from werkzeug.utils import secure_filename
 import threading
 import shutil
 import requests
-import subprocess
 import webbrowser
 from functools import wraps
-# from docker_manager import DockerComposeManager, create_docker_manager
 import docker_manager
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
@@ -28,9 +26,11 @@ import logging
 from flask import Flask, jsonify
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
+import nist_engine
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+nist_engine = nist_engine.NistEngine()
 
 load_dotenv()
 auth = HTTPBasicAuth()
@@ -52,7 +52,7 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 # Instances
 converter = DataConverter()
 compose_manager = docker_manager.create_docker_manager("../docker-compose.yml")
-nist_wrapper = nist_search.NISTSearchWrapper()
+# nist_wrapper = nist_search.NISTSearchWrapper()
 
 
 # def check_auth(username, password):
@@ -415,73 +415,103 @@ def nist_health():
         'active_threads': len(nist_executor._threads) if hasattr(nist_executor, '_threads') else 0
     })
 
-@app.route('/nist/search', methods=['POST'])
-def nist_single_search():
-    """Recherche NIST d'un spectre unique"""
-    try:
-        spectrum_data = request.json
+# @app.route('/nist/search', methods=['POST'])
+# def nist_single_search():
+#     """Recherche NIST d'un spectre unique"""
+#     try:
+#         spectrum_data = request.json
         
-        if not spectrum_data:
-            return jsonify({'error': 'Données de spectre manquantes'}), 400
+#         if not spectrum_data:
+#             return jsonify({'error': 'Données de spectre manquantes'}), 400
         
-        logger.info("Recherche NIST single spectre")
-        result = nist_wrapper.search_spectrum(spectrum_data)
+#         logger.info("Recherche NIST single spectre")
+#         result = nist_wrapper.search_spectrum(spectrum_data)
         
-        return jsonify(result)
+#         return jsonify(result)
         
-    except Exception as e:
-        logger.error(f"Erreur NIST single search: {e}")
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         logger.error(f"Erreur NIST single search: {e}")
+#         return jsonify({'error': str(e)}), 500
+# from pyms.Spectrum import MassSpectrum
 
-@app.route('/nist/batch_search', methods=['POST'])
-def nist_batch_search():
-    """Recherche NIST en lot (optimisée)"""
+# @app.route('/nist/batch_search', methods=['POST'])
+# def nist_batch_search():
+#     """Recherche NIST en lot (optimisée)"""
+#     try:
+#         data = request.json
+#         spectra = data.get('spectra', [])
+        
+#         if not spectra:
+#             return jsonify({'error': 'Liste de spectres vide'}), 400
+        
+#         logger.info(f"Recherche NIST batch: {len(spectra)} spectres")
+#         start_time = time.time()
+
+#         def dict_to_mass_spectrum(spectrum_dict):
+#             return MassSpectrum(
+#                 mass_list=[float(m) for m in spectrum_dict["mass"]],
+#                 intensity_list=[float(i) for i in spectrum_dict["intensity"]]
+#             )
+
+#         spectra_ms = [dict_to_mass_spectrum(s) for s in spectra]
+        
+#         # Traitement parallèle avec votre pool existant
+#         future_to_index = {
+#             nist_executor.submit(nist_wrapper.nist_batch_search, [spectrum]): i
+#             for i, spectrum in enumerate(spectra_ms)
+#         }
+        
+#         results = [None] * len(spectra)
+#         completed = 0
+        
+#         for future in future_to_index:
+#             index = future_to_index[future]
+#             try:
+#                 result = future.result()
+#                 results[index] = result
+#                 completed += 1
+                
+#                 if completed % 10 == 0:
+#                     logger.info(f"NIST progression: {completed}/{len(spectra)}")
+                    
+#             except Exception as e:
+#                 logger.error(f"Erreur spectre {index}: {e}")
+#                 results[index] = {'error': str(e), 'hits': []}
+        
+#         total_time = time.time() - start_time
+#         logger.info(f"NIST batch terminé: {len(spectra)} spectres en {total_time:.2f}s")
+        
+#         return jsonify({
+#             'results': results,
+#             'total_time': total_time,
+#             'spectra_count': len(spectra),
+#             'performance': f"{len(spectra)/total_time:.1f} spectres/sec"
+#         })
+        
+#     except Exception as e:
+#         logger.error(f"Erreur NIST batch: {e}")
+#         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/nist/search', methods=['POST'])
+def nist_search():
+    """
+    Endpoint Flask pour un spectre unique.
+    """
     try:
         data = request.json
-        spectra = data.get('spectra', [])
-        
-        if not spectra:
-            return jsonify({'error': 'Liste de spectres vide'}), 400
-        
-        logger.info(f"Recherche NIST batch: {len(spectra)} spectres")
-        start_time = time.time()
-        
-        # Traitement parallèle avec votre pool existant
-        future_to_index = {
-            nist_executor.submit(nist_wrapper.search_spectrum, spectrum): i
-            for i, spectrum in enumerate(spectra)
-        }
-        
-        results = [None] * len(spectra)
-        completed = 0
-        
-        for future in future_to_index:
-            index = future_to_index[future]
-            try:
-                result = future.result()
-                results[index] = result
-                completed += 1
-                
-                if completed % 10 == 0:
-                    logger.info(f"NIST progression: {completed}/{len(spectra)}")
-                    
-            except Exception as e:
-                logger.error(f"Erreur spectre {index}: {e}")
-                results[index] = {'error': str(e), 'hits': []}
-        
-        total_time = time.time() - start_time
-        logger.info(f"NIST batch terminé: {len(spectra)} spectres en {total_time:.2f}s")
-        
-        return jsonify({
-            'results': results,
-            'total_time': total_time,
-            'spectra_count': len(spectra),
-            'performance': f"{len(spectra)/total_time:.1f} spectres/sec"
-        })
-        
+        if not data or "mass" not in data or "intensity" not in data:
+            return jsonify({"error": "Spectre invalide"}), 400
+
+        logger.info("Recherche NIST pour un spectre")
+
+        result = nist_engine.search(data)
+        # return jsonify({"hits": result[0]["hits"]})
+        return jsonify({"hits": result})
+
     except Exception as e:
-        logger.error(f"Erreur NIST batch: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Erreur NIST search: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 

@@ -3,19 +3,14 @@ import requests
 import time
 import pyms
 from pyms_nist_search.search_result import SearchResult
-# from src.nist_utils.reference_data import ReferenceData
-from src.nist_utils.reference_data import ReferenceData
-import platform
-from requests.auth import HTTPBasicAuth
+import sys
 import os
-# import nist_search
+# from src.nist_utils.reference_data import ReferenceData
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-# USERNAME = os.getenv("FLASK_USERNAME")
-# PASSWORD = os.getenv("FLASK_PASSWORD")
-# AUTH = HTTPBasicAuth(USERNAME, PASSWORD)
-# auth = HTTPBasicAuth()
-# hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
-# username = os.getenv('USERNAME')
+from nist_utils.reference_data import ReferenceData
+import platform
+import os
 
 
 class NISTSearchWrapper:
@@ -55,13 +50,19 @@ class NISTSearchWrapper:
                 "mass": [float(m) for m in spectrum.mass_list],
                 "intensity": [float(i) for i in spectrum.intensity_list]
             }
+        for spec in list_mass_spectra:
+            print(f"Type reçu : {type(spec)}")
         # spectra_data = [spec.to_dict() for spec in list_mass_spectra]
         spectra_data = [spectrum_to_dict(spec) for spec in list_mass_spectra]
         retry_count = 0
         while retry_count < 10:
             try:
-                res = requests.post(endpoint, json={"spectra": spectra_data}, auth=(self.username, self.password))
+                res = requests.post(
+                    endpoint, json={"spectra": spectra_data},
+                    auth=(self.username, self.password)
+                    )
                 res.raise_for_status()
+                print("Réponse JSON brute :", res.json())
                 return res.json()["results"]
             except requests.exceptions.ConnectionError:
                 time.sleep(0.5)
@@ -70,10 +71,11 @@ class NISTSearchWrapper:
 
     def hit_list_from_nist_api(self, result_json):
         """
-        Transforme le résultat JSON de l'API Flask NIST en liste de tuples (SearchResult, ReferenceData)
+        Transforme le résultat JSON de l'API Flask NIST en liste de tuples
+        (SearchResult, ReferenceData)
         """
         hit_list = []
-        for hit in result_json.get("hits", []):
+        for hit in result_json:
             search_result = SearchResult(
                 name=hit.get("name"),
                 match_factor=hit.get("match_factor"),
@@ -87,6 +89,37 @@ class NISTSearchWrapper:
             )
             hit_list.append((search_result, ref_data))
         return hit_list
+    
+    def nist_single_search(self, mass_spectrum):
+        """
+        Envoie un seul spectre à l'API Flask NIST pour identification.
+        """
+        endpoint = f'{self.url}nist/search'
+        print(f"Requête vers {endpoint}")
+        
+        def spectrum_to_dict(spectrum):
+            return {
+                "mass": [float(m) for m in spectrum.mass_list],
+                "intensity": [float(i) for i in spectrum.intensity_list]
+            }
+        # data = [spec.to_dict() for spec in mass_spectrum]
+        data = spectrum_to_dict(spectrum=mass_spectrum)
+        print(f"données envoyé : {data}")
+        # data = spectrum_to_dict(mass_spectrum)
+        retry_count = 0
+        while retry_count < 10:
+            try:
+                res = requests.post(
+                    endpoint, json=data,
+                    auth=(self.username, self.password)
+                )
+                res.raise_for_status()
+                print("Réponse JSON brute :", res.json())
+                return res.json()["hits"]
+            except requests.exceptions.ConnectionError:
+                time.sleep(0.5)
+                retry_count += 1
+        raise TimeoutError("Unable to communicate with the NIST API server.")
 
 
 if __name__ == '__main__':
