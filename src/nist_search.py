@@ -4,22 +4,27 @@ import time
 import pyms
 from pyms_nist_search.search_result import SearchResult
 # from src.nist_utils.reference_data import ReferenceData
-from nist_utils.reference_data import ReferenceData
+from src.nist_utils.reference_data import ReferenceData
 import platform
 from requests.auth import HTTPBasicAuth
 import os
 # import nist_search
 
-USERNAME = os.getenv("FLASK_USERNAME")
-PASSWORD = os.getenv("FLASK_PASSWORD")
-AUTH = HTTPBasicAuth(USERNAME, PASSWORD)
+# USERNAME = os.getenv("FLASK_USERNAME")
+# PASSWORD = os.getenv("FLASK_PASSWORD")
+# AUTH = HTTPBasicAuth(USERNAME, PASSWORD)
+# auth = HTTPBasicAuth()
+# hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
+# username = os.getenv('USERNAME')
 
 
 class NISTSearchWrapper:
 
     def __init__(self):
         logging.info("Initialisation du moteur NIST...")
-        # self.url = 'http://host.docker.internal:8080/'
+        self.username = os.getenv("USERNAME")
+        self.password = os.getenv("FLASK_PASSWORD")
+        
         if platform.system() == "Windows":
             self.url = "http://host.docker.internal:8080/"
         else:
@@ -29,7 +34,7 @@ class NISTSearchWrapper:
     def check_nist_health(self):
         endpoint = f'{self.url}nist/health'
         try:
-            res = requests.get(endpoint, timeout=2, auth=AUTH)
+            res = requests.get(endpoint, timeout=2, auth=(self.username, self.password))
             res.raise_for_status()
             health = res.json()
             return health['nist_status'] == 'available'
@@ -55,7 +60,7 @@ class NISTSearchWrapper:
         retry_count = 0
         while retry_count < 10:
             try:
-                res = requests.post(endpoint, json={"spectra": spectra_data}, auth=AUTH)
+                res = requests.post(endpoint, json={"spectra": spectra_data}, auth=(self.username, self.password))
                 res.raise_for_status()
                 return res.json()["results"]
             except requests.exceptions.ConnectionError:
