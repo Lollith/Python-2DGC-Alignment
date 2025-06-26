@@ -21,7 +21,7 @@ class NISTSearchWrapper:
         self.password = os.getenv("FLASK_PASSWORD")
         
         if platform.system() == "Windows":
-            self.url = "http://host.docker.internal:8080/"
+            self.url = "http://host.docker.internal:8080/" #TODO 8080
         else:
             # Linux : à condition d’utiliser `network_mode: host`
             self.url = "http://localhost:8080/"
@@ -29,7 +29,8 @@ class NISTSearchWrapper:
     def check_nist_health(self):
         endpoint = f'{self.url}nist/health'
         try:
-            res = requests.get(endpoint, timeout=2, auth=(self.username, self.password))
+            #res = requests.get(endpoint, timeout=2, auth=(self.username, self.password))
+            res = requests.get(endpoint, timeout=2)
             res.raise_for_status()
             health = res.json()
             return health['nist_status'] == 'available'
@@ -121,8 +122,21 @@ class NISTSearchWrapper:
                 retry_count += 1
         raise TimeoutError("Unable to communicate with the NIST API server.")
 
-
+import requests
 if __name__ == '__main__':
+
+
+    response = requests.get("http://localhost:8080/")
+    print(response.status_code)
+    #print(response.text)
+
+    response = requests.get("http://localhost:8080/routes")
+    print(response.status_code)
+    print(response.text)
+
+    response = requests.get("http://localhost:8080/nist/health")
+    print(response.status_code)
+    print(response.text)
     nist_api = NISTSearchWrapper()
     if not nist_api.check_nist_health():
         print("NIST API is not available. Skipping search.")

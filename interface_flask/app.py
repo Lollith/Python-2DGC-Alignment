@@ -33,14 +33,14 @@ logging.basicConfig(level=logging.INFO)
 nist_engine = nist_engine.NistEngine()
 
 load_dotenv()
-auth = HTTPBasicAuth()
+#auth = HTTPBasicAuth()
 
 app = Flask(__name__)
 
 # USERNAME = os.getenv("FLASK_USERNAME")
 # PASSWORD = os.getenv("FLASK_PASSWORD")
 hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
-username = os.getenv('USERNAME')
+username_env = os.getenv('USERNAME')
 
 client = docker.from_env()
 
@@ -58,9 +58,9 @@ compose_manager = docker_manager.create_docker_manager("../docker-compose.yml")
 # def check_auth(username, password):
 #     return username == USERNAME and password == PASSWORD
 
-@auth.verify_password
-def verify_password(username, password):
-    return username == username and check_password_hash(hashed_password, password)
+#@auth.verify_password
+#def verify_password(username, password):
+ #   return username == username_env and check_password_hash(hashed_password, password)
 
 # @app.route('/nist/health')
 # @auth.login_required
@@ -82,9 +82,8 @@ def verify_password(username, password):
 #         return f(*args, **kwargs)
 #     return decorated
 
-
+#@auth.login_required
 @app.route('/')
-@auth.login_required
 def index():
     """Page principale avec le formulaire."""
     return render_template('index.html',
@@ -513,6 +512,16 @@ def nist_search():
         logger.error(f"Erreur NIST search: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/routes', methods=['GET'])
+def list_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'route': str(rule)
+        })
+    return jsonify(routes)
 
 
 if __name__ == '__main__':
