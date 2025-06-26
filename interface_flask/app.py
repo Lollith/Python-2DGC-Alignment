@@ -30,7 +30,7 @@ import nist_engine
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-nist_engine = nist_engine.NistEngine()
+nist = nist_engine.NistEngine()
 
 load_dotenv()
 auth = HTTPBasicAuth()
@@ -497,6 +497,7 @@ def nist_search():
     """
     Endpoint Flask pour un spectre unique.
     """
+    print("Requête reçue :", request.json)
     try:
         data = request.json
         if not data or "mass" not in data or "intensity" not in data:
@@ -504,7 +505,7 @@ def nist_search():
 
         logger.info("Recherche NIST pour un spectre")
 
-        result = nist_engine.search(data)
+        result = nist.search(data)
         # return jsonify({"hits": result[0]["hits"]})
         return jsonify({"hits": result})
 
