@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO)
 nist_engine = nist_engine.NistEngine()
 
 load_dotenv()
-#auth = HTTPBasicAuth()
+auth = HTTPBasicAuth()
 
 app = Flask(__name__)
 
@@ -55,12 +55,12 @@ compose_manager = docker_manager.create_docker_manager("../docker-compose.yml")
 # nist_wrapper = nist_search.NISTSearchWrapper()
 
 
-# def check_auth(username, password):
-#     return username == USERNAME and password == PASSWORD
+#def check_auth(username, password):
+ #    return username == USERNAME and password == PASSWORD
 
-#@auth.verify_password
-#def verify_password(username, password):
- #   return username == username_env and check_password_hash(hashed_password, password)
+@auth.verify_password
+def verify_password(username, password):
+    return username == username_env and check_password_hash(hashed_password, password)
 
 # @app.route('/nist/health')
 # @auth.login_required
@@ -82,7 +82,7 @@ compose_manager = docker_manager.create_docker_manager("../docker-compose.yml")
 #         return f(*args, **kwargs)
 #     return decorated
 
-#@auth.login_required
+@auth.login_required
 @app.route('/')
 def index():
     """Page principale avec le formulaire."""
