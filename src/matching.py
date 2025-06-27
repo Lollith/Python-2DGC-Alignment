@@ -8,7 +8,7 @@ import sdjson
 import json
 from typing import List, Tuple
 from nist_utils.reference_data import ReferenceData
-from pyms_nist_search.search_result import SearchResult
+#from pyms_nist_search.search_result import SearchResult
 import nist_search
 
 # present = {"HMDB0031018": [[23.43, 0.008]], "HMDB0061859": [[32.22, 0.042]], "HMDB0030469": [[28.15, 0.008]],

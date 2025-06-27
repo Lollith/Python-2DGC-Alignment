@@ -20,9 +20,9 @@ class NISTSearchWrapper:
         self.username = os.getenv("USERNAME")
         self.password = os.getenv("FLASK_PASSWORD")
         
-        self.url = "http://10.172.16.115:8080/" #TODO
+        #self.url = "http://10.172.16.115:8080/" #TODO
         # if platform.system() == "Windows":
-        #     self.url = "http://host.docker.internal:8080/" #TODO 8080
+        self.url = "http://host.docker.internal:8080/" #TODO 
         # else:
         #     # Linux : à condition d’utiliser `network_mode: host`
         #     self.url = "http://localhost:8080/"
@@ -30,6 +30,7 @@ class NISTSearchWrapper:
     def check_nist_health(self):
         endpoint = f'{self.url}nist/health'
         try:
+            #TODO
             #res = requests.get(endpoint, timeout=2, auth=(self.username, self.password))
             res = requests.get(endpoint, timeout=2)
             res.raise_for_status()
@@ -64,7 +65,6 @@ class NISTSearchWrapper:
                     auth=(self.username, self.password)
                     )
                 res.raise_for_status()
-                print("Réponse JSON brute :", res.json())
                 return res.json()["results"]
             except requests.exceptions.ConnectionError:
                 time.sleep(0.5)
@@ -76,6 +76,8 @@ class NISTSearchWrapper:
         Transforme le résultat JSON de l'API Flask NIST en liste de tuples
         (SearchResult, ReferenceData)
         """
+        for hit in result_json:
+            print("type(hit) =", type(hit), "value =", hit)  # <--- debug i
         hit_list = []
         for hit in result_json:
             search_result = SearchResult(
@@ -106,7 +108,7 @@ class NISTSearchWrapper:
             }
         # data = [spec.to_dict() for spec in mass_spectrum]
         data = spectrum_to_dict(spectrum=mass_spectrum)
-        print(f"données envoyées : {data}")
+        #print(f"données envoyées : {data}")
         # data = spectrum_to_dict(mass_spectrum)
         retry_count = 0
         while retry_count < 10:

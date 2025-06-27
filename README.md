@@ -143,6 +143,9 @@ HOST_VOLUME_PATH=C:/path/to/app/data/
 # Absolute path to the folder on your host machine which contains the Nist library (mainlib) and an empty tmp folder
 HOST_VOLUME_PATH_NIST=...
 
+MAINLIB_PATH=C:/path/to/MSSEARCH/mainlib
+TEMP_DIR=C:/path/to/MSSEARCH/tmp
+
 # Path inside the container where data will be available
 DOCKER_VOLUME_PATH=/app/data
 
@@ -153,7 +156,7 @@ FLASK_DIR=C:/path/to/Python-2DGC-Alignment/interface_flask
 DOCKER_DESKTOP_PATH=...
 
 # Only for windows: Path to your venv if you want to use it
-VENV_PATH=C:/path/to\venv\Scripts\Activate.ps1
+VENV_PATH=C:/path/to/venv
  
 ```
 ### Build image + container

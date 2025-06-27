@@ -2,7 +2,8 @@ import logging
 import pyms
 import pyms_nist_search
 import numpy as np
-
+import os
+from pyms.Spectrum import MassSpectrum
 
 class NistEngine:
     """
@@ -17,16 +18,30 @@ class NistEngine:
         
         """
         logging.info("Initialisation du moteur NIST...")
-        mainlib_path = "C:/NIST20/MSSEARCH/mainlib/"
-        temp_dir = "C:/NIST20/MSSEARCH/temp/"
-        self.search = pyms_nist_search.Engine(
+        mainlib_path = os.getenv("MAINLIB_PATH")
+        temp_dir = os.getenv("TEMP_DIR")
+        #TODO
+        #mainlib_path = "C:/NIST20/MSSEARCH/mainlib/"
+        #temp_dir = "C:/NIST20/MSSEARCH/temp/"
+        self.engine = pyms_nist_search.Engine(
             mainlib_path,
             pyms_nist_search.NISTMS_MAIN_LIB,
             temp_dir
         )
 
+    def serialize_hit_tuple(self, hit_tuple):
+        search_result, ref_data = hit_tuple
+        return {
+            "name": getattr(search_result, "name", None),
+            "match_factor": getattr(search_result, "match_factor", None),
+            "reverse_match": getattr(search_result, "reverse_match_factor", None),
+            "hit_prob": getattr(search_result, "hit_prob", None),
+            "cas_number": getattr(search_result, "cas", None),
+            "spec_loc": getattr(search_result, "spec_loc", None),
+            "formula": getattr(ref_data, "formula", None),
+        }
 
-    def spectrum_with_ref_data(self, mass_spectrum):
+    def search_with_ref_data(self, data):
         """
         Perform a search operation using the provided query.
 
@@ -36,8 +51,12 @@ class NistEngine:
         # Placeholder for search logic
         # This should interact with the NIST data and return results
         # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
-        hits = self.search.full_search_with_ref_data(mass_spectrum)
-        
-        print("hits", hits)
-        return hits
-    
+        try:
+            mass = data["mass"]
+            intensity = data["intensity"]
+            spectrum = MassSpectrum(mass, intensity)
+            hits = self.engine.full_search_with_ref_data(spectrum)
+            return [self.serialize_hit_tuple(hit) for hit in hits]
+        except Exception as e:
+            logging.error(f"Erreur lors de la conversion du spectre: {e}")
+            raise
