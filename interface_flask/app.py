@@ -507,7 +507,7 @@ def nist_search():
 
         result = nist.search_with_ref_data(data)
         # return jsonify({"hits": result[0]["hits"]})
-        print("Résultat de la recherche NIST:", result)
+        # print("Résultat de la recherche NIST:", result)
         return jsonify({"hits": result})
 
     except Exception as e:

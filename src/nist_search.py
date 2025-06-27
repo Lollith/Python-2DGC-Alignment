@@ -118,7 +118,7 @@ class NISTSearchWrapper:
                     auth=(self.username, self.password)
                 )
                 res.raise_for_status()
-                print("Réponse JSON brute :", res.json())
+                # print("Réponse JSON brute :", res.json())
                 return res.json()["hits"]
             except requests.exceptions.ConnectionError:
                 time.sleep(0.5)
@@ -127,7 +127,6 @@ class NISTSearchWrapper:
 
 import requests
 if __name__ == '__main__':
-
 
     response = requests.get("http://localhost:8080/")
     print(response.status_code)
