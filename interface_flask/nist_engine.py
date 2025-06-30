@@ -3,7 +3,7 @@ import pyms
 import pyms_nist_search
 import numpy as np
 import os
-from pyms.Spectrum import MassSpectrum
+import pyms.Spectrum 
 
 class NistEngine:
     """
@@ -41,18 +41,20 @@ class NistEngine:
             "formula": getattr(ref_data, "formula", None),
         }
 
-    def full_search_with_ref_data(self, spectrum, max_hits=None):
-        hits = []
-        for ref in self.library:
-            score = self.compare(spectrum, ref.spectrum)
-            if score > self.threshold:
-                hits.append((ref, score))
-                if max_hits is not None and len(hits) >= max_hits:
-                    break
-        hits.sort(key=lambda x: x[1], reverse=True)
-        return hits
+    # #
+    # def full_search_with_ref_data(self, spectrum, max_hits=None):
+    #     hits = []
+    #     for ref in self.library:
+    #         score = self.compare(spectrum, ref.spectrum)
+    #         print("Seuil =", self.threshold)
+    #         if score > self.threshold:
+    #             hits.append((ref, score))
+    #             if max_hits is not None and len(hits) >= max_hits:
+    #                 break
+    #     hits.sort(key=lambda x: x[1], reverse=True)
+    #     return hits
     
-    def search_with_ref_data(self, data):
+    def full_search_with_ref_data(self, data):
         """
         Perform a search operation using the provided query.
 
@@ -66,9 +68,10 @@ class NistEngine:
         try:
             mass = data["mass"]
             intensity = data["intensity"]
-            spectrum = MassSpectrum(mass, intensity)
+            spectrum = pyms.Spectrum.MassSpectrum(mass, intensity)
             hits = self.engine.full_search_with_ref_data(
                 spectrum, max_hits)
+            
             return [self.serialize_hit_tuple(hit) for hit in hits]
         except Exception as e:
             logging.error(f"Erreur lors de la conversion du spectre: {e}")

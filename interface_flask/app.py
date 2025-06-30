@@ -433,63 +433,54 @@ def nist_health():
 #         return jsonify({'error': str(e)}), 500
 # from pyms.Spectrum import MassSpectrum
 
-# @app.route('/nist/batch_search', methods=['POST'])
-# def nist_batch_search():
-#     """Recherche NIST en lot (optimisée)"""
-#     try:
-#         data = request.json
-#         spectra = data.get('spectra', [])
+@app.route('/nist/batch_search', methods=['POST'])
+def nist_batch_search():
+    """Recherche NIST en lot (optimisée)"""
+    try:
+        spectra_list = request.json
         
-#         if not spectra:
-#             return jsonify({'error': 'Liste de spectres vide'}), 400
+        if not spectra_list:
+            return jsonify({'error': 'Liste de spectres vide'}), 400
         
-#         logger.info(f"Recherche NIST batch: {len(spectra)} spectres")
-#         start_time = time.time()
+        logger.info(f"Recherche NIST batch: {len(spectra_list)} spectres")
+        start_time = time.time()
 
-#         def dict_to_mass_spectrum(spectrum_dict):
-#             return MassSpectrum(
-#                 mass_list=[float(m) for m in spectrum_dict["mass"]],
-#                 intensity_list=[float(i) for i in spectrum_dict["intensity"]]
-#             )
-
-#         spectra_ms = [dict_to_mass_spectrum(s) for s in spectra]
-        
 #         # Traitement parallèle avec votre pool existant
-#         future_to_index = {
-#             nist_executor.submit(nist_wrapper.nist_batch_search, [spectrum]): i
-#             for i, spectrum in enumerate(spectra_ms)
-#         }
+        future_to_index = {
+            nist_executor.submit(nist.full_search_with_ref_data, spectrum): i
+            for i, spectrum in enumerate(spectra_list)
+        }
         
-#         results = [None] * len(spectra)
-#         completed = 0
+        results = [None] * len(spectra_list)
+        completed = 0
         
-#         for future in future_to_index:
-#             index = future_to_index[future]
-#             try:
-#                 result = future.result()
-#                 results[index] = result
-#                 completed += 1
+        for future in future_to_index:
+            index = future_to_index[future]
+            try:
+                result = future.result()
+                results[index] = result
+                completed += 1
                 
-#                 if completed % 10 == 0:
-#                     logger.info(f"NIST progression: {completed}/{len(spectra)}")
+                if completed % 10 == 0:
+                    logger.info(f"NIST progression: {completed}/{len(spectra_list)}")
                     
-#             except Exception as e:
-#                 logger.error(f"Erreur spectre {index}: {e}")
-#                 results[index] = {'error': str(e), 'hits': []}
+            except Exception as e:
+                logger.error(f"Erreur spectre {index}: {e}")
+                results[index] = {'error': str(e), 'hits': []}
         
-#         total_time = time.time() - start_time
-#         logger.info(f"NIST batch terminé: {len(spectra)} spectres en {total_time:.2f}s")
+        total_time = time.time() - start_time
+        logger.info(f"NIST batch terminé: {len(spectra_list)} spectres en {total_time:.2f}s")
         
-#         return jsonify({
-#             'results': results,
-#             'total_time': total_time,
-#             'spectra_count': len(spectra),
-#             'performance': f"{len(spectra)/total_time:.1f} spectres/sec"
-#         })
+        return jsonify({
+            'results': results,
+            'total_time': total_time,
+            'spectra_count': len(spectra_list),
+            'performance': f"{len(spectra_list)/total_time:.1f} spectres/sec"
+        })
         
-#     except Exception as e:
-#         logger.error(f"Erreur NIST batch: {e}")
-#         return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        logger.error(f"Erreur NIST batch: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/nist/search', methods=['POST'])
@@ -505,7 +496,7 @@ def nist_search():
 
         logger.info("Recherche NIST pour un spectre")
 
-        result = nist.search_with_ref_data(data)
+        result = nist.full_search_with_ref_data(data)
         # return jsonify({"hits": result[0]["hits"]})
         # print("Résultat de la recherche NIST:", result)
         return jsonify({"hits": result})

@@ -171,10 +171,19 @@ def matching_nist_lib_from_chromato_cube(
     matches = []
     nb_analyte = 0
     top_hits = []
+    serialized_spectra = []
+
     for i, coord in enumerate(coordinates):
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
-        mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
+        # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
+        serialized_spectrum = {
+            "mass": [float(m) for m in mass_values],
+            "intensity": [float(i) for i in int_values]
+            }
+        #TODO decommenter pour batching
+        serialized_spectra.append(serialized_spectrum)
+        
         match_results = []
 
         if nist: # TODO check ici
@@ -187,13 +196,21 @@ def matching_nist_lib_from_chromato_cube(
                 
             else:
                 print("NIST API is available. Proceeding with search.")
-                # results = nist_api.nist_batch_search([mass_spectrum])
-                results = nist_api.nist_single_search(mass_spectrum)
+                # batch_results = nist_api.nist_batch_search(serialized_spectra)
+                results = nist_api.nist_single_search(serialized_spectrum)
                 print(results)
                 
+                #for signle search
                 list_hit = nist_api.hit_list_from_nist_api(results)
                 top_hits = filter_best_hits(list_hit, match_factor_min)
                 print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+
+                # for batch search
+                # for i, (coord, result) in enumerate(zip(coordinates, batch_results)):
+                #     list_hit = nist_api.hit_list_from_nist_api(result)
+                #     top_hits = filter_best_hits(list_hit, match_factor_min)
+                #     print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+
 
         if top_hits:
             for j, hit in enumerate(top_hits):
@@ -227,7 +244,7 @@ def matching_nist_lib_from_chromato_cube(
 
         matches.append([[(coordinates_in_chromato[i][0]),
                        (coordinates_in_chromato[i][1])], match_results, coord])
-        del mass_spectrum
+        # del mass_spectrum
     end = time.time() - start
     print(f"Matching NIST library took {end:.2f} seconds")
 
