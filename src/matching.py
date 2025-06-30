@@ -190,7 +190,8 @@ def matching_nist_lib_from_chromato_cube(
             print("Matching with NIST library...")
             # list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
             # top_hits = filter_best_hits(list_hit, match_factor_min)
-            nist_api = nist_search.NISTSearchWrapper()
+            # nist_api = nist_search.NISTSearchWrapper(mode="local")#TODO 
+            nist_api = nist_search.NISTSearchWrapper()#TODO 
             if not nist_api.check_nist_health():
                 print("NIST API is not available. Skipping search.")
                 
