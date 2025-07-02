@@ -207,12 +207,12 @@ def matching_nist_lib_from_chromato_cube(
                 # print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
 
                 # for batch search
-                for i, (coord, result) in enumerate(
+                for j, (coord, result) in enumerate(
                         zip(coordinates, batch_results)
                         ):
                     list_hit = nist_api.hit_list_from_nist_api(result)
                     top_hits = filter_best_hits(list_hit, match_factor_min)
-                    print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+                print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
 
         if top_hits:
             for j, hit in enumerate(top_hits):

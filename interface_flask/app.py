@@ -445,42 +445,59 @@ def nist_batch_search():
         logger.info(f"Recherche NIST batch: {len(spectra_list)} spectres")
         start_time = time.time()
 
-#         # Traitement parallèle avec votre pool existant
-        future_to_index = {
-            nist_executor.submit(nist.full_search_with_ref_data, spectrum): i
-            for i, spectrum in enumerate(spectra_list)
-        }
+        results = []
+        for i, spectrum in enumerate(spectra_list):
+            result = nist.full_search_with_ref_data(spectrum)
+            results.append(result)
+            
+            if (i + 1) % 10 == 0:
+                logger.info(f"NIST progression: {i + 1}/{len(spectra_list)}")
         
-        results = [None] * len(spectra_list)
-        completed = 0
+        duration = time.time() - start_time
+        logger.info(f"Recherche batch terminée en {duration:.2f} secondes")
         
-        for future in future_to_index:
-            index = future_to_index[future]
-            try:
-                result = future.result()
-                results[index] = result
-                completed += 1
-                
-                if completed % 10 == 0:
-                    logger.info(f"NIST progression: {completed}/{len(spectra_list)}")
-                    
-            except Exception as e:
-                logger.error(f"Erreur spectre {index}: {e}")
-                results[index] = {'error': str(e), 'hits': []}
-        
-        total_time = time.time() - start_time
-        logger.info(f"NIST batch terminé: {len(spectra_list)} spectres en {total_time:.2f}s")
-        
-        return jsonify({
-            'results': results,
-            'total_time': total_time,
-            'spectra_count': len(spectra_list),
-            'performance': f"{len(spectra_list)/total_time:.1f} spectres/sec"
-        })
-        
+        return jsonify(results)
+    
     except Exception as e:
-        logger.error(f"Erreur NIST batch: {e}")
+        logger.error(f"Erreur dans la recherche NIST batch: {e}")
         return jsonify({'error': str(e)}), 500
+
+#         # Traitement parallèle avec votre pool existant
+        # future_to_index = {
+        #     nist_executor.submit(nist.full_search_with_ref_data, spectrum): i
+        #     for i, spectrum in enumerate(spectra_list)
+        # }
+        
+        # results = [None] * len(spectra_list)
+        # completed = 0
+        
+        # for future in future_to_index:
+        #     index = future_to_index[future]
+        #     try:
+        #         result = future.result()
+        #         results[index] = result
+        #         completed += 1
+                
+        #         if completed % 10 == 0:
+        #             logger.info(f"NIST progression: {completed}/{len(spectra_list)}")
+                    
+        #     except Exception as e:
+        #         logger.error(f"Erreur spectre {index}: {e}")
+        #         results[index] = {'error': str(e), 'hits': []}
+        
+    #     total_time = time.time() - start_time
+    #     logger.info(f"NIST batch terminé: {len(spectra_list)} spectres en {total_time:.2f}s")
+        
+    #     return jsonify({
+    #         'results': results,
+    #         'total_time': total_time,
+    #         'spectra_count': len(spectra_list),
+    #         'performance': f"{len(spectra_list)/total_time:.1f} spectres/sec"
+    #     })
+        
+    # except Exception as e:
+    #     logger.error(f"Erreur NIST batch: {e}")
+    #     return jsonify({'error': str(e)}), 500
 
 
 @app.route('/nist/search', methods=['POST'])
