@@ -21,13 +21,14 @@ class NISTSearchWrapper:
         self.username = os.getenv("USERNAME")
         self.password = os.getenv("FLASK_PASSWORD")
         
-        # if mode == "local":
+        # if mode == "local"
         #     if platform.system() == "Windows":
         #         self.url = "http://host.docker.internal:8080/"
         #     else:
         #         self.url = "http://localhost:8080/"
         # else:
         self.url = "http://10.172.16.115:8080/"
+        print(self.url)
 
     def check_nist_health(self):
         endpoint = f'{self.url}nist/health'
