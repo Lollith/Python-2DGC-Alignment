@@ -28,6 +28,7 @@ class NISTSearchWrapper:
         #         self.url = "http://localhost:8080/"
         # else:
         self.url = "http://10.172.16.115:8080/"
+        
         print(self.url)
 
     def check_nist_health(self):
