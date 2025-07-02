@@ -197,21 +197,22 @@ def matching_nist_lib_from_chromato_cube(
                 
             else:
                 print("NIST API is available. Proceeding with search.")
-                # batch_results = nist_api.nist_batch_search(serialized_spectra)
-                results = nist_api.nist_single_search(serialized_spectrum)
-                print(results)
+                batch_results = nist_api.nist_batch_search(serialized_spectra)
+                # results = nist_api.nist_single_search(serialized_spectrum)
                 
                 #for signle search
-                list_hit = nist_api.hit_list_from_nist_api(results)
-                top_hits = filter_best_hits(list_hit, match_factor_min)
-                print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+                # print(results)
+                # list_hit = nist_api.hit_list_from_nist_api(results)
+                # top_hits = filter_best_hits(list_hit, match_factor_min)
+                # print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
 
                 # for batch search
-                # for i, (coord, result) in enumerate(zip(coordinates, batch_results)):
-                #     list_hit = nist_api.hit_list_from_nist_api(result)
-                #     top_hits = filter_best_hits(list_hit, match_factor_min)
-                #     print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
-
+                for i, (coord, result) in enumerate(
+                        zip(coordinates, batch_results)
+                        ):
+                    list_hit = nist_api.hit_list_from_nist_api(result)
+                    top_hits = filter_best_hits(list_hit, match_factor_min)
+                    print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
 
         if top_hits:
             for j, hit in enumerate(top_hits):
