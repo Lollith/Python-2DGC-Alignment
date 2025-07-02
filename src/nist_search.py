@@ -83,6 +83,7 @@ class NISTSearchWrapper:
         retry_count = 0
         while retry_count < 10:
             try:
+                time.sleep(0.1)
                 res = requests.post(
                     endpoint, json=list_serialized_spectrum,
                     auth=(self.username, self.password)
