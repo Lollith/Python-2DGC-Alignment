@@ -453,10 +453,15 @@ def nist_batch_search():
             if (i + 1) % 10 == 0:
                 logger.info(f"NIST progression: {i + 1}/{len(spectra_list)}")
         
-        duration = time.time() - start_time
-        logger.info(f"Recherche batch terminée en {duration:.2f} secondes")
+        total_time = time.time() - start_time
+        logger.info(f"Recherche batch terminée en {total_time:.2f} secondes")
         
-        return jsonify(results)
+        return jsonify({
+            'results': results,
+            'total_time': total_time,
+            'spectra_count': len(spectra_list),
+            'performance': f"{len(spectra_list)/total_time:.1f} spectres/sec"
+        })
     
     except Exception as e:
         logger.error(f"Erreur dans la recherche NIST batch: {e}")
