@@ -455,7 +455,7 @@ def nist_batch_search():
         
         total_time = time.time() - start_time
         logger.info(f"Recherche batch terminée en {total_time:.2f} secondes")
-        
+
         return jsonify({
             'results': results,
             'total_time': total_time,

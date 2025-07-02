@@ -75,7 +75,7 @@ class NISTSearchWrapper:
         """
         # print(list_mass_spectra)
         endpoint = f'{self.url}nist/batch_search'
-        print(endpoint)
+        print("ENDPOINT:", endpoint)
     
         # for spec in list_serialized_spectrum:
         #     print(f"Type reçu : {type(spec)}")
@@ -88,7 +88,7 @@ class NISTSearchWrapper:
                     auth=(self.username, self.password)
                     )
                 res.raise_for_status()
-                return res.json()["results"]
+                return res.json()
             
             except requests.exceptions.ConnectionError as e:
                 print(f"Erreur de connexion (tentative {retry_count + 1}/10): {e}")
