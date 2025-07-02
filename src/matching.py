@@ -171,11 +171,17 @@ def matching_nist_lib_from_chromato_cube(
     matches = []
     nb_analyte = 0
     top_hits = []
+    serialized_spectra = []
+
     for i, coord in enumerate(coordinates):
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
-        mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
+        # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
         match_results = []
+        serialized_spectrum = {
+            "mass": [float(m) for m in mass_values],
+            "intensity": [float(i) for i in int_values]
+            }
 
         if nist: # TODO check ici
             print("Matching with NIST library...")
@@ -187,8 +193,7 @@ def matching_nist_lib_from_chromato_cube(
                 
             else:
                 print("NIST API is available. Proceeding with search.")
-                # results = nist_api.nist_batch_search([mass_spectrum])
-                results = nist_api.nist_single_search(mass_spectrum)
+                results = nist_api.nist_single_search(serialized_spectrum)
                 print(results)
                 
                 list_hit = nist_api.hit_list_from_nist_api(results)
@@ -227,7 +232,6 @@ def matching_nist_lib_from_chromato_cube(
 
         matches.append([[(coordinates_in_chromato[i][0]),
                        (coordinates_in_chromato[i][1])], match_results, coord])
-        del mass_spectrum
     end = time.time() - start
     print(f"Matching NIST library took {end:.2f} seconds")
 
