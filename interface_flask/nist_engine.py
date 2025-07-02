@@ -18,8 +18,8 @@ class NistEngine:
         
         """
         logging.info("Initialisation du moteur NIST...")
-        mainlib_path = os.getenv("MAINLIB_PATH")
-        temp_dir = os.getenv("TEMP_DIR")
+        mainlib_path = os.getenv("MAINLIB_PATH", "C:/NIST20/MSSEARCH/mainlib")
+        temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
         #TODO
         #mainlib_path = "C:/NIST20/MSSEARCH/mainlib/"
         #temp_dir = "C:/NIST20/MSSEARCH/temp/"

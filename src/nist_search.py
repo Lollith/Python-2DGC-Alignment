@@ -20,9 +20,9 @@ class NISTSearchWrapper:
         self.username = os.getenv("USERNAME")
         self.password = os.getenv("FLASK_PASSWORD")
         
-        #self.url = "http://10.172.16.115:8080/" #TODO
+        self.url = "http://10.172.16.115:8080/" #TODO
         # if platform.system() == "Windows":
-        self.url = "http://host.docker.internal:8080/" #TODO 
+        # self.url = "http://host.docker.internal:8080/" #TODO 
         # else:
         #     # Linux : à condition d’utiliser `network_mode: host`
         #     self.url = "http://localhost:8080/"
