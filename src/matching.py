@@ -121,7 +121,41 @@ def filter_best_hits(list_hits, match_factor_min):
     ]
     return filtered_hits
 
+def search_and_filter(i, coord, spectrum, coordinates_in_chromato, nist_api,
+                      match_factor_min):
+    result = nist_api.nist_single_search(spectrum)
+    hits = nist_api.hit_list_from_nist_api(result)
+    top_hits = filter_best_hits(hits, match_factor_min)
+    
+    match_results = []
 
+    if top_hits:
+        for j, hit in enumerate(top_hits):
+            search_result, ref_data = hit
+            match_data = {
+                'number': j,
+                'casno': search_result.cas,
+                'compound_name': search_result.name,
+                'compound_formula': ref_data.formula,
+                'hit_prob': search_result.hit_prob,
+                'match_factor': search_result.match_factor,
+                'reverse_match_factor': search_result.reverse_match_factor
+            }
+            match_results.append(match_data)
+    else:
+        match_results.append({
+            'spectra': spectrum["intensity"],
+            'compound_name': f'Analyte{i + 1}',
+            'casno': '',
+            'compound_formula': '',
+            'hit_prob': '',
+            'match_factor': '',
+            'reverse_match_factor': ''
+        })
+
+    return [[coordinates_in_chromato[i][0], coordinates_in_chromato[i][1]], match_results, coord]
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
 def matching_nist_lib_from_chromato_cube(
         chromato_obj, chromato_cube, coordinates, mod_time,
         match_factor_min, nist):
@@ -172,16 +206,19 @@ def matching_nist_lib_from_chromato_cube(
     nb_analyte = 0
     top_hits = []
     serialized_spectra = []
+    coord_by_index = []
 
     for i, coord in enumerate(coordinates):
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
-        match_results = []
         serialized_spectrum = {
             "mass": [float(m) for m in mass_values],
             "intensity": [float(i) for i in int_values]
             }
+        
+        serialized_spectra.append(serialized_spectrum)
+        coord_by_index.append(coord)
 
         if nist: # TODO check ici
             print("Matching with NIST library...")
@@ -190,48 +227,63 @@ def matching_nist_lib_from_chromato_cube(
             nist_api = nist_search.NISTSearchWrapper()
             if not nist_api.check_nist_health():
                 print("NIST API is not available. Skipping search.")
+                return []
                 
-            else:
-                print("NIST API is available. Proceeding with search.")
-                results = nist_api.nist_single_search(serialized_spectrum)
-                print(results)
+            match_results = []
+            print("NIST API is available. Proceeding with search.")
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [
+                    executor.submit(
+                        search_and_filter,
+                        i, coord, spec, coordinates_in_chromato, nist_api,
+                        match_factor_min
+                    )
+                    for i, (coord, spec) in enumerate(
+                        zip(coordinates, serialized_spectra))
+                ]
+        
+                # results = nist_api.nist_single_search(serialized_spectrum)
+                # print(results)
                 
-                list_hit = nist_api.hit_list_from_nist_api(results)
-                top_hits = filter_best_hits(list_hit, match_factor_min)
+                # list_hit = nist_api.hit_list_from_nist_api(results)
+                # top_hits = filter_best_hits(list_hit, match_factor_min)
                 print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
 
-        if top_hits:
-            for j, hit in enumerate(top_hits):
-                search_result, ref_data = hit
-                print(f"hit {j}: {search_result.name}: {search_result.cas}, "
-                      f"with match_factor:{search_result.match_factor}.")
+                for future in as_completed(futures):
+                    matches.append(future.result())
 
-                match_data = {
-                    'number': j,
-                    'casno': search_result.cas,
-                    'compound_name': search_result.name,
-                    'compound_formula': ref_data.formula,
-                    'hit_prob': search_result.hit_prob,
-                    'match_factor': search_result.match_factor,
-                    'reverse_match_factor': search_result.reverse_match_factor
-                    }
-                match_results.append(match_data)
-        else:
-            # Composé non identifié
-            nb_analyte += 1
-            match_results.append({
-                'spectra': int_values,
-                'compound_name': f'Analyte{nb_analyte}',
-                'casno': '',
-                'compound_formula': '',
-                'hit_prob': '',
-                'match_factor': '',
-                'reverse_match_factor': ''
-                })
-        print()
+        # if top_hits:
+        #     for j, hit in enumerate(top_hits):
+        #         search_result, ref_data = hit
+        #         # print(f"hit {j}: {search_result.name}: {search_result.cas}, "
+        #         #       f"with match_factor:{search_result.match_factor}.")
 
-        matches.append([[(coordinates_in_chromato[i][0]),
-                       (coordinates_in_chromato[i][1])], match_results, coord])
+        #         match_data = {
+        #             'number': j,
+        #             'casno': search_result.cas,
+        #             'compound_name': search_result.name,
+        #             'compound_formula': ref_data.formula,
+        #             'hit_prob': search_result.hit_prob,
+        #             'match_factor': search_result.match_factor,
+        #             'reverse_match_factor': search_result.reverse_match_factor
+        #             }
+        #         match_results.append(match_data)
+        # else:
+        #     # Composé non identifié
+        #     nb_analyte += 1
+        #     match_results.append({
+        #         'spectra': int_values,
+        #         'compound_name': f'Analyte{nb_analyte}',
+        #         'casno': '',
+        #         'compound_formula': '',
+        #         'hit_prob': '',
+        #         'match_factor': '',
+        #         'reverse_match_factor': ''
+        #         })
+        # print()
+
+        # matches.append([[(coordinates_in_chromato[i][0]),
+        #                (coordinates_in_chromato[i][1])], match_results, coord])
     end = time.time() - start
     print(f"Matching NIST library took {end:.2f} seconds")
 
