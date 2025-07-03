@@ -171,9 +171,11 @@ def matching_nist_lib_from_chromato_cube(
     matches = []
     nb_analyte = 0
     top_hits = []
-    serialized_spectra = []
+    # serialized_spectra = []
+    nist_api = nist_search.NISTSearchWrapper() if nist else None
 
     for i, coord in enumerate(coordinates):
+        top_hits = []
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
@@ -183,22 +185,14 @@ def matching_nist_lib_from_chromato_cube(
             "intensity": [float(i) for i in int_values]
             }
 
-        if nist: # TODO check ici
+        if nist and nist_api.check_nist_health():
             print("Matching with NIST library...")
-            # list_hit = full_search_with_ref_data(mass_spectrum, n_hits=20)
-            # top_hits = filter_best_hits(list_hit, match_factor_min)
-            nist_api = nist_search.NISTSearchWrapper()
-            if not nist_api.check_nist_health():
-                print("NIST API is not available. Skipping search.")
-                
-            else:
-                print("NIST API is available. Proceeding with search.")
-                results = nist_api.nist_single_search(serialized_spectrum)
-                print(results)
-                
-                list_hit = nist_api.hit_list_from_nist_api(results)
-                top_hits = filter_best_hits(list_hit, match_factor_min)
-                print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+            results = nist_api.nist_single_search(serialized_spectrum)
+            list_hit = nist_api.hit_list_from_nist_api(results)
+            top_hits = filter_best_hits(list_hit, match_factor_min)
+            print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+        else:
+            print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
 
         if top_hits:
             for j, hit in enumerate(top_hits):
@@ -213,7 +207,8 @@ def matching_nist_lib_from_chromato_cube(
                     'compound_formula': ref_data.formula,
                     'hit_prob': search_result.hit_prob,
                     'match_factor': search_result.match_factor,
-                    'reverse_match_factor': search_result.reverse_match_factor
+                    'reverse_match_factor': search_result.reverse_match_factor,
+                    'spectra': int_values
                     }
                 match_results.append(match_data)
         else:
