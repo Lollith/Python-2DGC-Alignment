@@ -119,7 +119,7 @@ class NISTSearchWrapper:
                     auth=(self.username, self.password)
                 )
                 res.raise_for_status()
-                # print("Réponse JSON brute :", res.json())
+                print("Réponse JSON brute :", res.json())
                 return res.json()["hits"]
             
             except requests.exceptions.ConnectionError as e:
