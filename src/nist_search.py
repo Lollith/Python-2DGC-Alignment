@@ -102,15 +102,6 @@ class NISTSearchWrapper:
         endpoint = f'{self.url}nist/search'
         print(f"Requête vers {endpoint}")
         
-        # def spectrum_to_dict(spectrum):
-        #     return {
-        #         "mass": [float(m) for m in spectrum.mass_list],
-        #         "intensity": [float(i) for i in spectrum.intensity_list]
-        #     }
-        # data = [spec.to_dict() for spec in mass_spectrum]
-        # data = spectrum_to_dict(spectrum=mass_spectrum)
-        #print(f"données envoyées : {data}")
-        # data = spectrum_to_dict(mass_spectrum)
         retry_count = 0
         while retry_count < 10:
             try:
@@ -120,7 +111,7 @@ class NISTSearchWrapper:
                 )
                 res.raise_for_status()
                 # print("Réponse JSON brute :", res.json())
-                # return res.json()["hits"]
+                return res.json()["hits"]
                 json_data = res.json()
                 hits = json_data.get("hits", [])
             
