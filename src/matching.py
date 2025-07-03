@@ -163,12 +163,11 @@ def search_and_filter(i, coord, spectrum, coordinates_in_chromato,
 
     return [[coordinates_in_chromato[i][0], coordinates_in_chromato[i][1]], match_results, coord]
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
-def matching_nist_lib_from_chromato_cube(
-        chromato_obj, chromato_cube, coordinates, mod_time,
-        match_factor_min, nist=True):
-        """Indentify retrieved peaks using NIST library.
+def matching_nist_lib_from_chromato_cube(chromato_obj, 
+                                         chromato_cube, coordinates, mod_time,match_factor_min, nist=True):
+    """Indentify retrieved peaks using NIST library.
 
     Parameters
     ----------
