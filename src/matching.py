@@ -11,6 +11,7 @@ from nist_utils.reference_data import ReferenceData
 #from pyms_nist_search.search_result import SearchResult
 import nist_search
 
+cache = {}
 # present = {"HMDB0031018": [[23.43, 0.008]], "HMDB0061859": [[32.22, 0.042]], "HMDB0030469": [[28.15, 0.008]],
 #            "HMDB0031264": [[15.59, 0.017]], "HMDB0033848": [[18.41, 0.025]], "HMDB0031291": [[13.10, 1.231]],
 #            "HMDB0034154": [[36.08, 0.083]]}
@@ -165,6 +166,7 @@ def matching_nist_lib_from_chromato_cube(
         reverse_match_factor
     --------
     """
+    global cache
     start = time.time()
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(
@@ -184,7 +186,7 @@ def matching_nist_lib_from_chromato_cube(
     # serialized_spectra = []
     nist_api = nist_search.NISTSearchWrapper() if nist else None
 
-    cache = {}
+    # cache = {}
     for i, coord in enumerate(coordinates):
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
