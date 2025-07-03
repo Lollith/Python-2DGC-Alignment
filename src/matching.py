@@ -123,45 +123,51 @@ def filter_best_hits(list_hits, match_factor_min):
 
 def search_and_filter(i, coord, spectrum, coordinates_in_chromato,
                       match_factor_min):
-    nist_api = nist_search.NISTSearchWrapper()
+    try:
+        print(f"[THREAD {i}] starting search...")
+        nist_api = nist_search.NISTSearchWrapper()
 
-    if not nist_api.check_nist_health():
-        print("NIST API is not available. Skipping search.")
-        return []
-    
-    print("NIST API is available. Proceeding with search.")
-    result = nist_api.nist_single_search(spectrum)
-    hits = nist_api.hit_list_from_nist_api(result)
-    print(f"[THREAD {i}] hits bruts = {[h[0].match_factor for h in hits]}")
-    top_hits = filter_best_hits(hits, match_factor_min)
-    print(f"[THREAD {i}] top_hits = {top_hits}")
-    match_results = []
+        if not nist_api.check_nist_health():
+            print("NIST API is not available. Skipping search.")
+            return []
+        
+        print("NIST API is available. Proceeding with search.")
+        result = nist_api.nist_single_search(spectrum)
+        hits = nist_api.hit_list_from_nist_api(result)
+        # print(f"[THREAD {i}] hits bruts = {[h[0].match_factor for h in hits]}")
+        top_hits = filter_best_hits(hits, match_factor_min)
+        print(f"[THREAD {i}] top_hits = {top_hits}", flush=True)
+        match_results = []
 
-    if top_hits:
-        for j, hit in enumerate(top_hits):
-            search_result, ref_data = hit
-            match_data = {
-                'number': j,
-                'casno': search_result.cas,
-                'compound_name': search_result.name,
-                'compound_formula': ref_data.formula,
-                'hit_prob': search_result.hit_prob,
-                'match_factor': search_result.match_factor,
-                'reverse_match_factor': search_result.reverse_match_factor
-            }
-            match_results.append(match_data)
-    else:
-        match_results.append({
-            'spectra': spectrum["intensity"],
-            'compound_name': f'Analyte{i + 1}',
-            'casno': '',
-            'compound_formula': '',
-            'hit_prob': '',
-            'match_factor': '',
-            'reverse_match_factor': ''
-        })
+        if top_hits:
+            for j, hit in enumerate(top_hits):
+                search_result, ref_data = hit
+                match_data = {
+                    'number': j,
+                    'casno': search_result.cas,
+                    'compound_name': search_result.name,
+                    'compound_formula': ref_data.formula,
+                    'hit_prob': search_result.hit_prob,
+                    'match_factor': search_result.match_factor,
+                    'reverse_match_factor': search_result.reverse_match_factor
+                }
+                match_results.append(match_data)
+        else:
+            match_results.append({
+                'spectra': spectrum["intensity"],
+                'compound_name': f'Analyte{i + 1}',
+                'casno': '',
+                'compound_formula': '',
+                'hit_prob': '',
+                'match_factor': '',
+                'reverse_match_factor': ''
+            })
 
-    return [[coordinates_in_chromato[i][0], coordinates_in_chromato[i][1]], match_results, coord]
+        return [[coordinates_in_chromato[i][0], coordinates_in_chromato[i][1]], match_results, coord]
+    except Exception as e:
+        print(f"❌ Erreur dans search_and_filter pour le pic {i} : {e}")
+        return [[coordinates_in_chromato[i][0], coordinates_in_chromato[i][1]], [], coord]
+
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -227,7 +233,7 @@ def matching_nist_lib_from_chromato_cube(chromato_obj,
     print("🔍 Starting NIST matching...")
 
     matches = []
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
             executor.submit(
                 search_and_filter,
@@ -239,9 +245,9 @@ def matching_nist_lib_from_chromato_cube(chromato_obj,
         for future in as_completed(futures):
             i = futures[future]
             try:
-                result = future.result()
+                result = future.result(timeout=30)
                 matches.append(result)
-                print(f"✅ Peak {i + 1} has been processed.")
+                print(f"✅ Peak {i + 1} has been processed.", flush=True)
             except Exception as e:
                 print(f"❌ Error processing peak {i + 1}: {e}")
                 matches.append([[coordinates_in_chromato[i][0], coordinates_in_chromato[i][1]], [], coordinates[i]])

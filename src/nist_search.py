@@ -115,11 +115,13 @@ class NISTSearchWrapper:
         while retry_count < 10:
             try:
                 res = requests.post(
-                    endpoint, json=serialized_spectrum,
+                    endpoint, json=serialized_spectrum, timeout=10,
                     auth=(self.username, self.password)
                 )
+                print("✅ Reçu réponse HTTP, parsing JSON...")
                 res.raise_for_status()
-                print("Réponse JSON brute :", res.json())
+                print(res.text[:500])
+                # print("Réponse JSON brute :", res.json())
                 return res.json()["hits"]
             
             except requests.exceptions.ConnectionError as e:
