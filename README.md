@@ -157,6 +157,9 @@ DOCKER_DESKTOP_PATH=...
 
 # Only for windows: Path to your venv if you want to use it
 VENV_PATH=C:/path/to/venv
+
+# IP of the computer running the project
+IP_SERVER=...
  
 ```
 ### Build image + container
