@@ -406,7 +406,8 @@ def visualizer(
     if (log_chromato):
         chromato = np.log(chromato)
     chromato = np.transpose(chromato)
-    fig, ax = plt.subplots()
+    
+    fig, ax = plt.subplots(figsize=(15, 4))
 
     #tmp = ax.pcolormesh(X, Y, chromato)
     tmp = ax.contourf(X, Y, chromato)
