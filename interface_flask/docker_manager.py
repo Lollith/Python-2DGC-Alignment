@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class DockerComposeManager:
-    def __init__(self, compose_file_path: str = "docker-compose.yml"):
+    def __init__(self, compose_file_path: str = "docker-compose.dev.yml"): #DEBUG
         """
         Initialise le gestionnaire Docker Compose.
         
