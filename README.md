@@ -269,6 +269,9 @@ _For an **overview of the functions**, read the **detailed documentation of a sp
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Version History
+Check out the [CHANGELOG.md](./CHANGELOG.md) file for the full history of changes and releases.
+
 
 <!-- LICENSE -->
 ## License
