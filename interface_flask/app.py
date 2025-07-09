@@ -50,7 +50,7 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 
 # Instances
 converter = DataConverter()
-compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml")
+compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml") #DEBUG
 # nist_wrapper = nist_search.NISTSearchWrapper()
 
 
@@ -542,3 +542,5 @@ if __name__ == '__main__':
         print("🚀 Démarrage du serveur en mode production...")
         print("⚠️  Limite de taille fichier: 3GB")
         print("📍 Serveur accessible sur: http://localhost:8080")
+        logging.getLogger('waitress').setLevel(logging.WARNING)
+        serve(app, host='0.0.0.0', port=8080)
