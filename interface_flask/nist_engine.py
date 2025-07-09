@@ -13,16 +13,10 @@ class NistEngine:
     def __init__(self):
         """
         Initialize the NIST Engine with provided NIST data.
-
-        :param nist_data: Data related to NIST standards and guidelines.
-        
         """
         logging.info("Initialisation du moteur NIST...")
         mainlib_path = os.getenv("MAINLIB_PATH", "C:/NIST20/MSSEARCH/mainlib")
         temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
-        #TODO
-        #mainlib_path = "C:/NIST20/MSSEARCH/mainlib/"
-        #temp_dir = "C:/NIST20/MSSEARCH/temp/"
         self.engine = pyms_nist_search.Engine(
             mainlib_path,
             pyms_nist_search.NISTMS_MAIN_LIB,

@@ -505,8 +505,6 @@ def nist_search():
         logger.info("Recherche NIST pour un spectre")
 
         result = nist.full_search_with_ref_data(data)
-        # return jsonify({"hits": result[0]["hits"]})
-        # print("Résultat de la recherche NIST:", result)
         return jsonify({"hits": result})
 
     except Exception as e:
@@ -532,18 +530,8 @@ if __name__ == '__main__':
 
     # Configuration Flask pour gros fichiers
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-    #TODO pour prod:
-    # app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=365)
-    #TODO a mettre sur false en prod
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     
-    # print("🚀 Serveur Flask démarré")
-    # print("📁 Dossier d'upload:", app.config['UPLOAD_FOLDER'])
-    # print("💾 Dossier de sortie:", app.config['OUTPUT_FOLDER'])
-    # print("⚠️  Limite de taille fichier: 3GB")
-    # print("🌐 Accédez à: http://localhost:5000")
-
-
     if len(sys.argv) > 1 and sys.argv[1] == 'dev':
         print("🚀 Serveur Flask démarré en mode dev")
         print("⚠️  Limite de taille fichier: 3GB")
@@ -554,4 +542,3 @@ if __name__ == '__main__':
         print("🚀 Démarrage du serveur en mode production...")
         print("⚠️  Limite de taille fichier: 3GB")
         print("📍 Serveur accessible sur: http://localhost:8080")
-        serve(app, host='0.0.0.0', port=8080)
