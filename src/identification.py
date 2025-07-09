@@ -463,7 +463,7 @@ def sample_identification(path, file, output_path,
     print('Identification started\n')
     start_time = time.time()
     try:
-        full_filename = path + file
+        full_filename = path + "/"+ file
         matches_identification = identification(full_filename,
                                                 mod_time,
                                                 method,
