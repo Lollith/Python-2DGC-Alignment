@@ -16,55 +16,73 @@ from werkzeug.utils import secure_filename
 import threading
 import shutil
 import requests
-import subprocess
 import webbrowser
 from functools import wraps
-from docker_manager import DockerComposeManager, create_docker_manager
+import docker_manager
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
+import logging
+from flask import Flask, jsonify
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import check_password_hash
+import nist_engine
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+nist = nist_engine.NistEngine()
 
 load_dotenv()
+auth = HTTPBasicAuth()
 
 app = Flask(__name__)
 
-USERNAME = os.getenv("FLASK_USERNAME")
-PASSWORD = os.getenv("FLASK_PASSWORD")
+# USERNAME = os.getenv("FLASK_USERNAME")
+# PASSWORD = os.getenv("FLASK_PASSWORD")
+hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
+username_env = os.getenv('USERNAME')
 
 client = docker.from_env()
-# app.config['UPLOAD_FOLDER'] = 'uploads'
-# app.config['OUTPUT_FOLDER'] = 'converted_data'
+
+nist_executor = ThreadPoolExecutor(max_workers=8)
+
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 
-# Créer les dossiers nécessaires
-# os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-# os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
 # Instances
 converter = DataConverter()
-compose_manager = create_docker_manager("../docker-compose.yml")
+compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml")
+# nist_wrapper = nist_search.NISTSearchWrapper()
 
 
-def check_auth(username, password):
-    return username == USERNAME and password == PASSWORD
+#def check_auth(username, password):
+ #    return username == USERNAME and password == PASSWORD
+
+@auth.verify_password
+def verify_password(username, password):
+    return username == username_env and check_password_hash(hashed_password, password)
+
+# @app.route('/nist/health')
+# @auth.login_required
+# def nist_health():
+#     return jsonify({"status": "available"})
+
+# def authenticate():
+#     return Response(
+#         'Authentification requise.', 401,
+#         {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
 
-def authenticate():
-    return Response(
-        'Authentification requise.', 401,
-        {'WWW-Authenticate': 'Basic realm="Login Required"'})
+# def requires_auth(f):
+#     @wraps(f)
+#     def decorated(*args, **kwargs):
+#         auth = request.authorization
+#         if not auth or not check_auth(auth.username, auth.password):
+#             return authenticate()
+#         return f(*args, **kwargs)
+#     return decorated
 
-
-def requires_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
-        return f(*args, **kwargs)
-    return decorated
-
-
+@auth.login_required
 @app.route('/')
-@requires_auth
 def index():
     """Page principale avec le formulaire."""
     return render_template('index.html',
@@ -384,8 +402,130 @@ def open_jupyter():
         })
 
 
+######## NIST Search Endpoints ########
+
+@app.route('/nist/health', methods=['GET'])
+def nist_health():
+    """Vérification NIST disponible"""
+    return jsonify({
+        'nist_status': 'available',
+        'timestamp': time.time(),
+        'active_threads': len(nist_executor._threads) if hasattr(nist_executor, '_threads') else 0
+    })
+
+# @app.route('/nist/search', methods=['POST'])
+# def nist_single_search():
+#     """Recherche NIST d'un spectre unique"""
+#     try:
+#         spectrum_data = request.json
+        
+#         if not spectrum_data:
+#             return jsonify({'error': 'Données de spectre manquantes'}), 400
+        
+#         logger.info("Recherche NIST single spectre")
+#         result = nist_wrapper.search_spectrum(spectrum_data)
+        
+#         return jsonify(result)
+        
+#     except Exception as e:
+#         logger.error(f"Erreur NIST single search: {e}")
+#         return jsonify({'error': str(e)}), 500
+# from pyms.Spectrum import MassSpectrum
+
+# @app.route('/nist/batch_search', methods=['POST'])
+# def nist_batch_search():
+#     """Recherche NIST en lot (optimisée)"""
+#     try:
+#         data = request.json
+#         spectra = data.get('spectra', [])
+        
+#         if not spectra:
+#             return jsonify({'error': 'Liste de spectres vide'}), 400
+        
+#         logger.info(f"Recherche NIST batch: {len(spectra)} spectres")
+#         start_time = time.time()
+
+#         def dict_to_mass_spectrum(spectrum_dict):
+#             return MassSpectrum(
+#                 mass_list=[float(m) for m in spectrum_dict["mass"]],
+#                 intensity_list=[float(i) for i in spectrum_dict["intensity"]]
+#             )
+
+#         spectra_ms = [dict_to_mass_spectrum(s) for s in spectra]
+        
+#         # Traitement parallèle avec votre pool existant
+#         future_to_index = {
+#             nist_executor.submit(nist_wrapper.nist_batch_search, [spectrum]): i
+#             for i, spectrum in enumerate(spectra_ms)
+#         }
+        
+#         results = [None] * len(spectra)
+#         completed = 0
+        
+#         for future in future_to_index:
+#             index = future_to_index[future]
+#             try:
+#                 result = future.result()
+#                 results[index] = result
+#                 completed += 1
+                
+#                 if completed % 10 == 0:
+#                     logger.info(f"NIST progression: {completed}/{len(spectra)}")
+                    
+#             except Exception as e:
+#                 logger.error(f"Erreur spectre {index}: {e}")
+#                 results[index] = {'error': str(e), 'hits': []}
+        
+#         total_time = time.time() - start_time
+#         logger.info(f"NIST batch terminé: {len(spectra)} spectres en {total_time:.2f}s")
+        
+#         return jsonify({
+#             'results': results,
+#             'total_time': total_time,
+#             'spectra_count': len(spectra),
+#             'performance': f"{len(spectra)/total_time:.1f} spectres/sec"
+#         })
+        
+#     except Exception as e:
+#         logger.error(f"Erreur NIST batch: {e}")
+#         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/nist/search', methods=['POST'])
+def nist_search():
+    """
+    Endpoint Flask pour un spectre unique.
+    """
+    print("Requête reçue :", request.json)
+    try:
+        data = request.json
+        if not data or "mass" not in data or "intensity" not in data:
+            return jsonify({"error": "Spectre invalide"}), 400
+
+        logger.info("Recherche NIST pour un spectre")
+
+        result = nist.full_search_with_ref_data(data)
+        # return jsonify({"hits": result[0]["hits"]})
+        # print("Résultat de la recherche NIST:", result)
+        return jsonify({"hits": result})
+
+    except Exception as e:
+        logger.error(f"Erreur NIST search: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/routes', methods=['GET'])
+def list_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'route': str(rule)
+        })
+    return jsonify(routes)
+
+
 if __name__ == '__main__':
-    # Configuration pour les gros fichiers
 
     # Augmenter la limite de récursion si nécessaire
     sys.setrecursionlimit(10000)
@@ -401,14 +541,8 @@ if __name__ == '__main__':
     # print("📁 Dossier d'upload:", app.config['UPLOAD_FOLDER'])
     # print("💾 Dossier de sortie:", app.config['OUTPUT_FOLDER'])
     # print("⚠️  Limite de taille fichier: 3GB")
-    print("🌐 Accédez à: http://localhost:5000")
+    # print("🌐 Accédez à: http://localhost:5000")
 
-
-    # # Pour le développement, décommentez la ligne suivante :
-    # app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
-
-    # #TODO pour la Prod
-    # # serve(app, host='0.0.0.0', port=5000)
 
     if len(sys.argv) > 1 and sys.argv[1] == 'dev':
         print("🚀 Serveur Flask démarré en mode dev")

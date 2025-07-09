@@ -106,7 +106,7 @@ class DataConverter:
             start_time = time.time()
             
             # Lire le fichier CDF avec gestion mémoire optimisée
-            with nc.Dataset(full_path, 'r') as dataset:
+            with nc.Dataset(full_path, 'r', encoding="latin-1") as dataset:
                 hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
 
                 with h5py.File(hdf5_path, 'w') as h5f:

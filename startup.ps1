@@ -30,12 +30,12 @@ Write-Host "=== Docker est prêt ==="
 Write-Host "=== Lancement de Flask ==="
 Set-Location "$env:FLASK_DIR"
 
-# Active le venv s?il existe
+# Active le venv s'il existe
 if (Test-Path "$env:VENV_PATH") {
     & $env:VENV_PATH\Scripts\Activate.ps1
     pip install -r requirements.txt
     python app.py
-    deactivate
+    # deactivate
 } else {
     Write-Host "Environnement virtuel non trouvé." -ForegroundColor Yellow
     python app.py
