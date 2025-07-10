@@ -48,7 +48,7 @@ class DockerComposeManager:
                 cwd=os.path.dirname(os.path.abspath(self.compose_file_path))
             )
 
-            return result.returncode == 0, result.stdout, result.stderr
+            return result.returncode == 0,  result.stdout or "", result.stderr or ""
 
         except Exception as e:
             return False, "", str(e)
@@ -62,7 +62,7 @@ class DockerComposeManager:
         
         if success:
             messages.append("✅ Tous les services ont été démarrés avec succès")
-            if output.strip():
+            if output and output.strip():
                 messages.append(f"📝 Sortie: {output.strip()}")
         else:
             messages.append(f"❌ Erreur lors du démarrage des services: {error}")
@@ -84,7 +84,7 @@ class DockerComposeManager:
         
         if success:
             messages.append(f"✅ Service '{service_name}' démarré avec succès")
-            if output.strip():
+            if output and output.strip():
                 messages.append(f"📝 Sortie: {output.strip()}")
         else:
             messages.append(f"❌ Erreur lors du démarrage du service '{service_name}': {error}")

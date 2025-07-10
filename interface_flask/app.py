@@ -40,6 +40,7 @@ app = Flask(__name__)
 # PASSWORD = os.getenv("FLASK_PASSWORD")
 hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
 username_env = os.getenv('USERNAME')
+ip_server = os.getenv("IP_SERVER")
 
 client = docker.from_env()
 
@@ -305,19 +306,19 @@ def analyze_files():
             # Attendre que les services soient complètement démarrés
             messages.append("⏳ Attente du démarrage complet des conteneurs...")
             time.sleep(5)
-
+        
         # 2. Vérifier que Jupyter Lab est accessible et l'ouvrir
-        jupyter_url = "http://localhost:8888/lab/tree/run_interfaces.ipynb"
+        jupyter_url = f"http://{self.ip_server}:8888/lab/tree/run_interfaces.ipynb"
         messages.append("🔍 Vérification de la disponibilité de Jupyter Lab...")
+        # self.wait_and_open_jupyter() #TODO verifier ici
 
         def wait_and_open_jupyter():
             """Fonction pour attendre que Jupyter soit prêt et l'ouvrir"""
-            max_attempts = 30  # 30 secondes maximum d'attente
+            max_attempts = 30  
             attempt = 0
 
             while attempt < max_attempts:
                 try:
-                    # Tenter de se connecter à Jupyter Lab
                     response = requests.get(jupyter_url, timeout=2)
                     if response.status_code == 200:
                         print(f"✅ Jupyter Lab est accessible, ouverture du navigateur...")
