@@ -542,6 +542,6 @@ if __name__ == '__main__':
         print("🚀 Serveur Flask démarré")
         print("🚀 Démarrage du serveur en mode production...")
         print("⚠️  Limite de taille fichier: 3GB")
-        print("📍 Serveur accessible sur: http://localhost:8080")
+        print(f"📍 Serveur accessible sur: http://{ip_server}:8080")
         logging.getLogger('waitress').setLevel(logging.WARNING)
         serve(app, host='0.0.0.0', port=8080)

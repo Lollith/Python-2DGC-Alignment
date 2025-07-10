@@ -36,7 +36,6 @@ class NistEngine:
         }
 
     
-    
     def full_search_with_ref_data(self, data):
         """
         Perform a search operation using the provided query.
@@ -44,9 +43,6 @@ class NistEngine:
         :param query: The search query to be executed.
         :return: Search results based on the query.
         """
-        # Placeholder for search logic
-        # This should interact with the NIST data and return results
-        # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
         max_hits = 20
         try:
             mass = data["mass"]
