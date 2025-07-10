@@ -1,33 +1,4 @@
 services:
-  # nist:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.nist
-  #   container_name: nist_engine
-  #   restart: unless-stopped
-  #   ports:
-  #     - "5001:5001"
-  #   volumes:
-  #     - type: bind
-  #       source: ${HOST_VOLUME_PATH_NIST}/mainlib
-  #       target: ${DOCKER_VOLUME_PATH}/mainlib
-  #     - type: bind
-  #       source: ${HOST_VOLUME_PATH_NIST}/tmp
-  #       target: ${DOCKER_VOLUME_PATH}/tmp
-  #     - type: bind
-  #       source: ${HOST_VOLUME_PATH_NIST}/
-  #       target: ${DOCKER_VOLUME_PATH}/
-  #   environment:
-  #     - LIBTYPE=1 # 1: mainlib, 2: sublib
-  #   networks:
-  #     - nist_network
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:5001/"]
-  #     interval: 30s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 20s
-  
   2dgc_id:
     container_name: 2dgc_id_app
     restart: unless-stopped
@@ -51,12 +22,3 @@ services:
       - PYTHONPATH=/app/src
     env_file:
       - .env
-#     depends_on:
-#       nist:
-#         condition: service_healthy
-#     networks:
-#       - nist_network
-
-# networks:
-#   nist_network:
-#     driver: bridge
