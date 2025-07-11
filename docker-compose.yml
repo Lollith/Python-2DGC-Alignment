@@ -13,6 +13,7 @@ services:
       source: ${HOST_VOLUME_PATH}/
       target: ${DOCKER_VOLUME_PATH}/
       # target: /app/GCxGC_MS/DATA
+
     environment:
       - PYTHONPATH=/app/src
     env_file:

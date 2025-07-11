@@ -1,5 +1,4 @@
 services:
-  
   2dgc_id:
     container_name: 2dgc_id_app
     restart: unless-stopped
@@ -13,7 +12,7 @@ services:
       source: ${HOST_VOLUME_PATH}/
       target: ${DOCKER_VOLUME_PATH}/ #TODO
       # target: /app/GCxGC_MS/DATA
-    
+
       # for dev: code directly in the source code on docker
     - type: bind
       source: .
