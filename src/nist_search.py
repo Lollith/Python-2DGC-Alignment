@@ -5,11 +5,8 @@ import pyms
 from pyms_nist_search.search_result import SearchResult
 import sys
 import os
-# from src.nist_utils.reference_data import ReferenceData
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
 from nist_utils.reference_data import ReferenceData
-import platform
 import os
 import requests
 

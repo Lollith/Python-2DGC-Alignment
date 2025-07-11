@@ -40,6 +40,7 @@ app = Flask(__name__)
 # PASSWORD = os.getenv("FLASK_PASSWORD")
 hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
 username_env = os.getenv('USERNAME')
+ip_server = os.getenv("IP_SERVER")
 
 client = docker.from_env()
 
@@ -50,7 +51,7 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 
 # Instances
 converter = DataConverter()
-compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml")
+compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml") #DEBUG
 # nist_wrapper = nist_search.NISTSearchWrapper()
 
 
@@ -305,19 +306,19 @@ def analyze_files():
             # Attendre que les services soient complètement démarrés
             messages.append("⏳ Attente du démarrage complet des conteneurs...")
             time.sleep(5)
-
+        
         # 2. Vérifier que Jupyter Lab est accessible et l'ouvrir
-        jupyter_url = "http://localhost:8888/lab/tree/run_interfaces.ipynb"
+        jupyter_url = f"http://{self.ip_server}:8888/lab/tree/run_interfaces.ipynb"
         messages.append("🔍 Vérification de la disponibilité de Jupyter Lab...")
+        # self.wait_and_open_jupyter() #TODO verifier ici
 
         def wait_and_open_jupyter():
             """Fonction pour attendre que Jupyter soit prêt et l'ouvrir"""
-            max_attempts = 30  # 30 secondes maximum d'attente
+            max_attempts = 30  
             attempt = 0
 
             while attempt < max_attempts:
                 try:
-                    # Tenter de se connecter à Jupyter Lab
                     response = requests.get(jupyter_url, timeout=2)
                     if response.status_code == 200:
                         print(f"✅ Jupyter Lab est accessible, ouverture du navigateur...")
@@ -505,8 +506,6 @@ def nist_search():
         logger.info("Recherche NIST pour un spectre")
 
         result = nist.full_search_with_ref_data(data)
-        # return jsonify({"hits": result[0]["hits"]})
-        # print("Résultat de la recherche NIST:", result)
         return jsonify({"hits": result})
 
     except Exception as e:
@@ -532,18 +531,8 @@ if __name__ == '__main__':
 
     # Configuration Flask pour gros fichiers
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-    #TODO pour prod:
-    # app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=365)
-    #TODO a mettre sur false en prod
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     
-    # print("🚀 Serveur Flask démarré")
-    # print("📁 Dossier d'upload:", app.config['UPLOAD_FOLDER'])
-    # print("💾 Dossier de sortie:", app.config['OUTPUT_FOLDER'])
-    # print("⚠️  Limite de taille fichier: 3GB")
-    # print("🌐 Accédez à: http://localhost:5000")
-
-
     if len(sys.argv) > 1 and sys.argv[1] == 'dev':
         print("🚀 Serveur Flask démarré en mode dev")
         print("⚠️  Limite de taille fichier: 3GB")
@@ -553,5 +542,6 @@ if __name__ == '__main__':
         print("🚀 Serveur Flask démarré")
         print("🚀 Démarrage du serveur en mode production...")
         print("⚠️  Limite de taille fichier: 3GB")
-        print("📍 Serveur accessible sur: http://localhost:8080")
+        print(f"📍 Serveur accessible sur: http://{ip_server}:8080")
+        logging.getLogger('waitress').setLevel(logging.WARNING)
         serve(app, host='0.0.0.0', port=8080)

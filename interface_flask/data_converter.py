@@ -90,7 +90,6 @@ class DataConverter:
         """Convert a single CDF file to HDF5 with float32 optimization."""
         full_path, file_name, output_path, file_idx, total_files = file_info
         messages = []
-        # converted_file = None
         
         try:
             # Vérifier l'espace disque disponible
@@ -101,7 +100,6 @@ class DataConverter:
                 messages.append(f"Erreur : Espace disque insuffisant pour {file_name} (besoin: {file_size*2//1024//1024}MB, disponible: {free_space//1024//1024}MB)")
                 return False, messages, None
             
-            # messages.append(f"Conversion de {file_name} ({file_size//1024//1024}MB) - {file_idx+1}/{total_files}")
             
             start_time = time.time()
             
@@ -120,10 +118,6 @@ class DataConverter:
                                 'mass_range_max']:
                         self.write_var_to_hdf5(dataset, h5f, var)
 
-                # #    #TODO: test 
-                #     for var in ['mass_values', 'intensity_values']:
-                #         self.write_var_to_hdf5(dataset, h5f, var)
-
                     if 'scan_number' in dataset.dimensions:
                         size = dataset.dimensions['scan_number'].size
                         h5f.attrs['scan_number_size'] = size
@@ -131,7 +125,6 @@ class DataConverter:
             gc.collect()
             conversion_time = time.time() - start_time
             output_size_mb = os.path.getsize(hdf5_path) // 1024 // 1024
-            # compression_ratio = (file_size / output_size_mb) if output_size_mb > 0 else 1
             
             messages.append(f"✅ [{file_idx+1}/{total_files}] {file_name} terminé en {conversion_time:.1f}s")
             messages.append(f"   📦 Taille: {file_size // 1024 // 1024}MB → {output_size_mb}MB") # (compression {compression_ratio:.1f}x)")
@@ -151,7 +144,6 @@ class DataConverter:
         max_allowed = min(2 * cpu_count, 32)
         return min(len(files), max_allowed)
 
-    # def read_cdf_to_npy(self, path, files_list, output_path, progress_callback=None, max_workers=2):
     def convert_cdf_to_hdf5_threaded(self, path, files_list, output_path):
         """Convert CDF files to HDF5 with float32 optimization and with threading."""
         messages = []
@@ -191,17 +183,14 @@ class DataConverter:
         
         start_total = time.time()
         
-        # Threading avec ThreadPoolExecutor (optimal pour I/O sur Windows)
         with ThreadPoolExecutor(max_workers=max_workers,
                                 thread_name_prefix="CDFConverter") as executor:
             
-            # Soumettre toutes les tâches
             future_to_info = {
                 executor.submit(self.convert_single_file_optimized, info): info
                 for info in file_infos
             }
             
-            # Traiter les résultats au fur et à mesure
             for future in as_completed(future_to_info):
                 file_info = future_to_info[future]
                 file_name = file_info[1]
@@ -209,7 +198,6 @@ class DataConverter:
                 try:
                     success, file_messages, converted_file = future.result()
                     
-                    # Thread-safe logging
                     with self.progress_lock:
                         messages.extend(file_messages)
                         self.completed += 1
@@ -224,7 +212,6 @@ class DataConverter:
         
         total_time = time.time() - start_total
         
-        # Statistiques finales
         messages.append(f"\n📈 RÉSULTATS:")
         messages.append(f"Fichiers convertis: {len(converted_files)}/{total_files}")
         messages.append(f"⏱️  Temps total: {total_time:.1f}s")
@@ -232,34 +219,3 @@ class DataConverter:
         
         return len(converted_files) > 0, messages, converted_files
         
-        # for idx, file in enumerate(files_list_checked):
-        #     try:
-                # full_path = os.path.join(path, file)
-                
-                # if not os.path.isfile(full_path):
-                #     messages.append(f"Erreur : Le fichier '{file}' est introuvable dans '{path}'")
-                #     continue
-                    
-                # if not os.access(full_path, os.R_OK):
-                #     messages.append(f"Erreur: Permission refusée pour accéder à '{file}' dans '{path}'")
-                #     continue
-                    
-                # if not file.endswith('.cdf'):
-                #     messages.append(f"Erreur : Le fichier '{file}' n'est pas un fichier CDF valide.")
-                #     continue
-                
-                # Vérifier l'espace disque disponible
-                # file_size = os.path.getsize(full_path)
-                # free_space = self.get_free_space(output_path)
-                
-                # if free_space < file_size * 2:  # Besoin d'au moins 2x la taille pour la conversion
-                #     messages.append(f"Erreur : Espace disque insuffisant pour {file} (besoin: {file_size*2//1024//1024}MB, disponible: {free_space//1024//1024}MB)")
-                #     continue
-                
-                # messages.append(f"Conversion de {file} ({file_size//1024//1024}MB) - {idx+1}/{total_files}")
-                
-                # if progress_callback:
-                #     progress_callback(idx, total_files, f"Traitement de {file}")
-                
-                # Lire le fichier CDF avec gestion mémoire optimisée
-                

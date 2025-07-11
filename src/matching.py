@@ -7,7 +7,7 @@ import time
 import sdjson
 import json
 from typing import List, Tuple
-from nist_utils.reference_data import ReferenceData
+#from nist_utils.reference_data import ReferenceData
 #from pyms_nist_search.search_result import SearchResult
 import nist_search
 
