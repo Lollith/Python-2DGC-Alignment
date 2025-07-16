@@ -261,5 +261,9 @@ if __name__ == "__main__":
 
 
     #run
+    # create a /tests/reference_results/ directory with expected .h5 files
+    # create a /tests/tests_data/ directory with .cdf files
+    # create a /tests/output_tmp/ directory for output files
+    
     # cd interface_flask#
     #  pytest .\tests\test_converter.py -v

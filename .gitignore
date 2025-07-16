@@ -69,8 +69,9 @@ src/cython_debug/
 src/*.spec
 figs/
 interface_flask/converted_data/
-interface_flask/tests/tests_data/
-interface_flask/tests/reference_results/
+interface_flask/tests/tests_data/*cdf
+interface_flask/tests/reference_results/*h5
+interface_flask/tests/output_tmp/*h5
 
 # Environment variables
 .env
