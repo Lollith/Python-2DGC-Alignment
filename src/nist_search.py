@@ -9,7 +9,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 from nist_utils.reference_data import ReferenceData
 import os
 import requests
-
+from dotenv import load_dotenv
+load_dotenv()
 
 class NISTSearchWrapper:
 
