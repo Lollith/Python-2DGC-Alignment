@@ -18,6 +18,7 @@ class DataConverter:
         self.default_path_output = os.getenv("HOST_VOLUME_PATH")
         self.progress_lock = threading.Lock()
         self.completed = 0
+        self.file_lock = threading.Lock()
     
     def get_files_from_folder(self, path):
         """Get all CDF files from a folder."""
@@ -73,7 +74,8 @@ class DataConverter:
         try:
             if var_name in nc_dataset.variables:
                 data = nc_dataset[var_name][:]
-                if data.dtype == np.float64 and var_name != 'intensity_values':
+                if (data.dtype == np.float64 and var_name != 'intensity_values'
+                    and not np.any(np.isnan(data))):
                     data = data.astype(np.float32)
 
                 h5_file.create_dataset(var_name,
@@ -106,21 +108,21 @@ class DataConverter:
             # Lire le fichier CDF avec gestion mémoire optimisée
             with nc.Dataset(full_path, 'r', encoding="latin-1") as dataset:
                 hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
+                with self.file_lock:
+                    with h5py.File(hdf5_path, 'w') as h5f:
+                        # Conversion mass_values en float32
+                        for var in ['scan_acquisition_time',
+                                    'mass_values',
+                                    'intensity_values',
+                                    'total_intensity',
+                                    'point_count',
+                                    'mass_range_min',
+                                    'mass_range_max']:
+                            self.write_var_to_hdf5(dataset, h5f, var)
 
-                with h5py.File(hdf5_path, 'w') as h5f:
-                    # Conversion mass_values en float32
-                    for var in ['scan_acquisition_time',
-                                'mass_values',
-                                'intensity_values',
-                                'total_intensity',
-                                'point_count',
-                                'mass_range_min',
-                                'mass_range_max']:
-                        self.write_var_to_hdf5(dataset, h5f, var)
-
-                    if 'scan_number' in dataset.dimensions:
-                        size = dataset.dimensions['scan_number'].size
-                        h5f.attrs['scan_number_size'] = size
+                        if 'scan_number' in dataset.dimensions:
+                            size = dataset.dimensions['scan_number'].size
+                            h5f.attrs['scan_number_size'] = size
 
             gc.collect()
             conversion_time = time.time() - start_time
