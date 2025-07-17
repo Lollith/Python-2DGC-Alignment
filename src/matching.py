@@ -223,7 +223,6 @@ def matching_nist_lib_from_chromato_cube(
                 'match_factor': '',
                 'reverse_match_factor': ''
                 })
-        print()
 
         matches.append([[(coordinates_in_chromato[i][0]),
                        (coordinates_in_chromato[i][1])], match_results, coord])
