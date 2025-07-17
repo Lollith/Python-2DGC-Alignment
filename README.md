@@ -87,6 +87,11 @@ This project is basedon the work of [Nicolas Romano]( https://github.com/Easy47/
 
 ### Prerequisites
 
+#### Operating System
+> ⚠️ This project is **designed to run exclusively on Windows**.
+The NIST MS search engine is fully functional and significantly faster on Windows. Additionally, the laboratory server infrastructure is also based on Windows, which further justifies this system requirement.  
+
+
 #### Installation
   - Clone the repo in your directory
 ```bash
@@ -102,16 +107,10 @@ Create/select a folder on your host machine that will be mounted into the Docker
 
 #### NIST Integration
 
-In this project, we integrated the NIST mass spectral search engine using Docker to automate the identification of chemical compounds. 
-We could not directly call the NIST Docker container from inside our own container. To resolve this, we took the following approach:
-- Custom Docker Container for NIST:
-    Instead of relying solely on the pre-built NIST image from Docker Hub, we built our own Docker container based on domdfcoding/pywine-pyms-nist. This allowed us to mount our own NIST library (mainlib) and temporary directory.
-- Service Communication via Docker Compose:
-    The app can call NIST using http://nist:5001
-- Keeping NIST Persistent:
-    We can rebuild our app without affecting the NIST container.
+In this project, we use the NIST mass spectral search engine to automate the identification of chemical compounds. 
 
-To use NIST, you need to place your NIST database files (mainlib) into a folder, which should contain the Nist library and an empty tmp folder.
+To use NIST, you must place your NIST database files (mainlib) into a designated folder. This folder should contain the Nist library and an empty tmp folder.
+Then start the Flask Api and keep it running in the backgroung while performing identifications.
 
 ##### jupyter & Flask password hash
 
@@ -141,7 +140,7 @@ FLASK_HASHED_PASSWORD=...
 HOST_VOLUME_PATH=C:/path/to/app/data/
 
 # Absolute path to the folder on your host machine which contains the Nist library (mainlib) and an empty tmp folder
-HOST_VOLUME_PATH_NIST=...
+#HOST_VOLUME_PATH_NIST=...
 
 MAINLIB_PATH=C:/path/to/MSSEARCH/mainlib
 TEMP_DIR=C:/path/to/MSSEARCH/tmp
@@ -163,43 +162,10 @@ VENV_PATH=C:/path/to/venv
 IP_SERVER=...
  
 ```
-### Build image + container
-- Linux:
-  - Open a terminal in the project directory and run:
-    ```bash
-      make
-    ```
-
-  - Make Commands:
-    The project uses a Makefile to simplify common operations. Here are the main commands:
-
-    - `make` : Checks if the Docker image is built, builds it if necessary, then starts the container
-    - `make stop` : Stops all containers
-    - `make clean` : Cleans Docker images and volumes
-    - `make re` : Restarts the application (cleans and rebuilds)
-    - `make re_dev` : Cleans, rebuild and starts the development environment
-    - `make logs_dev` : Shows development environment logs
-
+### Run the FLASK API
 - Windows:
-  - Terminal:
-      ```bash
-      docker compose -f docker-compose.yml build --no-cache #first time or after a code modification
-      docker compose -f docker-compose.yml up
-      ```
-    ℹ️ Or open Docker Desktop and manually start the nist and 2dgc_id containers.
+Double-click on launcher.bat, then open http://localhost:8080. This will start the Flask server.
 
-
-
-### Run
-Run the Flask application:
-
-- Windows: Double-click on launcher.bat, then open http://localhost:8080
-- Linux: From the project root directory
-  ```bash
-  cd interface_flask
-  pip install -r requirements.txt
-  python app.py
-  ```
 
 
 ### Usage
