@@ -5,11 +5,8 @@ import pyms
 from pyms_nist_search.search_result import SearchResult
 import sys
 import os
-# from src.nist_utils.reference_data import ReferenceData
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
 from nist_utils.reference_data import ReferenceData
-import platform
 import os
 import requests
 
@@ -20,13 +17,8 @@ class NISTSearchWrapper:
         logging.info("Initialisation du moteur NIST...")
         self.username = os.getenv("USERNAME")
         self.password = os.getenv("FLASK_PASSWORD")
-        
-        self.url = "http://10.172.16.115:8080/" #TODO
-        # if platform.system() == "Windows":
-        # self.url = "http://host.docker.internal:8080/" #TODO 
-        # else:
-        #     # Linux : à condition d’utiliser `network_mode: host`
-        #     self.url = "http://localhost:8080/"
+        self.ip_server = os.getenv("IP_SERVER")
+        self.url = f"http://{self.ip_server}:8080/"
 
     def check_nist_health(self):
         endpoint = f'{self.url}nist/health'

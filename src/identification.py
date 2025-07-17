@@ -361,19 +361,46 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
 #                                formatted_spectrum))
 
 
+# def cohort_identification_alignment_input_format_txt(
+#         filename, matches_identification, PATH):
+#     with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
+#         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
+        
+#         for d in matches_identification:
+#             line = (
+#                 f"{d['compound_name']}\t"
+#                 f"{d['rt1']:.2f}\t"
+#                 f"{d['rt2']:.2f}\t"
+#                 f"{d['area']:.1f}\t"
+#                 f"{d.get('spectra', '')}\n"
+#             )
+#             f.write(line)
+
 def cohort_identification_alignment_input_format_txt(
         filename, matches_identification, PATH):
+    r"""Generate formatted peak table for alignment.
+
+    Parameters
+    ----------
+    filename :
+        Chromatogram full filename.
+    matches_identification :
+        Array of match dictionary containing casno, name, formula, spectra,
+        coordinates...
+    PATH : optional
+        Path to the resulting formatted peak table.
+    """
     with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
-        for d in matches_identification:
-            line = (
-                f"{d['compound_name']}\t"
-                f"{d['rt1']:.2f}\t"
-                f"{d['rt2']:.2f}\t"
-                f"{d['area']:.1f}\t"
-                f"{d.get('spectra', '')}\n"
-            )
-            f.write(line)
+        
+        for identification_data_dict in matches_identification:
+            compound_name = identification_data_dict['compound_name']
+            rt1 = identification_data_dict['rt1']
+            rt2 = identification_data_dict['rt2']
+            area = identification_data_dict['area']
+            formatted_spectrum = identification_data_dict['spectra']
+            f.write(write_line(compound_name, rt1, rt2, area,
+                               formatted_spectrum))
 
 
 def sample_identification(path, file, output_path,
@@ -436,7 +463,7 @@ def sample_identification(path, file, output_path,
     print('Identification started\n')
     start_time = time.time()
     try:
-        full_filename = path + file
+        full_filename = path + "/" + file
         matches_identification = identification(full_filename,
                                                 mod_time,
                                                 method,
@@ -458,20 +485,13 @@ def sample_identification(path, file, output_path,
                                                 min_samples,
                                                 nist)
         print("Identification done", time.time()-start_time, 's')
-        if (output_path is not None):
-            cohort_identification_alignment_input_format_txt(
-                file[:-4], matches_identification, output_path)
-            cohort_identification_to_csv(file[:-4], matches_identification,
-                                         output_path)
-            return (f'{output_path + file[:-4]}.txt & '
-                    + f'{output_path + file[:-4]}.csv created')
-
-        else:
-            cohort_identification_alignment_input_format_txt(
-                file[:-4], matches_identification)
-            cohort_identification_to_csv(file[:-4], matches_identification)
-            return (f'{output_path + file[:-4]}.txt & '
-                    + f'{output_path + file[:-4]}.csv created')
+        print("output_path from identificqtion", output_path)
+        cohort_identification_alignment_input_format_txt(
+            file[:-4], matches_identification, output_path)
+        cohort_identification_to_csv(file[:-4], matches_identification,
+                                     output_path)
+        return (f'{output_path + file[:-4]}.txt & '
+                + f'{output_path + file[:-4]}.csv created')
 
     except Exception as e:
         traceback.print_exc()
