@@ -308,7 +308,7 @@ def analyze_files():
             time.sleep(5)
         
         # 2. Vérifier que Jupyter Lab est accessible et l'ouvrir
-        jupyter_url = f"http://{self.ip_server}:8888/lab/tree/run_interfaces.ipynb"
+        jupyter_url = f"http://{ip_server}:8888/lab/tree/run_interfaces.ipynb"
         messages.append("🔍 Vérification de la disponibilité de Jupyter Lab...")
         # self.wait_and_open_jupyter() #TODO verifier ici
 
