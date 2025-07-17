@@ -11,6 +11,7 @@ from typing import List, Tuple
 #from pyms_nist_search.search_result import SearchResult
 import nist_search
 
+cache = {}
 # present = {"HMDB0031018": [[23.43, 0.008]], "HMDB0061859": [[32.22, 0.042]], "HMDB0030469": [[28.15, 0.008]],
 #            "HMDB0031264": [[15.59, 0.017]], "HMDB0033848": [[18.41, 0.025]], "HMDB0031291": [[13.10, 1.231]],
 #            "HMDB0034154": [[36.08, 0.083]]}
@@ -121,6 +122,16 @@ def filter_best_hits(list_hits, match_factor_min):
     ]
     return filtered_hits
 
+import hashlib
+
+def hash_spectrum(mass_values, int_values):
+    """
+    Calcule un hash unique à partir des masses et intensités (sans arrondi).
+    """
+    # Convertir en bytes la concaténation des floats en chaîne précise
+    data_str = ''.join(f'{m:.15g}:{i:.15g};' for m, i in zip(mass_values, int_values))
+    return hashlib.sha256(data_str.encode('utf-8')).hexdigest()
+
 
 def matching_nist_lib_from_chromato_cube(
         chromato_obj, chromato_cube, coordinates, mod_time,
@@ -155,6 +166,7 @@ def matching_nist_lib_from_chromato_cube(
         reverse_match_factor
     --------
     """
+    global cache
     start = time.time()
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(
@@ -170,30 +182,42 @@ def matching_nist_lib_from_chromato_cube(
 
     matches = []
     nb_analyte = 0
-    top_hits = []
+    # top_hits = []
     # serialized_spectra = []
     nist_api = nist_search.NISTSearchWrapper() if nist else None
 
+    # cache = {}
     for i, coord in enumerate(coordinates):
-        top_hits = []
         int_values = mass_spec.read_spectrum_from_chromato_cube(
             coord, chromato_cube=chromato_cube)
         # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
-        match_results = []
-        serialized_spectrum = {
-            "mass": [float(m) for m in mass_values],
-            "intensity": [float(i) for i in int_values]
-            }
+        spectrum_hash = hash_spectrum(mass_values, int_values)
+
+        # serialized_spectrum = {
+        #     "mass": [float(m) for m in mass_values],
+        #     "intensity": [float(i) for i in int_values]
+        #     }
 
         if nist and nist_api.check_nist_health():
-            print("Matching with NIST library...")
-            results = nist_api.nist_single_search(serialized_spectrum)
-            list_hit = nist_api.hit_list_from_nist_api(results)
-            top_hits = filter_best_hits(list_hit, match_factor_min)
-            print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
-        # else:
-            # print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
+            if spectrum_hash in cache:
+                top_hits = cache[spectrum_hash]
+                print(f"Cache hit for peak {i + 1}")
+            else:
+                print("Matching with NIST library...")
+                serialized_spectrum = {
+                    "mass": [float(m) for m in mass_values],
+                    "intensity": [float(i) for i in int_values]
+                }
+                results = nist_api.nist_single_search(serialized_spectrum)
+                list_hit = nist_api.hit_list_from_nist_api(results)
+                top_hits = filter_best_hits(list_hit, match_factor_min)
+                cache[spectrum_hash] = top_hits
+                print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+        else:
+            print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
+            top_hits = []
 
+        match_results = []
         if top_hits:
             for j, hit in enumerate(top_hits):
                 search_result, ref_data = hit
