@@ -16,7 +16,7 @@ def serialize_hit_tuple(hit_tuple):
 
 def filter_best_hits(list_hits, match_factor_min):
     match_factors = [hit["match_factor"] for hit in list_hits]
-    max_match_factor = max(match_factors)
+    max_match_factor = max(match_factors, default=0)
 
     filtered_hits = [
         hit for hit in list_hits
@@ -25,19 +25,6 @@ def filter_best_hits(list_hits, match_factor_min):
     ]
     return filtered_hits
 
-def hit_list_from_nist_api(result):
-        hit_list = []
-        for hit in result:
-            search_result = {
-            "compound_name": hit.get("name"),
-            "match_factor": hit.get("match_factor"),
-            "compound_casno": hit.get("cas_number"),
-            "compound_formula": hit.get("formula")
-        }
-        hit_list.append(search_result)
-        return hit_list
-
-#
 def matching_nist():
   #   search = pyms_nist_search.Engine(
 #                     "C:/Users/camil/Documents/NIST/mainlib/",
@@ -83,9 +70,6 @@ def matching_nist():
             list_hits.append(results)
         top_hits = filter_best_hits(list_hits, match_factor_min)
 
-        match_results = [] 
-        nb_analyte = 0
-
         def join_field(field):
             return '/'.join(str(m.get(field, '')) for m in top_hits)
 
@@ -103,7 +87,6 @@ def matching_nist():
             'compound_formula': '',
             'match_factor': '',
             }
-            print("no coupound name", identification_data_dict)
    
         for key in identification_data_dict:
             df.at[row, key] = identification_data_dict[key]
