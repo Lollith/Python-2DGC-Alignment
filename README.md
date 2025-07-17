@@ -163,8 +163,11 @@ IP_SERVER=...
  
 ```
 ### Run the FLASK API
-- Windows:
+- From windows explorer:
 Double-click on launcher.bat, then open http://localhost:8080. This will start the Flask server.
+
+-From the terminal:
+'''python interface_flask/app.py'''
 
 
 
