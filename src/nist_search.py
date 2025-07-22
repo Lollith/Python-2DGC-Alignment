@@ -92,7 +92,7 @@ class NISTSearchWrapper:
         Envoie un seul spectre à l'API Flask NIST pour identification.
         """
         endpoint = f'{self.url}nist/search'
-        print(f"Requête vers {endpoint}")
+        # print(f"Requête vers {endpoint}")
         
         retry_count = 0
         while retry_count < 10:

@@ -203,7 +203,7 @@ def matching_nist_lib_from_chromato_cube(
                 top_hits = cache[spectrum_hash]
                 print(f"Cache hit for peak {i + 1}")
             else:
-                print("Matching with NIST library...")
+                # print("Matching with NIST library...")
                 serialized_spectrum = {
                     "mass": [float(m) for m in mass_values],
                     "intensity": [float(i) for i in int_values]
