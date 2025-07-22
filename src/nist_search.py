@@ -1,5 +1,4 @@
 import logging
-import requests
 import time
 import pyms
 from pyms_nist_search.search_result import SearchResult
@@ -7,9 +6,9 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from nist_utils.reference_data import ReferenceData
-import os
 import requests
 from dotenv import load_dotenv
+
 load_dotenv()
 
 class NISTSearchWrapper:
