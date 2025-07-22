@@ -167,6 +167,8 @@ def matching_nist_lib_from_chromato_cube(
     --------
     """
     global cache
+    print("matching nist, chromatocube shape", chromato_cube.shape)
+
     start = time.time()
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(

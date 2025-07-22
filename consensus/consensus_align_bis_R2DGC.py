@@ -56,6 +56,18 @@ def importFile(file):
 
 if __name__ == "__main__":
 
+    #DEBUG
+    file = "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/A-F-028-817822-droite-ReCIV.txt"
+    with open(file, "r", encoding="utf-8") as f:
+        line = f.readlines()
+        print(len(line))
+        print(line[584])
+
+
+
+
+
+
     # importFile("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/A-F-028-817822-droite-ReCIV.txt")
     df, spectra_split, missing_standards, ion_names, spectra_split = importFile("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/A-F-028-817822-droite-ReCIV.txt")
     df.to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_current_raw_file.csv", index=False)

@@ -58,8 +58,7 @@ def mass_spectra_format(mass_range, int_values):
     """
 
     range_min, range_max = mass_range
-    mass_values = np.linspace(
-        range_min, range_max, range_max - range_min + 1).astype(int)
+    mass_values = np.linspace(range_min, range_max, len(int_values)).astype(int)
     spectrum = np.column_stack((mass_values, int_values))
     sorted_by_int_spectrum = spectrum[(-spectrum[:, 1]).argsort()]
     formatted_spectrum = ""
@@ -133,7 +132,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,
         chromato_cube, mass_range)
     >>> print(result)
     """
-
+    print("compute matches , chromatocube shape:", chromato_cube.shape)
     matches_identification = []
 
     max_len = max(len(match) for match in matches)
@@ -171,12 +170,13 @@ def compute_matches_identification(matches, chromato, chromato_cube,
         }
 
         if formated_spectra:
-            identification_data_dict['spectra'] = '/'.join(
-                mass_spectra_format(mass_range, m['spectra'])
-                for m in match_data_list
-                if isinstance(m.get('spectra'), (list, np.ndarray)) and len(m['spectra']) > 0
-            )
-
+            # identification_data_dict['spectra'] = '/'.join(
+            #     mass_spectra_format(mass_range, m['spectra'])
+            #     for m in match_data_list
+            #     if isinstance(m.get('spectra'), (list, np.ndarray)) and len(m['spectra']) > 0
+            # )
+            sample_spectra = chromato_cube[coord[0], coord[1], :]
+            identification_data_dict['spectra'] = mass_spectra_format(mass_range, sample_spectra)
         matches_identification.append(identification_data_dict)
     return matches_identification
 
