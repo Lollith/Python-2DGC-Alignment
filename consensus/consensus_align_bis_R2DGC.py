@@ -17,11 +17,7 @@ def importFile(file):
     current_raw_file['R.T...s.'] = '"' + current_raw_file['R.T...s.'].str.strip('"') + '"'
     
     #split RTs
-    # rt_split = current_raw_file.iloc[:, 1].str.replace('"', '').str.split(" , ", expand=True)
-    # current_raw_file['RT1'] = pd.to_numeric(rt_split[0], errors='coerce')
-    # current_raw_file['RT2'] = pd.to_numeric(rt_split[1], errors='coerce')
     current_raw_file[["RT1", "RT2"]] = current_raw_file["R.T...s."].str.replace('"', '', regex=False).str.split(" , ", expand=True).astype(float)
-
 
     # suppression des doublons
     composite_key = composite_key = current_raw_file["Name"].astype(str) + "_" + \
@@ -29,11 +25,9 @@ def importFile(file):
                 current_raw_file["Area"].astype(str)
     current_raw_file = current_raw_file.loc[~composite_key.duplicated()].reset_index(drop=True)
 
-
     # Spectres en liste par ligne (chaque spectre est une liste d'intensités)
     spectra_split = []
     ion_names = None
-
     for i, row in current_raw_file.iterrows():
         spectrum = row.iloc[4]
         peak_list = [p.split(":") for p in spectrum.strip().split(" ") if ":" in p]
@@ -42,13 +36,12 @@ def importFile(file):
         except ValueError:
             mzs, intensities = [], []
 
-        if ion_names is None and mzs:
-            ion_names = list(mzs)
-
         # On trie par m/z croissant
         sorted_pairs = sorted(zip(mzs, intensities), key=lambda x: x[0])
-        _, sorted_intensities = zip(*sorted_pairs) if sorted_pairs else ([], [])
-
+        sorted_mzs, sorted_intensities = zip(*sorted_pairs) if sorted_pairs else ([], [])
+        if ion_names is None and sorted_mzs:
+            ion_names = list(sorted_mzs)
+        
         spectra_split.append(np.array(sorted_intensities))
 
     return [current_raw_file, spectra_split, missing_standards, ion_names, spectra_split]
@@ -62,9 +55,6 @@ if __name__ == "__main__":
         line = f.readlines()
         print(len(line))
         print(line[584])
-
-
-
 
 
 

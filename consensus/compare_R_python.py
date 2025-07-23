@@ -29,6 +29,10 @@ print("Dataframes identiques (après tri) :", df_r_sorted.equals(df_py_sorted))
 diff = df_r_sorted.compare(df_py_sorted)
 print(diff)
 
+df_r_sorted['Spectra_clean'] = df_r_sorted['Spectra'].str.strip()
+df_py_sorted['Spectra_clean'] = df_py_sorted['Spectra'].str.strip()
+print("Égalité sur Spectra_clean :", df_r_sorted['Spectra_clean'].equals(df_py_sorted['Spectra_clean']))
+
 diff_rt = df_r['R.T...s.'] != df_py['R.T...s.']
 print(f"Differences in R.T...s.: {diff_rt.sum()} lignes")
 
@@ -69,6 +73,7 @@ print("Ion names identiques :", np.array_equal(r_ions, py_ions))
 # print(r_ions)
 print(len(r_ions), len(py_ions))
 print(py_ions)
+print(r_ions)
 
 
 # r_df = pd.read_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/r_ion_names.csv")
