@@ -44,7 +44,7 @@ ImportFile <- function(File) {
               ionNames, spectraSplit))
 }
 
-  GenerateSimFrames <- function(Sample, SeedSample) {
+GenerateSimFrames <- function(Sample, SeedSample, RT2Penalty=5, RT1Penalty=1) {
     # ajouter 0 si spectre pas de la meme taille
     mzSeed<-SeedSample[[4]]
     mzSample<-Sample[[4]]
@@ -74,11 +74,12 @@ ImportFile <- function(File) {
                        nrow = nrow(SimilarityMatrix))
 
     return(SimilarityMatrix - RT1Index - RT2Index)
-  }
+}
 
 
-listFiles <- list("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/A-F-028-817822-droite-ReCIV.txt", 
-                      "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/A-L-005-818829-Tedlar.txt")
+listFiles <- list("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
+                      "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
 ImportedFiles <- lapply(listFiles, ImportFile)
 #seed est le 1er fichier de la liste
 SeedSample <- ImportedFiles[[1]]
@@ -89,4 +90,5 @@ for (SampNum in (1:length(ImportedFiles))) {
         SimCutoffs <- GenerateSimFrames(ImportedFiles[[SampNum]], SeedSample)
     }
 }
+
 
