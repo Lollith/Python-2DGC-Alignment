@@ -24,6 +24,66 @@
 #' ConsensusAlign(c(system.file("extdata", "SampleA.txt", package="R2DGC"),
 #'     system.file("extdata", "SampleB.txt", package="R2DGC")), RT1_Standards= c())
 
+library(foreach)
+library(doParallel)
+
+ImportFile <- function(File) { 
+
+  MissingStandards <- c()
+  currentRawFile <- read.table(File, sep = "\t", fill = T, 
+                               quote = "", strip.white = T, stringsAsFactors = F, 
+                               header = T)
+
+  currentRawFile[, 5] <- as.character(currentRawFile[, 
+                                                     5])
+  currentRawFile[, 2] <- as.character(currentRawFile[, 
+                                                     2])
+  # #  Filtrage des lignes avec valeurs manquantes
+  # currentRawFile <- currentRawFile[which(!is.na(currentRawFile[,3]) & 
+  #                                       nchar(currentRawFile[,5]) != 0),]
+
+  RTSplit <- data.frame(strsplit(currentRawFile[, 2], " , "), 
+                        stringsAsFactors = F)
+
+  RTSplit[1, ] <- gsub("\"", "", RTSplit[1, ])
+  RTSplit[2, ] <- gsub("\"", "", RTSplit[2, ])
+  currentRawFile[, "RT1"] <- as.numeric(t(RTSplit[1, ]))
+  currentRawFile[, "RT2"] <- as.numeric(t(RTSplit[2, ]))
+  uniqueIndex <- data.frame(paste(currentRawFile[, 1], 
+                                  currentRawFile[, 2], currentRawFile[, 3]))
+
+  currentRawFile <- currentRawFile[which(!duplicated(uniqueIndex)), 
+  ]
+
+  row.names(currentRawFile) <- c(1:nrow(currentRawFile))
+
+
+  currentRawFileSplit <- split(currentRawFile, 1:nrow(currentRawFile))
+
+  spectraSplit <- lapply(currentRawFileSplit, function(a) strsplit(a[[5]], 
+                                                                   " "))
+
+  spectraSplit <- lapply(spectraSplit, function(b) lapply(b, 
+                                                          function(c) strsplit(c, ":")))
+
+  spectraSplit <- lapply(spectraSplit, function(d) t(matrix(unlist(d), 
+                                                            nrow = 2)))
+
+  
+
+  spectraSplit <- lapply(spectraSplit, function(d) apply(d, 
+                                                         2, as.numeric))
+
+  ionNames <- spectraSplit[[1]][order(spectraSplit[[1]][, 
+                                                        1]), 1]
+
+  spectraSplit <- lapply(spectraSplit, function(d) d[order(d[, 
+                                                             1]), 2, drop = F])
+
+  return(list(currentRawFile, spectraSplit, MissingStandards, 
+              ionNames, spectraSplit))
+
+}
 
 ConsensusAlignBis<-function (inputFileList,
                               ImportedFiles,
@@ -44,39 +104,16 @@ ConsensusAlignBis<-function (inputFileList,
                               standardLibrary = NULL) 
 {
 
-  
+  #ne marche pas sur windows
+  # ImportedFiles <- mclapply(inputFileList, ImportFile, mc.cores = numCores)
 
-  # GenerateSimFrames <- function(Sample, SeedSample) {
-  #   # ajouter 0 si spectre pas de la meme taille
-  #   mzSeed<-SeedSample[[4]]
-  #   mzSample<-Sample[[4]]
-    
+  cl <- parallel::makeCluster(numCores)
+  doParallel::registerDoParallel(cl)
+  parallel::clusterExport(cl, varlist = c("ImportFile"))
 
-  #   seedSpectraFrame <- do.call(cbind, SeedSample[[2]])
-  #   seedSpectraFrame <- t(seedSpectraFrame)
-  #   seedSpectraFrame <- as.matrix(seedSpectraFrame)/sqrt(apply((as.matrix(seedSpectraFrame))^2, 
-  #                                                              1, sum))
+  ImportedFiles <- foreach::foreach(file = file) %dopar% {ImportFile(file)}
+  parallel::stopCluster(cl)
 
-  #   sampleSpectraFrame <- do.call(cbind, Sample[[2]])
-  #   sampleSpectraFrame <- t(sampleSpectraFrame)
-  #   sampleSpectraFrame <- as.matrix(sampleSpectraFrame)/sqrt(apply((as.matrix(sampleSpectraFrame))^2, 
-  #                                                                  1, sum))
-
-    
-
-  #   SimilarityMatrix <- (seedSpectraFrame %*% t(sampleSpectraFrame)) * 
-  #     100 # similarity score entre chaque peak des deux sample s
-
-  #   RT1Index <- matrix(unlist(lapply(Sample[[1]][, "RT1"], 
-  #                                    function(x) abs(x - SeedSample[[1]][, "RT1"]) * RT1Penalty)), 
-  #                      nrow = nrow(SimilarityMatrix))
-
-  #   RT2Index <- matrix(unlist(lapply(Sample[[1]][, "RT2"], 
-  #                                    function(x) abs(x - SeedSample[[1]][, "RT2"]) * RT2Penalty)), 
-  #                      nrow = nrow(SimilarityMatrix))
-
-  #   return(SimilarityMatrix - RT1Index - RT2Index)
-  # }
 
   MissingFileList <- c()
   for (File in ImportedFiles) {
@@ -87,11 +124,39 @@ ConsensusAlignBis<-function (inputFileList,
     stop(unlist(MissingFileList), call. = FALSE)
   }
 
+  GenerateSimFrames <- function(Sample, SeedSample) {
+    # ajouter 0 si spectre pas de la meme taille
+    mzSeed<-SeedSample[[4]]
+    mzSample<-Sample[[4]]
+    
+
+    seedSpectraFrame <- do.call(cbind, SeedSample[[2]])
+    seedSpectraFrame <- t(seedSpectraFrame)
+    seedSpectraFrame <- as.matrix(seedSpectraFrame)/sqrt(apply((as.matrix(seedSpectraFrame))^2, 
+                                                               1, sum))
+
+    sampleSpectraFrame <- do.call(cbind, Sample[[2]])
+    sampleSpectraFrame <- t(sampleSpectraFrame)
+    sampleSpectraFrame <- as.matrix(sampleSpectraFrame)/sqrt(apply((as.matrix(sampleSpectraFrame))^2, 
+                                                                   1, sum))
+
+    SimilarityMatrix <- (seedSpectraFrame %*% t(sampleSpectraFrame)) * 
+      100 # similarity score entre chaque peak des deux sample s
+
+    RT1Index <- matrix(unlist(lapply(Sample[[1]][, "RT1"], 
+                                     function(x) abs(x - SeedSample[[1]][, "RT1"]) * RT1Penalty)), 
+                       nrow = nrow(SimilarityMatrix))
+
+    RT2Index <- matrix(unlist(lapply(Sample[[1]][, "RT2"], 
+                                     function(x) abs(x - SeedSample[[1]][, "RT2"]) * RT2Penalty)), 
+                       nrow = nrow(SimilarityMatrix))
+
+    return(SimilarityMatrix - RT1Index - RT2Index)
+  }
+
   
   #seed est le 1er fichier de la liste
   SeedSample <- ImportedFiles[[seedFile]]
-
-  
 
   #initialisation 
   FinalMatrix <- matrix(nrow = nrow(SeedSample[[1]]), ncol = length(inputFileList))
@@ -104,7 +169,6 @@ ConsensusAlignBis<-function (inputFileList,
   row.names(FinalMatrixSpectra) <- paste0(SeedSample[[1]][, 1],"_1")
   colnames(FinalMatrixSpectra) <- inputFileList
 
-  
 
   for (SampNum in (1:length(ImportedFiles))) {
     SimCutoffs <- GenerateSimFrames(ImportedFiles[[SampNum]],SeedSample)
@@ -129,19 +193,15 @@ ConsensusAlignBis<-function (inputFileList,
 
     if (quantMethod == "T"){
       FinalMatrix[Mates[which(MatchScores >= similarityCutoff)], 
-                  inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= 
-                                                                                   similarityCutoff), 3]
+                  inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= similarityCutoff), 3]
 
       FinalMatrixRT[Mates[which(MatchScores >= similarityCutoff)], 
-                    inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= 
-                                                                                     similarityCutoff), 2]
+                    inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= similarityCutoff), 2]
 
       FinalMatrixSpectra[Mates[which(MatchScores >= similarityCutoff)], 
-                         inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= 
+                         inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= similarityCutoff), 4]
 
     }
-
-    
 
     
     if (length(dissmatch) > 0) {
@@ -180,22 +240,29 @@ ConsensusAlignBis<-function (inputFileList,
 }
 
 
-file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = ".txt",full.names = TRUE,recursive = TRUE)
-for (sample in file) {
-  PrecompressFiles(inputFileList=sample, outputFiles=T, RT1Penalty=1, RT2Penalty=10,similarityCutoff = 95,quantMethod = "T")
-}
+# file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = ".txt",full.names = TRUE,recursive = TRUE)
+# for (sample in file) {
+#   PrecompressFiles(inputFileList=sample, outputFiles=T, RT1Penalty=1, RT2Penalty=10,similarityCutoff = 95,quantMethod = "T")
+# }
 
 
-file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = "Processed.txt",full.names = TRUE,recursive = TRUE)
-numCores<-6
-cl <- parallel::makeCluster(numCores)
-doParallel::registerDoParallel(cl)
-ImportedFiles <- foreach::foreach(file = file) %dopar% {ImportFile(file)}
-parallel::stopCluster(cl)
-Alignment<-ConsensusAlignBis(inputFileList = file,ImportedFiles = ImportedFiles,seedFile =1, missingValueLimit=0, RT2Penalty = 5, RT1Penalty=1, similarityCutoff=90,disimilarityCutoff = 90 , missingPeakFinderSimilarityLax= 0.85 , autoTuneMatchStringency =FALSE, quantMethod = "T")
-filter<-0.5
-indexKeep<- which(apply(table,1,function(x) sum(!is.na(x))>filter*ncol(table)))
+# file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = "Processed.txt",full.names = TRUE,recursive = TRUE)
+file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
+                       "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
 
-table<-Alignment$Alignment_Matrix
+Alignment<-ConsensusAlignBis(inputFileList = file, seedFile =1,
+  missingValueLimit=0, RT2Penalty = 5, RT1Penalty=1, similarityCutoff=90,
+  numCores=6,
+  disimilarityCutoff = 90 , missingPeakFinderSimilarityLax= 0.85, 
+  autoTuneMatchStringency =FALSE, quantMethod = "T")
 
-table<-table[indexKeep,]
+print(Alignment$Alignment_Matrix)
+
+# TODO
+# filter<-0.5
+# indexKeep<- which(apply(table,1,function(x) sum(!is.na(x))>filter*ncol(table)))
+
+# table<-Alignment$Alignment_Matrix
+
+# table<-table[indexKeep,]
