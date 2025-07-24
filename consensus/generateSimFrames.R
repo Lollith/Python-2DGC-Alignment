@@ -44,10 +44,14 @@ ImportFile <- function(File) {
               ionNames, spectraSplit))
 }
 
+
+
 GenerateSimFrames <- function(Sample, SeedSample, RT2Penalty=5, RT1Penalty=1) {
     # ajouter 0 si spectre pas de la meme taille
     mzSeed<-SeedSample[[4]]
     mzSample<-Sample[[4]]
+    # cat(mzSeed, mzSample, "\n")
+    # print(mzSeed == mzSample)
     
 
     seedSpectraFrame <- do.call(cbind, SeedSample[[2]])
@@ -55,12 +59,14 @@ GenerateSimFrames <- function(Sample, SeedSample, RT2Penalty=5, RT1Penalty=1) {
     seedSpectraFrame <- as.matrix(seedSpectraFrame)/sqrt(apply((as.matrix(seedSpectraFrame))^2, 
                                                                1, sum))
 
+    print(paste("Seed spectra shape:", dim(seedSpectraFrame)))
+
     sampleSpectraFrame <- do.call(cbind, Sample[[2]])
     sampleSpectraFrame <- t(sampleSpectraFrame)
     sampleSpectraFrame <- as.matrix(sampleSpectraFrame)/sqrt(apply((as.matrix(sampleSpectraFrame))^2, 
                                                                    1, sum))
 
-    
+    print(paste("Sample spectra shape:", dim(sampleSpectraFrame)))
 
     SimilarityMatrix <- (seedSpectraFrame %*% t(sampleSpectraFrame)) * 100 
         # similarity score entre chaque peak des deux sample s
@@ -78,17 +84,23 @@ GenerateSimFrames <- function(Sample, SeedSample, RT2Penalty=5, RT1Penalty=1) {
 
 
 listFiles <- list("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
-                      "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+                       "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
                         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
 ImportedFiles <- lapply(listFiles, ImportFile)
 #seed est le 1er fichier de la liste
 SeedSample <- ImportedFiles[[1]]
 
+print ("seedSample:")
+print(SeedSample[[4]])
+
 
 for (SampNum in (1:length(ImportedFiles))) {
     if (SampNum != 1) { #sauf la seed sample
         SimCutoffs <- GenerateSimFrames(ImportedFiles[[SampNum]], SeedSample)
+        # print(SimCutoffs)
+        write.table(SimCutoffs, file = paste0("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/", "R_SimCutoffs_", SampNum, ".txt"), sep = "\t", row.names = FALSE, col.names = FALSE)
     }
 }
+
 
 
