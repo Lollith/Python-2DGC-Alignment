@@ -33,7 +33,6 @@ ImportFile <- function(File) {
   currentRawFile <- read.table(File, sep = "\t", fill = T, 
                                quote = "", strip.white = T, stringsAsFactors = F, 
                                header = T)
-
   currentRawFile[, 5] <- as.character(currentRawFile[, 
                                                      5])
   currentRawFile[, 2] <- as.character(currentRawFile[, 
@@ -68,8 +67,6 @@ ImportFile <- function(File) {
 
   spectraSplit <- lapply(spectraSplit, function(d) t(matrix(unlist(d), 
                                                             nrow = 2)))
-
-  
 
   spectraSplit <- lapply(spectraSplit, function(d) apply(d, 
                                                          2, as.numeric))
@@ -111,7 +108,7 @@ ConsensusAlignBis<-function (inputFileList,
   doParallel::registerDoParallel(cl)
   parallel::clusterExport(cl, varlist = c("ImportFile"))
 
-  ImportedFiles <- foreach::foreach(file = file) %dopar% {ImportFile(file)}
+  ImportedFiles <- foreach::foreach(file = inputFileList) %dopar% {ImportFile(file)}
   parallel::stopCluster(cl)
 
 
@@ -247,9 +244,12 @@ ConsensusAlignBis<-function (inputFileList,
 
 
 # file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = "Processed.txt",full.names = TRUE,recursive = TRUE)
-file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
-                       "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
-                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
+# file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
+#                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+#                         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
+file <-c("C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751303_v3_E3AM_5jui.txt", 
+         "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751304_v1_E3AM_4jui.txt",
+         "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751306_v1_E3PM_5jui.txt")
 
 Alignment<-ConsensusAlignBis(inputFileList = file, seedFile =1,
   missingValueLimit=0, RT2Penalty = 5, RT1Penalty=1, similarityCutoff=90,
@@ -260,9 +260,33 @@ Alignment<-ConsensusAlignBis(inputFileList = file, seedFile =1,
 print(Alignment$Alignment_Matrix)
 
 # TODO
-# filter<-0.5
-# indexKeep<- which(apply(table,1,function(x) sum(!is.na(x))>filter*ncol(table)))
+Alignment_filtered_matrix<-Alignment$Alignment_Matrix
+filter<-0.5
+indexKeep<- which(apply(Alignment_filtered_matrix,1,function(x) sum(!is.na(x))>filter*ncol(Alignment_filtered_matrix)))
 
-# table<-Alignment$Alignment_Matrix
 
-# table<-table[indexKeep,]
+Alignment_filtered_matrix<-Alignment_filtered_matrix[indexKeep,]
+# print(Alignment_filtered_matrix)
+
+
+
+output_dir <- "C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/"
+write.table(Alignment$Alignment_Matrix,
+            file = file.path(output_dir, "R_Alignment_Matrix.txt"),
+            sep = "\t", row.names = TRUE, quote = FALSE)
+
+write.table(Alignment$Peak_Info,
+            file = file.path(output_dir, "R_Peak_Info.txt"),
+            sep = "\t", row.names = FALSE, quote = FALSE)
+
+write.table(Alignment$RT_group,
+            file = file.path(output_dir, "R_RT_Group.txt"),
+            sep = "\t", row.names = TRUE, quote = FALSE)
+
+write.table(Alignment$spectra_group,
+            file = file.path(output_dir, "R_Spectra_Group.txt"),
+            sep = "\t", row.names = TRUE, quote = FALSE)
+
+write.table(Alignment_filtered_matrix,
+            file = file.path(output_dir, "R_Alignment_Matrix_after_filter.txt"),
+            sep = "\t", row.names = TRUE, quote = FALSE)
