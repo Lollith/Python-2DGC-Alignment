@@ -244,12 +244,12 @@ ConsensusAlignBis<-function (inputFileList,
 
 
 # file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = "Processed.txt",full.names = TRUE,recursive = TRUE)
-# file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
-#                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
-#                         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
-file <-c("C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751303_v3_E3AM_5jui.txt", 
-         "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751304_v1_E3AM_4jui.txt",
-         "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751306_v1_E3PM_5jui.txt")
+file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
+                       "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
+# file <-c("C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751303_v3_E3AM_5jui.txt", 
+#          "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751304_v1_E3AM_4jui.txt",
+#          "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751306_v1_E3PM_5jui.txt")
 
 Alignment<-ConsensusAlignBis(inputFileList = file, seedFile =1,
   missingValueLimit=0, RT2Penalty = 5, RT1Penalty=1, similarityCutoff=90,
@@ -270,7 +270,8 @@ Alignment_filtered_matrix<-Alignment_filtered_matrix[indexKeep,]
 
 
 
-output_dir <- "C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/"
+# output_dir <- "C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/"
+output_dir <- "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/"
 write.table(Alignment$Alignment_Matrix,
             file = file.path(output_dir, "R_Alignment_Matrix.txt"),
             sep = "\t", row.names = TRUE, quote = FALSE)

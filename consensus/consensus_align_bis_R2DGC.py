@@ -201,8 +201,8 @@ def consensus_align_bis(input_file_list,
     
     # Convert matrices to DataFrames for easier indexing
     final_matrix = pd.DataFrame(final_matrix, index=row_names, columns=col_names)
-    final_matrix_rt = pd.DataFrame(final_matrix_rt, index=row_names, columns=col_names)
-    final_matrix_spectra = pd.DataFrame(final_matrix_spectra, index=row_names, columns=col_names)
+    final_matrix_rt = pd.DataFrame(final_matrix_rt, index=row_names, columns=col_names, dtype=object)
+    final_matrix_spectra = pd.DataFrame(final_matrix_spectra, index=row_names, columns=col_names, dtype=object)
     
     # Process each sample
     for samp_num in range(len(imported_files)):
@@ -249,7 +249,7 @@ def consensus_align_bis(input_file_list,
                         final_matrix_rt.iloc[mate_idx, samp_num] = imported_files[samp_num][0].iloc[idx, 1]  # RT column
                         # Spectra values
                         final_matrix_spectra.iloc[mate_idx, samp_num] = imported_files[samp_num][0].iloc[idx, 3]  # Spectra column
-        
+
         # Handle dissimilar matches - add new rows
         if len(dissmatch) > 0:
             # Add to seed sample
@@ -268,8 +268,8 @@ def consensus_align_bis(input_file_list,
             
             # Create new rows filled with NaN
             new_rows_area = pd.DataFrame(np.nan, index=new_row_names, columns=col_names)
-            new_rows_rt = pd.DataFrame(np.nan, index=new_row_names, columns=col_names)
-            new_rows_spectra = pd.DataFrame(np.nan, index=new_row_names, columns=col_names)
+            new_rows_rt = pd.DataFrame(np.nan, index=new_row_names, columns=col_names, dtype=object)
+            new_rows_spectra = pd.DataFrame(np.nan, index=new_row_names, columns=col_names, dtype=object)
             
             # Fill with current sample data
             for i, dissim_idx in enumerate(dissmatch):
@@ -307,10 +307,11 @@ def consensus_align_bis(input_file_list,
 
 if __name__ == "__main__":
     file = [
-        "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751303_v3_E3AM_5jui.txt",
-        "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751304_v1_E3AM_4jui.txt",
-        "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751306_v1_E3PM_5jui.txt"
+        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt",
+        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt"
     ]
+    num_cores = min(os.cpu_count(), 60)
     alignment = consensus_align_bis(
         input_file_list=file,
         seed_file=1,
@@ -319,7 +320,7 @@ if __name__ == "__main__":
         rt1_penalty=1,
         similarity_cutoff=90,
         disimilarity_cutoff=None,
-        num_cores=cpu_count(),
+        num_cores=num_cores,
         common_ions=None
     )
 
@@ -328,8 +329,8 @@ if __name__ == "__main__":
     indexkeep = alignment_filtered_matrix.isna().mean(axis=1) < my_filter
 
     alignment_filtered_matrix = alignment_filtered_matrix[indexkeep]
-    alignment_filtered_matrix.to_csv("C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/py_alignment_matrix_after_filter.txt", sep="\t", index=True)
+    alignment_filtered_matrix.to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_alignment_matrix_after_filter.txt", sep="\t", index=True)
 
-    alignment["Peak_Info"].to_csv("C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/py_peak_info.txt", sep="\t", index=True)
-    alignment["RT_group"].to_csv("C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/py_rt_group.txt", sep="\t", index=True)
-    alignment["spectra_group"].to_csv("C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/py_spectra_group.txt", sep="\t", index=True)
+    alignment["Peak_Info"].to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_peak_info.txt", sep="\t", index=True)
+    alignment["RT_group"].to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_rt_group.txt", sep="\t", index=True)
+    alignment["spectra_group"].to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_spectra_group.txt", sep="\t", index=True)
