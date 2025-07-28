@@ -48,42 +48,175 @@ def importFile(file):
     return [current_raw_file, spectra_split, missing_standards, ion_names, spectra_split]
 
 
+# def generate_sim_frames(sample, seed_sample, RT2Penalty=5, RT1Penalty=1):
+#     # Extraction des m/z (optionnel selon usage)
+#     mz_seed = seed_sample[3]
+#     mz_sample = sample[3]
+#     print(f"Seed m/z: {mz_seed}, Sample m/z: {mz_sample}")
+#     print(f"Are m/z equal? {mz_seed == mz_sample}")
+
+#     # Création de la matrice des spectres (chaque ligne = un pic)
+#     # seed_spectra = np.array(seed_sample[1]).T
+#     # seed_spectra = seed_spectra / np.sqrt((seed_spectra**2).sum(axis=1, keepdims=True))
+
+#     # sample_spectra = np.array(sample[1]).T
+#     # sample_spectra = sample_spectra / np.sqrt((sample_spectra**2).sum(axis=1, keepdims=True))
+#     seed_spectra = np.array([s.flatten() for s in seed_sample[1]])
+#     sample_spectra = np.array([s.flatten() for s in sample[1]])
+#     seed_spectra = seed_spectra / np.linalg.norm(seed_spectra, axis=1, keepdims=True)
+#     sample_spectra = sample_spectra / np.linalg.norm(sample_spectra, axis=1, keepdims=True)
+#     print(f"Seed spectra shape: {seed_spectra.shape}")
+
+#     print(f"Sample spectra shape: {sample_spectra.shape}")
+
+#     # Calcul de la similarité cosinus entre tous les pics des deux échantillons
+#     similarity_matrix = np.dot(seed_spectra, sample_spectra.T) * 100
+
+#     # Calcul des pénalités de rétention (RT1 et RT2)
+#     seed_rt1 = np.array(seed_sample[0]["RT1"])
+#     sample_rt1 = np.array(sample[0]["RT1"])
+
+#     seed_rt2 = np.array(seed_sample[0]["RT2"])
+#     sample_rt2 = np.array(sample[0]["RT2"])
+
+#     RT1_index = np.abs(seed_rt1[:, None] - sample_rt1[None, :]) * RT1Penalty
+#     RT2_index = np.abs(seed_rt2[:, None] - sample_rt2[None, :]) * RT2Penalty
+
+
+#     # Résultat final = score de similarité - pénalité de RT1 - pénalité de RT2
+#     return similarity_matrix - RT1_index - RT2_index
+
+
+# def generate_sim_frames(sample, seed_sample, RT2Penalty=5, RT1Penalty=1):
+#     # Extraction des m/z (optionnel selon usage)
+#     mz_seed = seed_sample[3]
+#     mz_sample = sample[3]
+#     # print(f"Seed m/z: {mz_seed}, Sample m/z: {mz_sample}")
+#     # print(f"Are m/z equal? {mz_seed == mz_sample}")
+
+#     # Création de la matrice des spectres (chaque ligne = un pic)
+#     # seed_spectra = np.array(seed_sample[1]).T
+#     # seed_spectra = seed_spectra / np.sqrt((seed_spectra**2).sum(axis=1, keepdims=True))
+
+#     # sample_spectra = np.array(sample[1]).T
+#     # sample_spectra = sample_spectra / np.sqrt((sample_spectra**2).sum(axis=1, keepdims=True))
+#     seed_spectra = np.array([s.flatten() for s in seed_sample[1]])
+#     sample_spectra = np.array([s.flatten() for s in sample[1]])
+#     seed_spectra = seed_spectra / np.linalg.norm(seed_spectra, axis=1, keepdims=True)
+#     sample_spectra = sample_spectra / np.linalg.norm(sample_spectra, axis=1, keepdims=True)
+#     print(f"Seed spectra shape: {seed_spectra.shape}")
+
+#     print(f"Sample spectra shape: {sample_spectra.shape}")
+
+#     # Calcul de la similarité cosinus entre tous les pics des deux échantillons
+#     similarity_matrix = np.dot(seed_spectra, sample_spectra.T) * 100
+
+#     # Calcul des pénalités de rétention (RT1 et RT2)
+#     # seed_rt1 = np.array(seed_sample[0]["RT1"])
+#     # sample_rt1 = np.array(sample[0]["RT1"])
+
+#     # seed_rt2 = np.array(seed_sample[0]["RT2"])
+#     # sample_rt2 = np.array(sample[0]["RT2"])
+#     seed_rt1 = np.array(seed_sample[0]["RT1"])[:seed_spectra.shape[0]]
+#     sample_rt1 = np.array(sample[0]["RT1"])[:sample_spectra.shape[0]]
+#     seed_rt2 = np.array(seed_sample[0]["RT2"])[:seed_spectra.shape[0]]
+#     sample_rt2 = np.array(sample[0]["RT2"])[:sample_spectra.shape[0]]
+
+#     print("seed_rt1 length:", len(seed_rt1))
+#     print("seed_spectra shape:", seed_spectra.shape)
+#     print("sample_rt1 length:", len(sample_rt1))
+#     print("sample_spectra shape:", sample_spectra.shape)
+
+#     # RT1_index = np.abs(seed_rt1[:, None] - sample_rt1[None, :]) * RT1Penalty
+#     # RT2_index = np.abs(seed_rt2[:, None] - sample_rt2[None, :]) * RT2Penalty
+#        # Construire RT1_index en itérant sur sample_rt1 et comparant avec seed_rt1, 
+#     # puis assembler le tout en matrice avec nrow = similarity_matrix.shape[0]
+#     RT1_index_rows = []
+#     for rt1 in sample_rt1:
+#         diff = np.abs(rt1 - seed_rt1) * RT1Penalty
+#         RT1_index_rows.append(diff)
+#     RT1_index = np.vstack(RT1_index_rows).T  # transpose pour matcher shape (seed_peaks, sample_peaks)
+
+#     RT2_index_rows = []
+#     for rt2 in sample_rt2:
+#         diff = np.abs(rt2 - seed_rt2) * RT2Penalty
+#         RT2_index_rows.append(diff)
+#     RT2_index = np.vstack(RT2_index_rows).T
+
+#     print("similarity_matrix shape:", similarity_matrix.shape)
+#     print("RT1_index shape:", RT1_index.shape)
+#     print("RT2_index shape:", RT2_index.shape)
+#     # Résultat final = score de similarité - pénalité de RT1 - pénalité de RT2
+#     return similarity_matrix - RT1_index - RT2_index
+
 def generate_sim_frames(sample, seed_sample, RT2Penalty=5, RT1Penalty=1):
-    # Extraction des m/z (optionnel selon usage)
-    mz_seed = seed_sample[3]
-    mz_sample = sample[3]
-    print(f"Seed m/z: {mz_seed}, Sample m/z: {mz_sample}")
-    print(f"Are m/z equal? {mz_seed == mz_sample}")
-
-    # Création de la matrice des spectres (chaque ligne = un pic)
-    # seed_spectra = np.array(seed_sample[1]).T
-    # seed_spectra = seed_spectra / np.sqrt((seed_spectra**2).sum(axis=1, keepdims=True))
-
-    # sample_spectra = np.array(sample[1]).T
-    # sample_spectra = sample_spectra / np.sqrt((sample_spectra**2).sum(axis=1, keepdims=True))
-    seed_spectra = np.array([s.flatten() for s in seed_sample[1]])
-    sample_spectra = np.array([s.flatten() for s in sample[1]])
-    seed_spectra = seed_spectra / np.linalg.norm(seed_spectra, axis=1, keepdims=True)
-    sample_spectra = sample_spectra / np.linalg.norm(sample_spectra, axis=1, keepdims=True)
-    print(f"Seed spectra shape: {seed_spectra.shape}")
-
-    print(f"Sample spectra shape: {sample_spectra.shape}")
-
-    # Calcul de la similarité cosinus entre tous les pics des deux échantillons
+    """Generate similarity frames between sample and seed"""
+    
+    # Get spectra data
+    seed_spectra_list = seed_sample[1]
+    sample_spectra_list = sample[1]
+    
+    # Convert to matrix and normalize
+    max_len = max(len(s) for s in seed_spectra_list + sample_spectra_list if len(s) > 0)
+    if max_len == 0:
+        max_len = 1
+    
+    # Pad spectra to same length
+    seed_spectra = []
+    for spectrum in seed_spectra_list:
+        if len(spectrum) == 0:
+            padded = np.zeros(max_len)
+        elif len(spectrum) < max_len:
+            padded = np.pad(spectrum, (0, max_len - len(spectrum)), 'constant')
+        else:
+            padded = spectrum[:max_len]
+        seed_spectra.append(padded)
+    
+    sample_spectra = []
+    for spectrum in sample_spectra_list:
+        if len(spectrum) == 0:
+            padded = np.zeros(max_len)
+        elif len(spectrum) < max_len:
+            padded = np.pad(spectrum, (0, max_len - len(spectrum)), 'constant')
+        else:
+            padded = spectrum[:max_len]
+        sample_spectra.append(padded)
+    
+    seed_spectra = np.array(seed_spectra)
+    sample_spectra = np.array(sample_spectra)
+    
+    # Normalize spectra (avoid division by zero)
+    seed_norms = np.sqrt(np.sum(seed_spectra**2, axis=1, keepdims=True))
+    seed_norms[seed_norms == 0] = 1
+    seed_spectra = seed_spectra / seed_norms
+    
+    sample_norms = np.sqrt(np.sum(sample_spectra**2, axis=1, keepdims=True))
+    sample_norms[sample_norms == 0] = 1
+    sample_spectra = sample_spectra / sample_norms
+    
+    # Calculate similarity matrix (cosine similarity * 100)
     similarity_matrix = np.dot(seed_spectra, sample_spectra.T) * 100
-
-    # Calcul des pénalités de rétention (RT1 et RT2)
+    
+    # Get RT data
     seed_rt1 = np.array(seed_sample[0]["RT1"])
-    sample_rt1 = np.array(sample[0]["RT1"])
-
     seed_rt2 = np.array(seed_sample[0]["RT2"])
+    sample_rt1 = np.array(sample[0]["RT1"])
     sample_rt2 = np.array(sample[0]["RT2"])
-
-    RT1_index = np.abs(seed_rt1[:, None] - sample_rt1[None, :]) * RT1Penalty
-    RT2_index = np.abs(seed_rt2[:, None] - sample_rt2[None, :]) * RT2Penalty
-
-
-    # Résultat final = score de similarité - pénalité de RT1 - pénalité de RT2
+    
+    # Calculate RT penalties - IMPORTANT: following R logic exactly
+    # In R: matrix(unlist(lapply(Sample[[1]][, "RT1"], function(x) abs(x - SeedSample[[1]][, "RT1"]) * RT1Penalty))
+    # This creates a matrix where each column corresponds to a sample RT compared against all seed RTs
+    
+    RT1_index = np.zeros((len(seed_rt1), len(sample_rt1)))
+    RT2_index = np.zeros((len(seed_rt2), len(sample_rt2)))
+    
+    for j, sample_rt1_val in enumerate(sample_rt1):
+        RT1_index[:, j] = np.abs(sample_rt1_val - seed_rt1) * RT1Penalty
+    
+    for j, sample_rt2_val in enumerate(sample_rt2):
+        RT2_index[:, j] = np.abs(sample_rt2_val - seed_rt2) * RT2Penalty
+    
+    # Final score = similarity - RT penalties
     return similarity_matrix - RT1_index - RT2_index
     
 # def generate_sim_frames(sample, seed_sample, rt2_penalty=5, rt1_penalty=1):
@@ -240,6 +373,7 @@ if __name__ == "__main__":
     # Génération des frames de similarité pour chaque échantillon
     for SampNum in range(1, len(ImportedFiles)):
         if SampNum != 0:
+            # print("file", ImportedFiles[SampNum] )
             SimCutoffs = generate_sim_frames(ImportedFiles[SampNum], SeedSample)
             print(SimCutoffs)
             np.savetxt(f"D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/Py_SimCutoffs_{SampNum}.txt", SimCutoffs, delimiter="\t")

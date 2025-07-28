@@ -125,7 +125,8 @@ ConsensusAlignBis<-function (inputFileList,
     # ajouter 0 si spectre pas de la meme taille
     mzSeed<-SeedSample[[4]]
     mzSample<-Sample[[4]]
-    
+    # print(paste("Seed m/z:", paste(mzSeed, collapse=", "), "Sample m/z:", paste(mzSample, collapse=", ")))
+    # print(paste("Are m/z equal?", mzSeed == mzSample))
 
     seedSpectraFrame <- do.call(cbind, SeedSample[[2]])
     seedSpectraFrame <- t(seedSpectraFrame)
@@ -136,7 +137,8 @@ ConsensusAlignBis<-function (inputFileList,
     sampleSpectraFrame <- t(sampleSpectraFrame)
     sampleSpectraFrame <- as.matrix(sampleSpectraFrame)/sqrt(apply((as.matrix(sampleSpectraFrame))^2, 
                                                                    1, sum))
-
+    # print(paste("Seed spectra shape:", dim(seedSpectraFrame)))
+    # print(paste("Sample spectra shape:", dim(sampleSpectraFrame)))
     SimilarityMatrix <- (seedSpectraFrame %*% t(sampleSpectraFrame)) * 
       100 # similarity score entre chaque peak des deux sample s
 
@@ -168,15 +170,16 @@ ConsensusAlignBis<-function (inputFileList,
 
 
   for (SampNum in (1:length(ImportedFiles))) {
+    # print(paste("Processing sample:", SampNum))
     SimCutoffs <- GenerateSimFrames(ImportedFiles[[SampNum]],SeedSample)
-
+    # cat("simCutoffs.shape:", dim(SimCutoffs), "\n")
     MatchScores <- apply(SimCutoffs, 
                          2, function(x) max(x, na.rm = T))
-
+    # cat("matchScores.shape:", length(MatchScores), "\n")
     Mates <- apply(SimCutoffs, 
                    2, function(x) which.max(x))
+    # cat("mates:", Mates, "\n")
 
-    
     dissmatch<- which(MatchScores < disimilarityCutoff)
 
     

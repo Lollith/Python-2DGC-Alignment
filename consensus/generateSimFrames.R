@@ -52,6 +52,8 @@ GenerateSimFrames <- function(Sample, SeedSample, RT2Penalty=5, RT1Penalty=1) {
     mzSample<-Sample[[4]]
     # cat(mzSeed, mzSample, "\n")
     # print(mzSeed == mzSample)
+    print(paste("Seed m/z:", paste(mzSeed, collapse=", "), "Sample m/z:", paste(mzSample, collapse=", ")))
+    print(paste("Are m/z equal?", mzSeed == mzSample))
     
 
     seedSpectraFrame <- do.call(cbind, SeedSample[[2]])
@@ -59,14 +61,14 @@ GenerateSimFrames <- function(Sample, SeedSample, RT2Penalty=5, RT1Penalty=1) {
     seedSpectraFrame <- as.matrix(seedSpectraFrame)/sqrt(apply((as.matrix(seedSpectraFrame))^2, 
                                                                1, sum))
 
-    # print(paste("Seed spectra shape:", dim(seedSpectraFrame)))
+    print(paste("Seed spectra shape:", dim(seedSpectraFrame)))
 
     sampleSpectraFrame <- do.call(cbind, Sample[[2]])
     sampleSpectraFrame <- t(sampleSpectraFrame)
     sampleSpectraFrame <- as.matrix(sampleSpectraFrame)/sqrt(apply((as.matrix(sampleSpectraFrame))^2, 
                                                                    1, sum))
 
-    # print(paste("Sample spectra shape:", dim(sampleSpectraFrame)))
+    print(paste("Sample spectra shape:", dim(sampleSpectraFrame)))
 
     SimilarityMatrix <- (seedSpectraFrame %*% t(sampleSpectraFrame)) * 100 
         # similarity score entre chaque peak des deux sample s
