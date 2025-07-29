@@ -83,7 +83,7 @@ ImportFile <- function(File) {
 }
 
 ConsensusAlignBis<-function (inputFileList,
-                              ImportedFiles,
+                              # ImportedFiles,
                               seedFile=1,
                               RT1_Standards = NULL,
                               RT2_Standards = NULL,
@@ -199,7 +199,7 @@ ConsensusAlignBis<-function (inputFileList,
                     inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= similarityCutoff), 2]
 
       FinalMatrixSpectra[Mates[which(MatchScores >= similarityCutoff)], 
-                         inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= similarityCutoff), 4]
+                         inputFileList[SampNum]] <- ImportedFiles[[SampNum]][[1]][which(MatchScores >= similarityCutoff), "Spectra"]
 
     }
 
@@ -222,7 +222,7 @@ ConsensusAlignBis<-function (inputFileList,
 
       FinalMatrix<-rbind(FinalMatrix,new_rows_Area)
       FinalMatrixRT<-rbind(FinalMatrixRT,new_rows_RT)
-      FinalMatrixSpectra<-rbind(FinalMatrix,FinalMatrixSpectra)
+      FinalMatrixSpectra<-rbind(FinalMatrixSpectra,new_rows_Spectra)
     }
   }
 
@@ -249,7 +249,7 @@ ConsensusAlignBis<-function (inputFileList,
 # file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = "Processed.txt",full.names = TRUE,recursive = TRUE)
 file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
-                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
+                        # "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
 # file <-c("C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751303_v3_E3AM_5jui.txt", 
 #          "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751304_v1_E3AM_4jui.txt",
 #          "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751306_v1_E3PM_5jui.txt")
