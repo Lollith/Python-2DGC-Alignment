@@ -254,14 +254,14 @@
 ImportFile <- function(File) { 
 
   MissingStandards <- c()
-  currentRawFile <- read.table(File, sep = "\t", fill = T, 
-                               quote = "", strip.white = T, stringsAsFactors = F, 
-                               header = T)
+  currentRawFile <- read.table(File, sep = "\t", fill = TRUE, 
+                               quote = "", strip.white = TRUE, stringsAsFactors = FALSE, 
+                               header = TRUE)
 
-  currentRawFile[, 5] <- as.character(currentRawFile[, 
-                                                     5])
+  currentRawFile[, 5] <- as.character(currentRawFile[, 5])
+  # currentRawFile<-currentRawFile[which(!is.na(currentRawFile[,3])&nchar(currentRawFile[,5])!=0),]
   currentRawFile[, 2] <- as.character(currentRawFile[, 
-                                                     2])
+2])
   # #  Filtrage des lignes avec valeurs manquantes
   # currentRawFile <- currentRawFile[which(!is.na(currentRawFile[,3]) & 
   #                                       nchar(currentRawFile[,5]) != 0),]
@@ -310,7 +310,7 @@ ImportFile <- function(File) {
 }
 
 
-fichier <- "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/A-F-028-817822-droite-ReCIV.txt"
+fichier <- "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt"
 res <- ImportFile(fichier)
 to_save <- list(
   main_table = res[[1]],
@@ -327,7 +327,7 @@ print(unique_ions)
 write.csv(res[[1]], "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/r_current_raw_file.csv", row.names = F)
 saveRDS(to_save,file="D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/r_spectra_split.rds")
 write.csv(res[[4]], file = "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/r_ion_names.csv", row.names = FALSE)
-
+write.csv(res[[2]], file = "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/r_spectra_split.txt", row.names = FALSE)
 
 # write.csv(data.frame(ion = res[[1]]$Spectra), "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/r_ion_names.csv", row.names = F)
 # ions_char <- sapply(res[[4]], function(x) paste(x, collapse = " "))
