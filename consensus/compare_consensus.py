@@ -200,6 +200,9 @@ def compare_matrices(file_py, file_r, name, index_col=0):
 
     df_py = pd.read_csv(os.path.join(output_dir, file_py), sep="\t", index_col=index_col, na_values=["", "NA", '""'])
     df_r  = pd.read_csv(os.path.join(output_dir, file_r), sep="\t", index_col=index_col, na_values=["", "NA", '""'])
+    df_py.columns = df_py.columns.str.strip()
+    df_r.columns = df_r.columns.str.strip()
+
 
     print(f"  - Python shape: {df_py.shape}")
     print(f"  - R shape     : {df_r.shape}")
