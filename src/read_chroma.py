@@ -35,35 +35,35 @@ import plot
 #     print(range_max)
 
 
-# def read_only_chroma(filename, mod_time=1.25):
-#     r"""Read chromatogram file.
+def read_only_chroma(filename, mod_time=1.25):
+    r"""Read chromatogram file.
 
-#     Parameters
-#     ----------
-#     filename :
-#         Chromatogram full filename.
-#     mod_time : optional
-#         Modulation time
-#     -------
-#     Returns
-#     -------
-#     A: tuple
-#         Return the created chromato object wrapping (chromato TIC), (time_rn).
-#     --------
-#     Examples
-#     --------
-#     >>> import read_chroma
-#     >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
-#     """
-#     ds = nc.Dataset(filename, encoding="latin-1")
-#     chromato = ds['total_intensity']
-#     Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
-#     sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
-#     l1 = math.floor(sam_rate * mod_time)
-#     l2 = math.floor(len(chromato) / l1)
-#     chromato = np.reshape(chromato[:l1*l2], (l2,l1))
+    Parameters
+    ----------
+    filename :
+        Chromatogram full filename.
+    mod_time : optional
+        Modulation time
+    -------
+    Returns
+    -------
+    A: tuple
+        Return the created chromato object wrapping (chromato TIC), (time_rn).
+    --------
+    Examples
+    --------
+    >>> import read_chroma
+    >>> chromato = read_chroma.read_only_chroma(filename, mod_time)
+    """
+    ds = nc.Dataset(filename, encoding="latin-1")
+    chromato = ds['total_intensity']
+    Timepara = ds["scan_acquisition_time"][np.abs(ds["point_count"]) < np.iinfo(np.int32).max]
+    sam_rate = 1 / np.mean(Timepara[1:] - Timepara[:-1])
+    l1 = math.floor(sam_rate * mod_time)
+    l2 = math.floor(len(chromato) / l1)
+    chromato = np.reshape(chromato[:l1*l2], (l2,l1))
 
-    # return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
+    return chromato, (ds['scan_acquisition_time'][0] / 60, ds['scan_acquisition_time'][-1] / 60)
 
 
 def read_chroma(filename, mod_time, max_val=None):

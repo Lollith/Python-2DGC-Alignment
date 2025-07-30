@@ -38,5 +38,6 @@ if (Test-Path "$env:VENV_PATH") {
     # deactivate
 } else {
     Write-Host "Environnement virtuel non trouvé." -ForegroundColor Yellow
+    pip install -r requirements.txt
     python app.py
 }
