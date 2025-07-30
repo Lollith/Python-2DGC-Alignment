@@ -1215,15 +1215,17 @@ def peak_local_max(chromato_obj,
 
     # Compute peak_local_max for very mass slices in the chromato cube 
     elif (mode == "mass_per_mass"):
-        coordinates_all_mass = plm_mass_per_mass_multiprocessing(
-            chromato_cube, min_distance, abs_threshold, rel_threshold,
-            noise_factor, sigma)
-        # We delete masse dimension
-        if (len(coordinates_all_mass) > 0):
-            coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
-        if cluster is False:
-            return coordinates_all_mass
-        return clustering(coordinates_all_mass, eps, min_samples)
+        # coordinates_all_mass = plm_mass_per_mass_multiprocessing(
+        #     chromato_cube, min_distance, abs_threshold, rel_threshold,
+        #     noise_factor, sigma)
+        # # We delete masse dimension
+        # if (len(coordinates_all_mass) > 0):
+        #     coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+        # if cluster is False:
+        #     return coordinates_all_mass
+        # return clustering(coordinates_all_mass, eps, min_samples)
+
+        coordinates= detection_mass_par_mass()
     # Use TIC
     else:
         intensity_threshold = intensity_threshold_decision_rule(
