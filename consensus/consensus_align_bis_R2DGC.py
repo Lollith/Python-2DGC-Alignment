@@ -125,9 +125,7 @@ def generate_sim_frames(sample, seed_sample, RT2Penalty=5, RT1Penalty=1):
     sample_rt2 = np.array(sample[0]["RT2"])
     
     # Calculate RT penalties - IMPORTANT: following R logic exactly
-    # In R: matrix(unlist(lapply(Sample[[1]][, "RT1"], function(x) abs(x - SeedSample[[1]][, "RT1"]) * RT1Penalty))
     # This creates a matrix where each column corresponds to a sample RT compared against all seed RTs
-    
     RT1_index = np.zeros((len(seed_rt1), len(sample_rt1)))
     RT2_index = np.zeros((len(seed_rt2), len(sample_rt2)))
     
@@ -140,67 +138,8 @@ def generate_sim_frames(sample, seed_sample, RT2Penalty=5, RT1Penalty=1):
     # Final score = similarity - RT penalties
     return similarity_matrix - RT1_index - RT2_index
 
-# def generate_sim_frames(sample, seed_sample, RT2Penalty=10, RT1Penalty=1):
-#     """Generate similarity frames between sample and seed"""
-    
-#     # Get spectra data
-#     seed_spectra_list = seed_sample[1]
-#     sample_spectra_list = sample[1]
-    
-#     # Find maximum spectrum length
-#     all_spectra = [s for s in seed_spectra_list + sample_spectra_list if len(s) > 0]
-#     if not all_spectra:
-#         max_len = 1
-#     else:
-#         max_len = max(len(s) for s in all_spectra)
-    
-#     # Pad spectra to same length
-#     def pad_spectrum(spectrum, target_len):
-#         if len(spectrum) == 0:
-#             return np.zeros(target_len)
-#         elif len(spectrum) < target_len:
-#             return np.pad(spectrum, (0, target_len - len(spectrum)), 'constant')
-#         else:
-#             return spectrum[:target_len]
-    
-#     seed_spectra = np.array([pad_spectrum(s, max_len) for s in seed_spectra_list])
-#     sample_spectra = np.array([pad_spectrum(s, max_len) for s in sample_spectra_list])
-    
-#     # Normalize spectra (avoid division by zero)
-#     def normalize_spectra(spectra):
-#         norms = np.sqrt(np.sum(spectra**2, axis=1, keepdims=True))
-#         norms[norms == 0] = 1
-#         return spectra / norms
-    
-#     seed_spectra = normalize_spectra(seed_spectra)
-#     sample_spectra = normalize_spectra(sample_spectra)
-    
-#     # Calculate similarity matrix (cosine similarity * 100)
-#     similarity_matrix = np.dot(seed_spectra, sample_spectra.T) * 100
-    
-#     # Get RT data
-#     seed_rt1 = np.array(seed_sample[0]["RT1"])
-#     seed_rt2 = np.array(seed_sample[0]["RT2"])  
-#     sample_rt1 = np.array(sample[0]["RT1"])
-#     sample_rt2 = np.array(sample[0]["RT2"])
-    
-#     # Calculate RT penalties following R logic exactly
-#     # R creates matrix where each column j represents sample j compared to all seed peaks
-#     RT1_index = np.zeros((len(seed_rt1), len(sample_rt1)))
-#     RT2_index = np.zeros((len(seed_rt2), len(sample_rt2)))
-    
-#     for j, sample_rt1_val in enumerate(sample_rt1):
-#         RT1_index[:, j] = np.abs(sample_rt1_val - seed_rt1) * RT1Penalty
-    
-#     for j, sample_rt2_val in enumerate(sample_rt2):
-#         RT2_index[:, j] = np.abs(sample_rt2_val - seed_rt2) * RT2Penalty
-    
-#     # Final score = similarity - RT penalties
-#     return similarity_matrix - RT1_index - RT2_index
-
 
 def consensus_align_bis(input_file_list,
-                    #    imported_files=None,
                        seed_file=0,  # Python uses 0-based indexing
                        rt1_standards=None,
                        rt2_standards=None,
@@ -301,9 +240,6 @@ def consensus_align_bis(input_file_list,
 
      # Create row names (Name + "_1")
     row_names = [f"{seed_sample[0].iloc[i, 0]}_1" for i in range(n_rows)]
-    print("mon analyte est ds row_names?","Analyte296_3" in row_names)
-    print(row_names[:10])  # Print first 10 row names for debugging
-
 
     col_names = input_file_list.copy()
     # col_names = [os.path.basename(f) for f in input_file_list]
@@ -321,35 +257,17 @@ def consensus_align_bis(input_file_list,
         print(f"Processing sample: {samp_num + 1}")
         # Generate similarity frames (this function needs to be implemented)
         sim_cutoffs = generate_sim_frames(imported_files[samp_num], seed_sample, rt2_penalty, rt1_penalty)
-        # print(f"Similarity matrix: {sim_cutoffs}")
-        # print("Similarity row for Analyte296_3:")
-        # print(sim_cutoffs[idx, :])  # toutes les colonnes pour cette ligne
-        # # Afficher la ligne correspondante
-        # if "Analyte296_3" in sim_cutoffs.index:
-        #     print(sim_cutoffs.loc["Analyte296_3"])
-
-        # Afficher la colonne correspondante
-        # if "Analyte296_3" in sim_cutoffs.columns:
-        #     print(sim_cutoffs["Analyte296_3"])
 
         # Afficher la valeur spécifique à seed_sample (ex. seed analyte) si tu connais son nom
         seed_name = seed_sample[0].iloc[0, 0] + "_1"  # ou autre nom exact
-        # if "Analyte296_3" in sim_cutoffs.index and seed_name in sim_cutoffs.columns:
-        #     print(f"Similarity between {seed_name} and Analyte296_3:", sim_cutoffs.loc["Analyte296_3", seed_name])
-        
-        # print(f"Similarity matrix shape: {sim_cutoffs.shape}")
         # Calculate match scores (maximum similarity for each compound)
         match_scores = np.nanmax(sim_cutoffs, axis=0)
         
         # Find best matches (indices of maximum similarity)
         mates = np.nanargmax(sim_cutoffs, axis=0)
         
-        # print(f"Match scores shape: {match_scores.shape}")
-        # print(f"Mates shape: {mates.shape}")
-        # print(f"Number of valid matches (>= {similarity_cutoff}): {np.sum(match_scores >= similarity_cutoff)}")
         # Find dissimilar matches
         dissmatch = np.where(match_scores < disimilarity_cutoff)[0]
-        # print(f"Number of dissimilar matches: {len(dissmatch)}")
 
         # CRITICAL: Follow R logic exactly for duplicate handling
         # 1. Create named arrays
@@ -376,7 +294,6 @@ def consensus_align_bis(input_file_list,
         if quant_method == "T":
             valid_matches = final_scores >= similarity_cutoff
             valid_indices = np.where(valid_matches)[0]
-            print(f"Final valid matches: {len(valid_indices)}")
             
             for sample_idx in valid_indices:
                 seed_idx = final_mates[sample_idx]
@@ -388,12 +305,9 @@ def consensus_align_bis(input_file_list,
                     # Fill Spectra (column 5 in R = index 4 in Python)
                     final_matrix_spectra.iloc[seed_idx, samp_num] = str(imported_files[samp_num][0].iloc[sample_idx, 4])
                  
-
-            
         # Handle dissimilar matches - add new rows
         if len(dissmatch) > 0:
             # Add to seed sample
-            print(f"Adding {len(dissmatch)} new rows for dissimilar matches")
             new_data = imported_files[samp_num][0].iloc[dissmatch].copy()
             seed_sample[0] = pd.concat([seed_sample[0], new_data], ignore_index=True)
             
@@ -402,8 +316,6 @@ def consensus_align_bis(input_file_list,
             
             # Create new rows for matrices
             new_row_names = [f"{imported_files[samp_num][0].iloc[idx, 0]}_{samp_num+1}" for idx in dissmatch]
-            if "Analyte296_3" in new_row_names:
-                print(f"Ajouté dans dissmatches pour le fichier {input_file_list[samp_num]} : {new_row_names}")
 
             # Create new rows filled with NaN
             new_rows_area = pd.DataFrame(np.full((len(new_row_names), len(col_names)), np.nan), 
@@ -417,18 +329,12 @@ def consensus_align_bis(input_file_list,
             for i, dissim_idx in enumerate(dissmatch):
                 new_rows_area.iloc[i, samp_num] = float(imported_files[samp_num][0].iloc[dissim_idx, 2])  # Area
                 new_rows_rt.iloc[i, samp_num] = str(imported_files[samp_num][0].iloc[dissim_idx, 1])      # RT
-                new_rows_spectra.iloc[i, samp_num] = str(imported_files[samp_num][0].iloc[dissim_idx, 3]) # Spectra
+                new_rows_spectra.iloc[i, samp_num] = str(imported_files[samp_num][0].iloc[dissim_idx, 4]) # Spectra
             
             # Append new rows to matrices
             final_matrix = pd.concat([final_matrix, new_rows_area])
             final_matrix_rt = pd.concat([final_matrix_rt, new_rows_rt])
             final_matrix_spectra = pd.concat([final_matrix_spectra, new_rows_spectra])
-            # print(final_matrix_spectra.loc[['Analyte296_3']])
-            # print(imported_files[samp_num][0].iloc[dissmatch][['Name', 'Spectra']]).
-            # print([idx for idx in final_matrix_spectra.index if 'Analyte296_3' in idx])
-            print("new","Analyte296_3" in final_matrix_spectra.index)
-            # print(final_matrix_spectra.loc["Analyte296_3"])
-
 
 
      # Update seed sample names to match final matrix row names
@@ -443,13 +349,6 @@ def consensus_align_bis(input_file_list,
     seed_sample[0] = seed_sample[0].iloc[:len(final_matrix)].copy()
     seed_sample[0]['Name'] = final_matrix.index.tolist()
     
-
-    # row = final_matrix_spectra.loc["Analyte296_3"]
-    # print("je suis vide = true, false = manquante/Nan",row.notna())
-    # print("affiche le contenu pour mon analyte296_3", row)
-
-    print("est ce que 296, ds mon index",[idx for idx in final_matrix.index if "296" in idx])
-
     # Order by RT (assuming RT1 is in a column called 'RT1' or similar)
     if 'RT1' in seed_sample[0].columns:
         order_rt = seed_sample[0]['RT1'].argsort()
@@ -470,43 +369,12 @@ def consensus_align_bis(input_file_list,
     return return_dict
 
 
-# if __name__ == "__main__":
-#     file = [
-#         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt",
-#         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
-#         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt"
-#     ]
-#     num_cores = min(os.cpu_count(), 60)
-#     alignment = consensus_align_bis(
-#         input_file_list=file,
-#         seed_file=0,
-#         missing_value_limit=0,
-#         rt2_penalty=5,
-#         rt1_penalty=1,
-#         similarity_cutoff=90,
-#         disimilarity_cutoff=90,
-#         num_cores=num_cores,
-#         common_ions=None
-#     )
-#     # print(alignment_matrix)
-
-
-#     alignment_filtered_matrix = alignment['Alignment_Matrix'].copy()
-#     my_filter = 0.5
-#     indexkeep = alignment_filtered_matrix.isna().mean(axis=1) < my_filter
-
-#     alignment_filtered_matrix = alignment_filtered_matrix[indexkeep]
-#     alignment_filtered_matrix.to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_alignment_matrix_after_filter.txt", sep="\t", index=True)
-
-#     alignment["Peak_Info"].to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_peak_info.txt", sep="\t", index=True)
-#     alignment["RT_group"].to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_rt_group.txt", sep="\t", index=True)
-#     alignment["spectra_group"].to_csv("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/py_spectra_group.txt", sep="\t", index=True)
 if __name__ == "__main__":
     # Test files
     file = [
         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt",
         "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
-        # "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt"
+        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt"
     ]
     
     # Run alignment with same parameters as R
@@ -524,9 +392,6 @@ if __name__ == "__main__":
         quant_method="T"
     )
     
-    # print("Alignment Matrix shape:", alignment['Alignment_Matrix'].shape)
-    # print("\nFirst few rows of Alignment Matrix:")
-    # print(alignment['Alignment_Matrix'].head(15))
     
     # Apply filter
     alignment_filtered_matrix = alignment['Alignment_Matrix'].copy()
@@ -566,5 +431,4 @@ if __name__ == "__main__":
         sep="\t", index=True, na_rep="NA"
     )
     
-    # print(f"\nFiltered matrix shape: {alignment_filtered_matrix.shape}")
     print("Results saved successfully!")
