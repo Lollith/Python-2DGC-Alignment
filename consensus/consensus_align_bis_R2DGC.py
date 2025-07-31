@@ -538,7 +538,7 @@ class chromatographicAligner:
         
         # Save RT Group
         self.alignment_results['RT_group'].to_csv(
-            os.path.join(output_dir, "py_RT_Group.txt"),
+            os.path.join(output_dir, "py_RT_Group.csv"),
             sep="\t", index=True
         )
         
@@ -570,11 +570,25 @@ class chromatographicAligner:
         print(f"Results saved to directory: {output_dir}")
 
 if __name__ == "__main__":
-    file = [
-        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt",
-        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
-        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt"
-    ]
+    # file = [
+    #     "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt",
+    #     "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+    #     "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt"
+    # ]
+    # folder = r"D:/GCxGC_MS/DATA/h5/2025_06_27_GCxGC_VOLATIL_CF_08bis_postPTR/resultPersistantHomology_tic/"
+    # file = [folder + "15-04-25_817822_QC_23newE.txt",
+    #     folder + "2025-04-10-854514_Q.txt",
+    #     folder + "2025-04-16_751318_QCnew23E.txt",
+    #     folder + "2025-05-14_817827-QC_23EI_prep22-0.txt",
+    # ]
+
+    folder = "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
+    file = [folder + "751303_v3_E3AM_5jui.txt" , 
+        folder + "751309_v3_E3PM_6jui.txt", 
+        folder + "854512_v3_E2AM_4jui.txt", 
+        folder + "854517_v3_E2AM_5jui.txt", 
+        folder + "802107_v1_E1PM_3jui.txt"]
+    print("Importing files...", file)
     aligner = chromatographicAligner(
         rt1_penalty=1,
         rt2_penalty=5,

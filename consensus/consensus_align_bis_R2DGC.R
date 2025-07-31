@@ -247,12 +247,19 @@ ConsensusAlignBis<-function (inputFileList,
 
 
 # file<-list.files("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic",pattern = "Processed.txt",full.names = TRUE,recursive = TRUE)
-file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
-                       "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
+# file <- c("D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751303_v3_E3AM_5jui.txt", 
+#                        "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751304_v1_E3AM_4jui.txt",
                         # "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/751306_v1_E3PM_5jui.txt")
 # file <-c("C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751303_v3_E3AM_5jui.txt", 
 #          "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751304_v1_E3AM_4jui.txt",
 #          "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\Python-2DGC-Alignment\\consensus\\751306_v1_E3PM_5jui.txt")
+folder <- "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
+file <- c(
+        paste0(folder, "751303_v3_E3AM_5jui.txt") , 
+        paste0(folder, "751309_v3_E3PM_6jui.txt"), 
+        paste0(folder, "854512_v3_E2AM_4jui.txt"), 
+        paste0(folder, "854517_v3_E2AM_5jui.txt"), 
+        paste0(folder, "802107_v1_E1PM_3jui.txt"))
 
 Alignment<-ConsensusAlignBis(inputFileList = file, seedFile =1,
   missingValueLimit=0, RT2Penalty = 5, RT1Penalty=1, similarityCutoff=90,
@@ -276,21 +283,21 @@ Alignment_filtered_matrix<-Alignment_filtered_matrix[indexKeep,]
 # output_dir <- "C:/Users/adeli/Documents/programmation/uvsq/Python-2DGC-Alignment/consensus/"
 output_dir <- "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/"
 write.table(Alignment$Alignment_Matrix,
-            file = file.path(output_dir, "R_Alignment_Matrix.txt"),
+            file = file.path(output_dir, "R_Alignment_Matrix.csv"),
             sep = "\t", row.names = TRUE, quote = FALSE)
 
 write.table(Alignment$Peak_Info,
-            file = file.path(output_dir, "R_Peak_Info.txt"),
+            file = file.path(output_dir, "R_Peak_Info.csv"),
             sep = "\t", row.names = FALSE, quote = FALSE)
 
 write.table(Alignment$RT_group,
-            file = file.path(output_dir, "R_RT_Group.txt"),
+            file = file.path(output_dir, "R_RT_Group.csv"),
             sep = "\t", row.names = TRUE, quote = FALSE)
 
 write.table(Alignment$spectra_group,
-            file = file.path(output_dir, "R_Spectra_Group.txt"),
+            file = file.path(output_dir, "R_Spectra_Group.csv"),
             sep = "\t", row.names = TRUE, quote = FALSE)
 
 write.table(Alignment_filtered_matrix,
-            file = file.path(output_dir, "R_Alignment_Matrix_after_filter.txt"),
+            file = file.path(output_dir, "R_Alignment_Matrix_after_filter.csv"),
             sep = "\t", row.names = TRUE, quote = FALSE)

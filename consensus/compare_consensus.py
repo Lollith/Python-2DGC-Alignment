@@ -247,10 +247,10 @@ def compare_matrices(file_py, file_r, name, index_col=0):
     return diffs
 
 # Comparaison des fichiers
-diff1 = compare_matrices("py_Alignment_Matrix_after_filter.txt", "R_Alignment_Matrix_after_filter.txt", "Alignment Matrix (filtered)")
-diff2 = compare_matrices("py_RT_Group.txt", "R_RT_Group.txt", "RT Group")
-diff3 = compare_matrices("py_Spectra_Group.txt", "R_Spectra_Group.txt", "Spectra Group")
-diff4 = compare_matrices("py_Peak_Info.txt", "R_Peak_Info.txt", "Peak Info", index_col=0)
+diff1 = compare_matrices("py_Alignment_Matrix.csv", "R_Alignment_Matrix.csv", "Alignment Matrix")
+diff2 = compare_matrices("py_RT_Group.csv", "R_RT_Group.csv", "RT Group")
+diff3 = compare_matrices("py_Spectra_Group.csv", "R_Spectra_Group.csv", "Spectra Group")
+diff4 = compare_matrices("py_Peak_Info.csv", "R_Peak_Info.csv", "Peak Info", index_col=0)
 
 # Résumé global
 total_diffs = sum(len(d) for d in [diff1, diff2, diff3, diff4])
