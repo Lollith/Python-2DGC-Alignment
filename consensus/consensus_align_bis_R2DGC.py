@@ -253,19 +253,7 @@ class chromatographicAligner:
 
     def consensus_align_bis(self, input_file_list,
                         seed_file=0,  # Python uses 0-based indexing
-                        # rt1_standards=None,
-                        # rt2_standards=None,
-                        # c=1,
-                        # rt1_penalty=1,
-                        # rt2_penalty=10,
-                        # auto_tune_match_stringency=True,
-                        # similarity_cutoff=90,
-                        # disimilarity_cutoff=None,
-                        # num_cores=1,
                         common_ions=None,
-                        # missing_value_limit=0.75,
-                        # missing_peak_finder_similarity_lax=0.85,
-                        # quant_method="T",
                         standard_library=None):
         """
         Consensus alignment function for chromatographic data.
@@ -322,17 +310,6 @@ class chromatographicAligner:
         # Import files if not provided
         if self.imported_files is None:
             self.import_files(input_file_list)
-        # if num_cores == 1:
-            # imported_files = [importFile(file) for file in input_file_list]
-        # else:
-            # Ensure compatibility with both Windows and Linux
-            # On Windows, use 'spawn' method for multiprocessing
-            # if platform.system() == 'Windows':
-            #     import multiprocessing
-            #     multiprocessing.set_start_method('spawn', force=True)
-            
-            # with ProcessPoolExecutor(max_workers=num_cores) as executor:
-            #     imported_files = list(executor.map(importFile, input_file_list))
         
         # Check for missing files
         missing_file_list = []
@@ -507,26 +484,30 @@ class chromatographicAligner:
         Returns:
         --------
         pd.DataFrame : Filtered alignment matrix
-        """
+        """ 
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
-        
+    
         alignment_matrix = self.alignment_results['Alignment_Matrix'].copy()
         
-        # Count non-NA values per row
+        # Détermination des lignes à conserver
         non_na_count = alignment_matrix.notna().sum(axis=1)
         threshold = missing_value_threshold * alignment_matrix.shape[1]
-        
-        # Keep rows where more than threshold proportion are not missing
-        index_keep = non_na_count > threshold
-        filtered_matrix = alignment_matrix[index_keep]
-        
-        print(f"Filtering: kept {filtered_matrix.shape[0]} rows out of {alignment_matrix.shape[0]} "
-              f"(threshold: {missing_value_threshold*100}% non-missing values)")
-        
-        return filtered_matrix
+        mask_keep = non_na_count > threshold
 
-    def save_results(self, output_dir, alignment_filtered_matrix=None):
+        print(f"Filtering: kept {mask_keep.sum()} rows out of {alignment_matrix.shape[0]} "
+            f"(threshold: {missing_value_threshold*100:.0f}% non-missing values)")
+
+        # Application du masque booléen (même position, pas besoin d'utiliser .loc avec labels)
+        filtered_results = {
+            'Alignment_Matrix': alignment_matrix[mask_keep],
+            'Peak_Info': self.alignment_results['Peak_Info'].iloc[mask_keep.values].reset_index(drop=True),
+            'RT_group': self.alignment_results['RT_group'].iloc[mask_keep.values],
+            'spectra_group': self.alignment_results['spectra_group'].iloc[mask_keep.values]
+        }
+        
+
+    def save_results(self, output_dir, filtered_results=None):
         """
         Save alignment results to files in tab-separated format.
         
@@ -534,8 +515,8 @@ class chromatographicAligner:
         -----------
         output_dir : str
             Output directory path
-        alignment_filtered_matrix : pd.DataFrame, optional
-            Filtered alignment matrix to save separately
+        filtered_results : dict, optional
+            Dictionary containing filtered versions of all matrices
         """
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
@@ -545,13 +526,13 @@ class chromatographicAligner:
         
         # Save Alignment Matrix
         self.alignment_results['Alignment_Matrix'].to_csv(
-            os.path.join(output_dir, "py_Alignment_Matrix.txt"),
+            os.path.join(output_dir, "py_Alignment_Matrix.csv"),
             sep="\t", index=True, na_rep="NA"
         )
         
         # Save Peak Info
         self.alignment_results['Peak_Info'].to_csv(
-            os.path.join(output_dir, "py_Peak_Info.txt"),
+            os.path.join(output_dir, "py_Peak_Info.csv"),
             sep="\t", index=False
         )
         
@@ -563,15 +544,27 @@ class chromatographicAligner:
         
         # Save Spectra Group
         self.alignment_results['spectra_group'].to_csv(
-            os.path.join(output_dir, "py_Spectra_Group.txt"),
+            os.path.join(output_dir, "py_Spectra_Group.csv"),
             sep="\t", index=True
         )
         
         # Save filtered matrix if provided
-        if alignment_filtered_matrix is not None:
-            alignment_filtered_matrix.to_csv(
-                os.path.join(output_dir, "py_Alignment_Matrix_after_filter.txt"),
+        if filtered_results is not None:
+            filtered_results['Alignment_Matrix'].to_csv(
+                os.path.join(output_dir, "py_Alignment_Matrix_after_filter.csv "),
                 sep="\t", index=True, na_rep="NA"
+            )
+            filtered_results['Peak_Info'].to_csv(
+            os.path.join(output_dir, "py_Peak_Info_after_filter.csv"),
+            sep="\t", index=False
+            )
+            filtered_results['RT_group'].to_csv(
+                os.path.join(output_dir, "py_RT_Group_after_filter.txt"),
+                sep="\t", index=True
+            )
+            filtered_results['spectra_group'].to_csv(
+                os.path.join(output_dir, "py_Spectra_Group_after_filter.csv"),
+                sep="\t", index=True
             )
             
         print(f"Results saved to directory: {output_dir}")
@@ -599,8 +592,8 @@ if __name__ == "__main__":
         seed_file=0
     )
 
-    alignment_filtered_matrix = aligner.filter_alignment_matrix(missing_value_threshold=0.5)
+    filtered_results = aligner.filter_alignment_matrix(missing_value_threshold=0.5)
 
     # # Save results
     output_dir = "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/"
-    aligner.save_results(output_dir, alignment_filtered_matrix)
+    aligner.save_results(output_dir, filtered_results)
