@@ -43,10 +43,10 @@ def chromato_reduced_noise(chromato, j=None):
     for i in range(tmp.shape[1]):
         tmp[:, i] = savgol_filter(
            chromato[:, i] - pybaselines.whittaker.asls(chromato[:, i],
-                                                       lam=10**7,
-                                                       p=10**-3)[0],
-           window_length=5,  # 5, 11 pour un lissage + fort
-           polyorder=2,
+                                                       lam=10**3,
+                                                       p=0.01)[0],
+           window_length=50,  # 5, 11 pour un lissage + fort
+           polyorder=3,
            mode='nearest')
     tmp[tmp < .0] = 0
     return tmp
