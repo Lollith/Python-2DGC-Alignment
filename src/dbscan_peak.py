@@ -1,4 +1,3 @@
-from peak_detection import peak_detection
 import projection
 import numpy as np
 import mass_spec
@@ -26,7 +25,6 @@ from peak_detection import intensity_threshold_decision_rule
 # sigma Dog parameter 
  
 
-
 def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
                                                 abs_threshold=500,
                                                 rel_threshold=0.00001,
@@ -35,11 +33,71 @@ def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
                                                 max_sigma=20,
                                                 sigma_ratio=2,
                                                 overlap=0.5, 
+                                                max_peak_per_mass=600,
                                                 rt1_delta=2, 
                                                 rt2_delta=0.02,
                                                 min_size_cluster_mass=2, 
                                                 thr_debscan= 0.02, 
-                                                parallel=True):
+                                                multiprocessing=True):
+    r"""
+    Detects chromatographic peaks in a 3D data cube (retention time 1 × retention time 2 × m/z)
+    on a per-mass (m/z) basis using DoG method.
+
+    Parameters
+    ----------
+    chromato_cube : np.ndarray
+        3D numpy array representing the chromatographic data cube 
+        with shape (rt1, rt2, mz), where each voxel contains an intensity value.
+        
+    chromato_obj : object
+        (chromato, time_rn)
+        
+    mod_time : float
+        Modulation time (e.g., for GC GC) in seconds.
+
+    abs_threshold : float, optional
+        Absolute intensity threshold for peak detection.
+        
+    rel_threshold : float, optional
+        Relative intensity threshold (e.g., fraction of maximum) for dynamic filtering.
+
+    noise_factor : float, optional
+        Multiplier applied to the estimated noise level to define the dynamic threshold.
+
+    min_sigma : int, optional
+        parameter of  skimage.feature.blob_dog function
+
+    max_sigma : int, optional
+        parameter of  skimage.feature.blob_dog function
+
+    sigma_ratio : float, optional
+        parameter of  skimage.feature.blob_dog function
+
+    overlap : float, optional
+        parameter of  skimage.feature.blob_dog function
+
+    max_peak_per_mass : int, optional
+        Maximum number of peaks retained per m/z slice.
+
+    rt1_delta : float, optional
+        Tolerance window in the first retention time dimension for merging or filtering peaks.
+
+    rt2_delta : float, optional
+        Tolerance window in the second retention time dimension for merging or filtering peaks.
+
+    min_size_cluster_mass : int, optional
+        Minimum number of peaks in a mass cluster (for downstream clustering or filtering).
+
+    thr_debscan : float, optional
+        Distance threshold used for density-based clustering (e.g., DBSCAN) during mass alignment.
+
+    multiprocessing : bool, optional
+        If True, process m/z slices in parallel to accelerate detection.
+
+    Returns
+    -------
+    list coordinates in index in the chormato
+    """ 
     (chromato, time_rn) = chromato_obj
 
     print("start peak detection")
@@ -48,10 +106,10 @@ def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
                        noise_factor,
                        min_sigma, max_sigma,
                        sigma_ratio,
-                       overlap,parallel=parallel)
+                       overlap,parallel=multiprocessing)
     
     print("cluster_per_mass")
-    results=cluster_per_mass(results,chromato_cube,time_rn)
+    results=cluster_per_mass(results,chromato_cube,time_rn,mod_time,rt1_delta=2*mod_time, rt2_delta=0.1,thr_debscan=0.05,max_peak_per_mass=max_peak_per_mass)
     results = [res for res in results if res is not None]
     coordinates_all_mass=[]
     for elt in results:
@@ -65,7 +123,7 @@ def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
     
     print("start clustering")
     coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates_all_mass,thr_debscan=thr_debscan,min_sample_db_scan=min_size_cluster_mass)
-    distance_matrix=compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta=2*1.7, rt2_delta=0.1)
+    distance_matrix=compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta=2*mod_time, rt2_delta=0.1)
     coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates_all_mass,thr_debscan=0.03,min_sample_db_scan=1)
     
     print(str(len(coordinates))+ " detected peaks")
@@ -181,18 +239,18 @@ def detect_peak_dog_mp(chromato_cube,
     return results
 
 
-def cluster_per_mass(coordinate,chromato_cube,time_rn):
+def cluster_per_mass(coordinate,chromato_cube,time_rn, mod_time,rt1_delta, rt2_delta,thr_debscan,max_peak_per_mass):
     coordinate_cluster=[]
     for mass, coord in enumerate(coordinate) :
         tmp=chromato_cube[mass,:,:]
         npeak=len(coord)
         if(npeak!=0):  
-                distance_matrix=compute_distance_metric(coord,chromato_cube,1.7,time_rn,rt1_delta=5, rt2_delta=0.1)
-                coordinates, clusters= cluster_peak(distance_matrix,tmp,coord,thr_debscan=0.05,min_sample_db_scan=1)
+                distance_matrix=compute_distance_metric(coord,chromato_cube,mod_time,time_rn,rt1_delta, rt2_delta)
+                coordinates, clusters= cluster_peak(distance_matrix,tmp,coord,thr_debscan,min_sample_db_scan=1)
                 npeak= len(coordinates)
-                if npeak>600:
+                if npeak>max_peak_per_mass:
                     intensities = np.array([tmp[coord[0], coord[1]] for coord in coordinates])
-                    top_indices = np.argsort(intensities)[-600:][::-1]  # descending order
+                    top_indices = np.argsort(intensities)[-max_peak_per_mass:][::-1]  # descending order
                     coordinates = coordinates[top_indices]
                 res=[]
                 for x,y in coordinates:
