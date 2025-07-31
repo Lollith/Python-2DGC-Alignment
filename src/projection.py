@@ -1,4 +1,5 @@
 import numpy as np
+
 def matrix_to_chromato(points, time_rn, mod_time, chromato_dim):
     r"""Project points from chromatogram matrix (ndarray) into chromatogram (in time).
 
@@ -61,3 +62,13 @@ def chromato_to_matrix(points, time_rn, mod_time, chromato_dim):
     #return np.rint(np.column_stack(((points[:,0] -  time_rn[0]) * chromato_dim[0] / (time_rn[1] - time_rn[0]), points[:,1] / mod_time * chromato_dim[1]))).astype(int)
     return np.rint(np.column_stack(((points[:,0] -  time_rn[0]) * (chromato_dim[0] - 1) / (time_rn[1] - time_rn[0]), points[:,1] / mod_time * (chromato_dim[1] - 1)))).astype(int)
 
+    # coords = np.rint(np.column_stack((
+    #     (points[:, 0] - time_rn[0]) * (chromato_dim[0] - 1) / (time_rn[1] - time_rn[0]),
+    #     points[:, 1] / mod_time * (chromato_dim[1] - 1)
+    # ))).astype(int)
+
+    # # Clamp pour rester dans les bornes
+    # coords[:, 0] = np.clip(coords[:, 0], 0, chromato_dim[0] - 1)
+    # coords[:, 1] = np.clip(coords[:, 1], 0, chromato_dim[1] - 1)
+
+    # return coords

@@ -167,6 +167,8 @@ def matching_nist_lib_from_chromato_cube(
     --------
     """
     global cache
+    # print("matching nist, chromatocube shape", chromato_cube.shape)
+
     start = time.time()
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(
@@ -203,7 +205,7 @@ def matching_nist_lib_from_chromato_cube(
                 top_hits = cache[spectrum_hash]
                 print(f"Cache hit for peak {i + 1}")
             else:
-                print("Matching with NIST library...")
+                # print("Matching with NIST library...")
                 serialized_spectrum = {
                     "mass": [float(m) for m in mass_values],
                     "intensity": [float(i) for i in int_values]
