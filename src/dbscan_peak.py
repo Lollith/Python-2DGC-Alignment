@@ -179,12 +179,16 @@ def compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta
     npeaks = spectra.shape[0]
     if(npeaks <10000):
         spec_dists = cosine_distances(spectra)
+        distance_matrix = spec_dists + 0.01 *rt_penalty_value
     else :    
         spec_dists=compute_cosine_distance_batch(spectra)
         spec_dists = spec_dists.astype(np.float32)
         rt_penalty_value = rt_penalty_value.astype(np.float32)
-    distance_matrix = spec_dists + 0.01 *rt_penalty_value
-    
+        mask = rt_penalty_value < 10
+
+        # Allocate result only for close RT 
+        distance_matrix = np.full_like(spec_dists, 1)
+        distance_matrix[mask] = spec_dists[mask] + 0.01 * rt_penalty_value[mask]
     return distance_matrix
 
 import numpy as np

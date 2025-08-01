@@ -14,6 +14,8 @@ import time
 import projection
 import plot
 import pyms
+import dbscan_peak
+
 
 
 def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
@@ -73,7 +75,7 @@ def mass_spectra_format(mass_range, int_values):
 
 def compute_matches_identification(matches, chromato, chromato_cube,
                                    mass_range, formated_spectra,
-                                   similarity_threshold=0.001,
+                                   similarity_threshold=0.001,quant="mass"
                                    ):
     """
     Computes the identification data for each match in a list of matches,
@@ -146,13 +148,19 @@ def compute_matches_identification(matches, chromato, chromato_cube,
         match_data_list = match[1] \
             if isinstance(match[1], list) else [match[1]]
         coord = match[2]
-
+        majority_mass=np.argmax(match[1][0]['spectra'])
+        if(quant=="mass"):
+            chormato_m = chromato_cube[majority_mass,:,:] ## pas sur le chromato mais sur la masse majoritaire 
+        else: 
+            chormato_m=chromato
         blob = integration.peak_pool_similarity_check(
-            chromato, np.stack(matches[:, 2]), coord, chromato_cube,
+            chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
             threshold=0.5, plot_labels=True,
             similarity_threshold=similarity_threshold)
-        area = integration.compute_area(chromato, blob)
-        height = chromato[coord[0], coord[1]]
+        
+        area = integration.compute_area(chormato_m, blob) 
+
+        height = chormato_m[coord[0], coord[1]]
 
         def join_field(field):
             return '/'.join(str(m.get(field, '')) for m in match_data_list)
@@ -180,14 +188,13 @@ def compute_matches_identification(matches, chromato, chromato_cube,
         matches_identification.append(identification_data_dict)
     return matches_identification
 
-
 def identification(filename,
                    mod_time,
                    method, mode, noise_factor,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence, overlap, eps, min_samples, nist):
+                   min_persistence, overlap, eps, min_samples, nist,quant):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -236,34 +243,54 @@ def identification(filename,
                                                     mod_time,
                                                     pre_process=True
                                                     ))
-    # find 2D peaks
-    coordinates = peak_detection.peak_detection(
-        (chromato_tic, time_rn, mass_range),
-        chromato_cube=chromato_cube,
-        sigma=sigma,
-        noise_factor=noise_factor,
-        abs_threshold=abs_threshold,
-        rel_threshold=rel_threshold,
-        method=method,
-        mode=mode,
-        cluster=cluster,
-        min_distance=min_distance,
-        min_sigma=min_sigma,
-        max_sigma=max_sigma,
-        sigma_ratio=sigma_ratio,
-        num_sigma=num_sigma,
-        min_persistence=min_persistence,
-        overlap=overlap,
-        eps=eps,
-        min_samples=min_samples)
+    
+    
+    if (mode=="mass_per_mass") & method=="DoG" :
+        max_peak_per_mass=600
+        coordinates = dbscan_peak.detection_mass_par_mass_Dog(chromato_cube,(chromato_tic, time_rn),
+                                                            mod_time,
+                                                                abs_threshold,
+                                                                rel_threshold,
+                                                                noise_factor,
+                                                                min_sigma,
+                                                                max_sigma,
+                                                                sigma_ratio,
+                                                                overlap, 
+                                                                max_peak_per_mass,
+                                                                rt1_delta=2, 
+                                                                rt2_delta=0.02,
+                                                                min_size_cluster_mass=2, 
+                                                                thr_debscan=0.02, 
+                                                                multi_processing=True,
+                                                                cleaning_close_peak=True)
+    else:
+        coordinates = peak_detection.peak_detection(
+            (chromato_tic, time_rn, mass_range),
+            chromato_cube=chromato_cube,
+            sigma=sigma,
+            noise_factor=noise_factor,
+            abs_threshold=abs_threshold,
+            rel_threshold=rel_threshold,
+            method=method,
+            mode=mode,
+            cluster=cluster,
+            min_distance=min_distance,
+            min_sigma=min_sigma,
+            max_sigma=max_sigma,
+            sigma_ratio=sigma_ratio,
+            num_sigma=num_sigma,
+            min_persistence=min_persistence,
+            overlap=overlap,
+            eps=eps,
+            min_samples=min_samples)
     print("nb peaks", len(coordinates))
-
-    if mode == 'tic':
-        coordinates_in_chromato = projection.matrix_to_chromato(
+    
+    
+    coordinates_in_chromato = projection.matrix_to_chromato(
             coordinates, time_rn, mod_time, chromato_tic.shape)
-        plot.visualizer((chromato_tic, time_rn), mod_time,
+    plot.visualizer((chromato_tic, time_rn), mod_time,
                         title=f"peak detection with mode {mode} and method {method}",
-                        log_chromato=False, points=coordinates_in_chromato)
+                        log_chromato=True, points=coordinates_in_chromato)
 
     matches = matching.matching_nist_lib_from_chromato_cube(
             (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
@@ -273,7 +300,7 @@ def identification(filename,
 
     matches_identification = compute_matches_identification(
             matches, chromato_tic, chromato_cube, mass_range,
-            formated_spectra, similarity_threshold=0.001)
+            formated_spectra, similarity_threshold=0.001, quant=quant)
     return matches_identification
 
 
@@ -412,7 +439,7 @@ def sample_identification(path, file, output_path,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
                           num_sigma,
                           formated_spectra, match_factor_min, min_persistence,
-                          overlap, eps, min_samples, nist):
+                          overlap, eps, min_samples, nist,quant):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -483,7 +510,7 @@ def sample_identification(path, file, output_path,
                                                 overlap,
                                                 eps,
                                                 min_samples,
-                                                nist)
+                                                nist, quant)
         print("Identification done", time.time()-start_time, 's')
         print("output_path from identificqtion", output_path)
         cohort_identification_alignment_input_format_txt(
