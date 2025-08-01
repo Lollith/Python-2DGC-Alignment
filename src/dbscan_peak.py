@@ -7,9 +7,11 @@ from sklearn.metrics.pairwise import cosine_distances
 import multiprocessing
 from multiprocessing import Pool
 import skimage
-from peak_detection import intensity_threshold_decision_rule
+import gc
+from scipy.spatial.distance import cdist
 
 
+# parameters to optimmize: 
 #clustering
 #penaltyrt1 et 2 pour l'laignement intra mass
 #DBSCAN threshold intra-mass
@@ -24,10 +26,9 @@ from peak_detection import intensity_threshold_decision_rule
 # max number of peaks per mass
 # sigma Dog parameter 
  
-
-def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
-                                                abs_threshold=500,
-                                                rel_threshold=0.00001,
+def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
+                                                abs_threshold=1000,
+                                                rel_threshold=0.0001,
                                                 noise_factor=3,
                                                 min_sigma=1,
                                                 max_sigma=20,
@@ -38,7 +39,8 @@ def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
                                                 rt2_delta=0.02,
                                                 min_size_cluster_mass=2, 
                                                 thr_debscan= 0.02, 
-                                                multiprocessing=True):
+                                                multi_processing=True,
+                                                cleaning_close_peak=True):
     r"""
     Detects chromatographic peaks in a 3D data cube (retention time 1 × retention time 2 × m/z)
     on a per-mass (m/z) basis using DoG method.
@@ -94,6 +96,9 @@ def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
     multiprocessing : bool, optional
         If True, process m/z slices in parallel to accelerate detection.
 
+    cleaning_close_peak: bool, optional
+        If True, start a second clusturing to merge duplicate peaks, and TODO, peaks cut but a modulation (present at RT2 mod_time and 0) 
+
     Returns
     -------
     list coordinates in index in the chormato
@@ -106,10 +111,10 @@ def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
                        noise_factor,
                        min_sigma, max_sigma,
                        sigma_ratio,
-                       overlap,parallel=multiprocessing)
+                       overlap,multi_processing=multi_processing)
     
-    print("cluster_per_mass")
-    results=cluster_per_mass(results,chromato_cube,time_rn,mod_time,rt1_delta=2*mod_time, rt2_delta=0.1,thr_debscan=0.05,max_peak_per_mass=max_peak_per_mass)
+    print("cluster_per_mass ")
+    results=cluster_per_mass(results,chromato_cube,time_rn,mod_time,rt1_delta=5, rt2_delta=0.1,thr_debscan=0.05,max_peak_per_mass=max_peak_per_mass)
     results = [res for res in results if res is not None]
     coordinates_all_mass=[]
     for elt in results:
@@ -118,28 +123,48 @@ def detection_mass_par_mass(chromato_cube,chromato_obj,mod_time,
     
     coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
     
-    print("compute distance metric")
+    print("compute distance metric "+ str(len(coordinates_all_mass)) + " peaks")
     distance_matrix=compute_distance_metric(coordinates_all_mass,chromato_cube,mod_time,time_rn,rt1_delta=rt1_delta, rt2_delta=rt2_delta)
-    
+      
     print("start clustering")
     coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates_all_mass,thr_debscan=thr_debscan,min_sample_db_scan=min_size_cluster_mass)
-    distance_matrix=compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta=2*mod_time, rt2_delta=0.1)
-    coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates_all_mass,thr_debscan=0.03,min_sample_db_scan=1)
-    
-    print(str(len(coordinates))+ " detected peaks")
+    print(str(len(coordinates)) + " peaks clustered")
+    if(cleaning_close_peak):
+        # cluster close peaks 
+        distance_matrix=compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta=2*mod_time, rt2_delta=0.05)
+        coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates,thr_debscan=0.02,min_sample_db_scan=1)
+        # merge peaks cut but the modulation
+        coordinates_in_chromato=projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
+        # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
+        mask = (coordinates_in_chromato[:, 1] > (mod_time-0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+        bound= coordinates[mask]    
+        # 2.cluster without RT2 penalty 
+        distance_matrix=compute_distance_metric(bound,chromato_cube,mod_time,time_rn,rt1_delta=mod_time, rt2_delta=100000)
+        bound_cluster, clusters= cluster_peak(distance_matrix,chromato,bound,thr_debscan=0.02,min_sample_db_scan=1)
+        # 3. replace cluster 
+        coordinates = np.concatenate((coordinates[~mask], bound_cluster), axis=0)
+        print(str(len(coordinates))+ " detected peaks after filter")
     return coordinates
 
-def rt_penalty(rt_vals, rt1_delta=5, rt2_delta=0.1): # rt en seconde !! 
-    rt1 = rt_vals[:, 0][:, None]
-    rt2 = rt_vals[:, 0][None, :]
-    rt1_penalty = np.abs(rt1 - rt2) / rt1_delta # 1 penalité pour 5 secondes
+# def rt_penalty(rt_vals, rt1_delta=5, rt2_delta=0.1): # rt en seconde !! 
+#     rt1 = rt_vals[:, 0][:, None]
+#     rt2 = rt_vals[:, 0][None, :]
+#     rt1_penalty = np.abs(rt1 - rt2) / rt1_delta # 1 penalité pour 5 secondes
 
-    rt3 = rt_vals[:, 1][:, None]
-    rt4 = rt_vals[:, 1][None, :]
-    rt2_penalty = np.abs(rt3 - rt4) / rt2_delta #e 1 en RT2 0.1 seconde
-    return rt1_penalty + rt2_penalty
+#     rt3 = rt_vals[:, 1][:, None]
+#     rt4 = rt_vals[:, 1][None, :]
+#     rt2_penalty = np.abs(rt3 - rt4) / rt2_delta #e 1 en RT2 0.1 seconde
+#     return rt1_penalty + rt2_penalty
 
-def compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta,rt2_delta):
+def rt_penalty(rt_vals, rt1_delta=5, rt2_delta=0.1):
+    # Normalize RTs by their respective deltas (acts like weighting)
+    scaled_rt = rt_vals / np.array([rt1_delta, rt2_delta])
+    
+    # Compute Manhattan (L1) distance between all rows
+    penalty_matrix = cdist(scaled_rt, scaled_rt, metric='cityblock')  # sum of |ΔRT1| + |ΔRT2|
+    return penalty_matrix
+
+def compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta,rt2_delta): # ajouter buffer si trop gros
     intensity_values_list = []
     for i, coordinate in enumerate(coordinates):
         int_values = mass_spec.read_spectrum_from_chromato_cube(coordinate, chromato_cube=chromato_cube)
@@ -150,11 +175,40 @@ def compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta
     rt_vals = intensity_values_list[:, :2]  # shape (n, 2)
     spectra = intensity_values_list[:, 2:]  # shape (n, m)
     
-    # Compute cosine distances in vectorized form
-    spec_dists = cosine_distances(spectra)
     rt_penalty_value= rt_penalty(rt_vals,rt1_delta,rt2_delta)
+    npeaks = spectra.shape[0]
+    if(npeaks <10000):
+        spec_dists = cosine_distances(spectra)
+    else :    
+        spec_dists=compute_cosine_distance_batch(spectra)
     distance_matrix = spec_dists + 0.01 *rt_penalty_value
+    
     return distance_matrix
+
+import numpy as np
+import gc
+
+def compute_cosine_distance_batch(spectra,batch_size=10000):
+    n_samples = spectra.shape[0]
+
+    # Optional: use float32 to reduce memory (only if precision is acceptable)
+    spectra = spectra.astype(np.float32)
+
+    # Preallocate output matrix
+    spec_dists = np.zeros((n_samples, n_samples), dtype=np.float32)
+
+    for start in range(0, n_samples, batch_size):
+        print(start)
+        end = min(start + batch_size, n_samples)
+
+        # Compute distances from batch to all
+        dist_batch = cosine_distances(spectra[start:end], spectra)
+        spec_dists[start:end, :] = dist_batch
+
+        del dist_batch
+        gc.collect()
+
+    return spec_dists
 
 
 def cluster_peak(distance_matrix,chromato,coordinates, thr_debscan,min_sample_db_scan):
@@ -210,11 +264,11 @@ def detect_peak_dog_mp(chromato_cube,
                        noise_factor=3,
                        min_sigma=1, max_sigma=20,
                        sigma_ratio=2,
-                       overlap=0.5,parallel=True):
+                       overlap=0.5,multi_processing=True):
 
     inputs = range(chromato_cube.shape[0])
     results=[]
-    if(parallel):
+    if(multi_processing):
         num_workers = min(multiprocessing.cpu_count(),64)
         with multiprocessing.Pool(processes = num_workers) as pool:
                     for i, result in enumerate(pool.starmap(detect_peak_dog, [(chromato_cube[mass,:,:],
@@ -286,3 +340,36 @@ def cluster_per_mass(coordinate,chromato_cube,time_rn, mod_time,rt1_delta, rt2_d
 #     print("Results:", res)
 #     print("Total time:", round(time.time() - start, 2), "seconds")
 #     return res
+
+def intensity_threshold_decision_rule(
+        abs_threshold,
+        rel_threshold,
+        noise_factor,
+        sigma,
+        chromatogram):
+    """
+    Compute the intensity threshold for peak detection based on the provided
+    absolute and relative thresholds, as well as the dynamic noise factor.
+    Parameters
+    ----------
+    abs_threshold : float
+        Absolute threshold for peak detection.
+    rel_threshold : float
+        Relative threshold for peak detection.
+    noise_factor : float
+        Noise factor for dynamic thresholding.
+    chromatogram : ndarray
+        Chromatogram data, TIC or 3D.
+    Returns
+    -------
+    float
+        The computed intensity threshold for peak detection.
+    """
+    max_peak_val = np.max(chromatogram)
+    dynamic_noise_factor = noise_factor * sigma  
+    # if chromatogram is very noisy : avoid detecting noise as if it were real
+    # peaks.
+    # if chonmatogram  is very clean: detect weaker peaks
+
+    intensity_threshold = max(abs_threshold, rel_threshold * max_peak_val, dynamic_noise_factor)
+    return intensity_threshold

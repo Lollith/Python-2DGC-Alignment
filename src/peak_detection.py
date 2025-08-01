@@ -13,6 +13,7 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 from sklearn.preprocessing import StandardScaler
 from functools import partial
+from dbscan_peak import detection_mass_par_mass_Dog
 # from multiprocessing import Pool
 
 
@@ -704,7 +705,7 @@ def DoG(
         #                                       min_samples)
         # return np.delete(coordinates_all_mass, 2, -1), coordinates_all_mass[:,2]
 
-        coordinates= detection_mass_par_mass( chromato_cube,chromato_obj,
+        coordinates= detection_mass_par_mass_Dog(chromato_cube,chromato_obj,
                                                 abs_threshold,
                                                 rel_threshold,
                                                 noise_factor,

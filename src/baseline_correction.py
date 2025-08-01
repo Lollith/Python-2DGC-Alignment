@@ -22,7 +22,7 @@ import time
 
 
 # def chromato_no_baseline(chromato, j=None): #rename
-def chromato_reduced_noise(chromato, j=None):
+def chromato_reduced_noise(chromato, j=None,sg_windows=5):
     r"""Correct baseline and apply savgol filter.
     ----------
     chromato : ndarray
@@ -41,18 +41,19 @@ def chromato_reduced_noise(chromato, j=None):
     """
     tmp = np.empty_like(chromato)
     for i in range(tmp.shape[1]):
-        tmp[:, i] = savgol_filter(
-           chromato[:, i] - pybaselines.whittaker.asls(chromato[:, i],
+        tmp[:, i] = chromato[:, i] - pybaselines.whittaker.asls(chromato[:, i],
                                                        lam=10**3,
-                                                       p=0.01)[0],
-           window_length=50,  # 5, 11 pour un lissage + fort
+                                                       p=0.01)[0]
+    tmp[tmp < .0] = 0
+    tmp= savgol_filter(tmp,
+           window_length=sg_windows,  # 5, 11 pour un lissage + fort
            polyorder=3,
            mode='nearest')
-    tmp[tmp < .0] = 0
+    tmp[tmp<0]=0
     return tmp
 
 
-def chromato_cube_corrected_baseline(chromato_cube):
+def chromato_cube_corrected_baseline(chromato_cube,sg_windows=50):
     r"""Apply baseline correction on each chromato of the input.
     ----------
     chromato_cube :
@@ -75,6 +76,6 @@ def chromato_cube_corrected_baseline(chromato_cube):
     # cpu_count = min(multiprocessing.cpu_count(), 32) #TODO
     chromato_cube_no_baseline = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(chromato_reduced_noise, [(m_chromato, j) for j, m_chromato in enumerate(chromato_cube)])):
+        for i, result in enumerate(pool.starmap(chromato_reduced_noise, [(m_chromato, j,sg_windows) for j, m_chromato in enumerate(chromato_cube)])):
             chromato_cube_no_baseline.append(result)
     return chromato_cube_no_baseline
