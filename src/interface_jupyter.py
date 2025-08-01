@@ -18,40 +18,16 @@ class Interface:
     
     def __init__(self):
         """Initialize the GCMS Analysis UI with default parameters and widgets."""
-        self._setup_environment()
-        self._setup_default_parameters()
         self._setup_style()
         self._initialize_widgets()
-        self._create_widgets()
-        self._setup_callbacks()
+        self._create_base_widgets()
+        # self._setup_callbacks()
+        self._setup_environment()
     
     def _setup_environment(self):
         """Set up environment variables and paths."""
         self.docker_volume_path = os.getenv('DOCKER_VOLUME_PATH')
         self.host_volume_path = os.getenv('HOST_VOLUME_PATH')
-        
-    def _setup_default_parameters(self):
-        """Initialize default analysis parameters."""
-        # Public parameters (configurable via UI)
-        self.abs_threshold = "0"
-        self.rel_threshold = "0.005"
-        self.noise_factor = "1.5"
-        self.min_persistence = "0.0002"
-        
-        # Private parameters (fixed for this UI)
-        self._min_distance = 1
-        self._sigma_ratio = 1.6
-        self._num_sigma = 10
-        self._min_sigma = 1
-        self._max_sigma = 30
-        self._overlap = 0.5
-        self._match_factor_min = 650
-        self._cluster = True
-        self._min_samples = 4
-        self._eps = 3
-        self.formated_spectra = True #TODO ?
-        
-        self.supported_extensions = ('.cdf', '.h5')
     
     def _setup_style(self):
         """Set up widget styling."""
@@ -64,21 +40,115 @@ class Interface:
         self._vbox = widgets.VBox(layout=widgets.Layout(border='2px solid green'))
         self._vbox2 = widgets.VBox(layout=widgets.Layout(border='2px solid green'))
     
+    def _create_base_widgets(self):
+        """Create base widgets for file selection."""
+        self._create_path_widgets()
+        self._create_output_widgets()
+
+    # def add_path_chooser(self, b):
+    #     """Add a new path chooser (file or folder) to the interface."""
+    #     fc = FileChooser(
+    #         path=self.docker_volume_path,
+    #         select_dirs=False,
+    #         show_only_dirs=False,
+    #         sandbox_path=self.docker_volume_path,
+    #         title="Select a file (.cdf, .h5) or a folder"
+    #     )
+        
+    #     self._choosers.append(fc)
+    #     self._update_chooser_display()
+
+    # def add_output_chooser(self, b):
+    #     """Add a new path chooser (file or folder) to the interface."""
+    #     print("Add Output clicked")
+    #     self.output_chooser = FileChooser(
+    #         path=self.docker_volume_path,
+    #         select_dirs=True,
+    #         show_only_dirs=True,
+    #         sandbox_path=self.docker_volume_path,
+    #         title="Select output folder"
+    #     )
+    #     self._vbox2.children = [
+    #         self.output_label,
+    #         self.button_box_output,
+    #         self.output_chooser
+    #     ]
+    #     print("Output chooser added successfully")
+
+    def _create_path_widgets(self):
+        """Create path selection widgets."""
+        self.path_label = widgets.HTML(value=f'''
+            <b>Input files</b><br>
+            <i>Select files ({", ".join(self.supported_extensions)}) or folders</i><br>
+        ''')
+        
+        self.add_path_button = widgets.Button(
+            description="Add Path", 
+            button_style='success',
+            icon='plus'
+        )
+        
+        self.remove_button = widgets.Button(
+            description="Remove last Path", 
+            button_style='warning',
+            icon='trash'
+        )
+        
+        self.add_path_button.on_click(self.add_path_chooser)
+        self.remove_button.on_click(self.remove_last_chooser)
+        
+        self.button_box = widgets.HBox([
+            self.add_path_button, 
+            self.remove_button
+        ])
+        
+        self._vbox.children = (self.path_label, self.button_box)
+
+    def _create_output_widgets(self):
+        """Create output path widgets."""
+        self.output_label = widgets.HTML(value='<b>Output Directory</b>')
+        self.add_output_button = widgets.Button(
+            description="Add Output Path", 
+            button_style='success',
+            icon='folder-open'
+        )
+        self.remove_output_button = widgets.Button(
+            description="Remove Output Path", 
+            button_style='warning',
+            icon='trash'
+        )
+        self.create_folder_button = widgets.Button(
+            description="Create New Folder",
+            button_style='info',
+            icon='folder-plus'
+        )   
+        
+        self.add_output_button.on_click(self.add_output_chooser)
+        self.remove_output_button.on_click(self.remove_output_chooser)
+        self.create_folder_button.on_click(self.create_output_folder)
+
+        self.button_box_output = widgets.HBox([
+            self.add_output_button, 
+            self.remove_output_button,
+            self.create_folder_button
+        ])
+        self._vbox2.children = (self.output_label, self.button_box_output)
+    
     def add_path_chooser(self, b):
         """Add a new path chooser (file or folder) to the interface."""
         fc = FileChooser(
             path=self.docker_volume_path,
             select_dirs=False,
             show_only_dirs=False,
-            sandbox_path = self.docker_volume_path,
-            title="Select a file (.cdf, .h5) or a folder"
+            sandbox_path=self.docker_volume_path,
+            title=f"Select a file ({', '.join(self.supported_extensions)}) or a folder"
         )
         
         self._choosers.append(fc)
         self._update_chooser_display()
 
     def add_output_chooser(self, b):
-        """Add a new path chooser (file or folder) to the interface."""
+        """Add a new output path chooser."""
         print("Add Output clicked")
         self.output_chooser = FileChooser(
             path=self.docker_volume_path,
@@ -87,7 +157,7 @@ class Interface:
             sandbox_path=self.docker_volume_path,
             title="Select output folder"
         )
-        self._vbox2.children =[
+        self._vbox2.children = [
             self.output_label,
             self.button_box_output,
             self.output_chooser
@@ -129,15 +199,14 @@ class Interface:
         
         self._vbox.children = (self.path_label, self.button_box, *chooser_widgets)
 
-    
-    def _create_widgets(self):
-        """Create all UI widgets."""
-        self._create_title_widget()
-        self._create_path_widgets()
-        self._create_output_widget()
-        self._create_method_widgets()
-        self._create_parameter_widgets()
-        self._create_action_widgets()
+    # def _create_widgets(self):
+    #     """Create all UI widgets."""
+    #     self._create_title_widget()
+    #     self._create_path_widgets()
+    #     self._create_output_widget()
+    #     self._create_method_widgets()
+    #     self._create_parameter_widgets()
+    #     self._create_action_widgets()
     
     def _create_title_widget(self):
         """Create the title widget."""
@@ -187,14 +256,13 @@ class Interface:
         )
 
         self.create_folder_button = widgets.Button(
-        description="Create New Folder",
+        description = "Create New Folder",
         button_style='info',
         icon='folder-plus'
     )   
         self.add_output_button.on_click(self.add_output_chooser)
         self.remove_output_button.on_click(self.remove_output_chooser)
         self.create_folder_button.on_click(self.create_output_folder)
-
 
         self.button_box_output = widgets.HBox([
             self.add_output_button, 
@@ -272,8 +340,7 @@ class Interface:
                 status_label.value = '<span style="color: red;">⚠️ Le nom contient des caractères interdits</span>'
                 return
         
-            try:
-                
+            try:  
                 new_folder_path = os.path.join(selected_location, folder_name)
                 
                 # Vérifier si le dossier existe déjà
@@ -367,44 +434,6 @@ class Interface:
         )
         self.w_mode = widgets.VBox([label_mode, self.r_mode])
     
-    def _create_parameter_widgets(self):
-        """Create parameter input widgets."""
-        # Noise factor
-        self.w_noise_factor = widgets.Text(value=self.noise_factor)
-        self.noise_factor = self._bold_widget("Noise factor", self.w_noise_factor)
-        self.noise_factor_def = self._create_help_text(
-            "Noise scaling factor used to filter detected peaks."
-            "A peak is retained if its intensity is greater than the maximum intensity multiplied by this factor."
-        )
-        
-        # Min persistence
-        self.w_min_persistence = widgets.Text(value=self.min_persistence)
-        self.min_persistence = self._bold_widget("Minimum persistence", self.w_min_persistence)
-        self.min_persistence_def = self._create_help_text(
-            "Minimum topological persistence threshold that a peak must exceed to be considered a true signal rather than noise."
-        )
-        
-        # Absolute threshold
-        self.w_abs_threshold = widgets.Text(value=self.abs_threshold)
-        self.abs_threshold = self._bold_widget("Absolute threshold", self.w_abs_threshold)
-        self.abs_threshold_def = self._create_help_text(
-            "Absolute threshold used to filter detected peaks based on their raw intensity."
-        )
-        
-        # Relative threshold
-        self.w_rel_threshold = widgets.Text(value=self.rel_threshold)
-        self.rel_threshold = self._bold_widget("Relative threshold", self.w_rel_threshold)
-        self.rel_threshold_def = self._create_help_text(
-            "Relative threshold used to filter detected peaks based on their relative intensity."
-        )
-        
-        # NIST matching
-        self.nist = widgets.Checkbox(
-            value=True,
-            description='Enable NIST Database Matching',
-            style=self.style,
-            disabled=False
-        )
     
     def _create_action_widgets(self):
         """Create action buttons and output area."""
@@ -570,7 +599,3 @@ class Interface:
             print(f"❌ Error while scanning directory  {directory_path}: {e}")
 
         return files
-    
-    
-
-    
