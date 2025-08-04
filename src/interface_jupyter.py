@@ -16,8 +16,9 @@ class Interface:
     Users can select individual files, folders, or subfolders - all compatible files will be processed.
     """
     
-    def __init__(self):
-        """Initialize the GCMS Analysis UI with default parameters and widgets."""
+    def __init__(self, supported_extensions=('.cdf', '.h5')):
+        """Initialize the base UI with supported file extensions."""
+        self.supported_extensions = supported_extensions
         self._setup_style()
         self._initialize_widgets()
         self._create_base_widgets()
@@ -36,7 +37,7 @@ class Interface:
     def _initialize_widgets(self):
         """Initialize widget containers."""
         self._choosers = [] # input
-        self._choosers_output = []
+        # self._choosers_output = []
         self._vbox = widgets.VBox(layout=widgets.Layout(border='2px solid green'))
         self._vbox2 = widgets.VBox(layout=widgets.Layout(border='2px solid green'))
     
@@ -208,68 +209,68 @@ class Interface:
     #     self._create_parameter_widgets()
     #     self._create_action_widgets()
     
-    def _create_title_widget(self):
-        """Create the title widget."""
-        self.txt_title = widgets.HTML('<H1>GC×GC-MS Analysis Configuration</H1>')
+    # def _create_title_widget(self):
+    #     """Create the title widget."""
+    #     self.txt_title = widgets.HTML('<H1>GC×GC-MS Analysis Configuration</H1>')
     
-    def _create_path_widgets(self):
-        """Create path selection widgets."""
-        self.path_label = widgets.HTML(value='''
-            <b>Input files</b><br>
-            <i>Select files (.cdf, .h5) or folders</i><br>
-        ''')
+    # def _create_path_widgets(self):
+    #     """Create path selection widgets."""
+    #     self.path_label = widgets.HTML(value='''
+    #         <b>Input files</b><br>
+    #         <i>Select files (.cdf, .h5) or folders</i><br>
+    #     ''')
         
-        self.add_path_button = widgets.Button(
-            description="Add Path", 
-            button_style='success',
-            icon='plus'
-        )
+    #     self.add_path_button = widgets.Button(
+    #         description="Add Path", 
+    #         button_style='success',
+    #         icon='plus'
+    #     )
         
-        self.remove_button = widgets.Button(
-            description="Remove last Path", 
-            button_style='warning',
-            icon='trash'
-        )
+    #     self.remove_button = widgets.Button(
+    #         description="Remove last Path", 
+    #         button_style='warning',
+    #         icon='trash'
+    #     )
         
-        self.add_path_button.on_click(self.add_path_chooser)
-        self.remove_button.on_click(self.remove_last_chooser)
+    #     self.add_path_button.on_click(self.add_path_chooser)
+    #     self.remove_button.on_click(self.remove_last_chooser)
         
-        self.button_box = widgets.HBox([
-            self.add_path_button, 
-            self.remove_button
-        ])
+    #     self.button_box = widgets.HBox([
+    #         self.add_path_button, 
+    #         self.remove_button
+    #     ])
         
-        self._vbox.children = (self.path_label, self.button_box)
+    #     self._vbox.children = (self.path_label, self.button_box)
     
-    def _create_output_widget(self):
-        """Create output path widget."""
-        self.output_label = widgets.HTML(value='<b>Output Directory</b>')
-        self.add_output_button = widgets.Button(
-            description="Add Output Path", 
-            button_style='success',
-            icon='folder-open'
-        )
-        self.remove_output_button = widgets.Button(
-            description="Remove Output Path", 
-            button_style='warning',
-            icon='trash'
-        )
+    # def _create_output_widget(self):
+    #     """Create output path widget."""
+    #     self.output_label = widgets.HTML(value='<b>Output Directory</b>')
+    #     self.add_output_button = widgets.Button(
+    #         description="Add Output Path", 
+    #         button_style='success',
+    #         icon='folder-open'
+    #     )
+    #     self.remove_output_button = widgets.Button(
+    #         description="Remove Output Path", 
+    #         button_style='warning',
+    #         icon='trash'
+    #     )
 
-        self.create_folder_button = widgets.Button(
-        description = "Create New Folder",
-        button_style='info',
-        icon='folder-plus'
-    )   
-        self.add_output_button.on_click(self.add_output_chooser)
-        self.remove_output_button.on_click(self.remove_output_chooser)
-        self.create_folder_button.on_click(self.create_output_folder)
+    #     self.create_folder_button = widgets.Button(
+    #     description = "Create New Folder",
+    #     button_style='info',
+    #     icon='folder-plus'
+    # )   
+    #     self.add_output_button.on_click(self.add_output_chooser)
+    #     self.remove_output_button.on_click(self.remove_output_chooser)
+    #     self.create_folder_button.on_click(self.create_output_folder)
 
-        self.button_box_output = widgets.HBox([
-            self.add_output_button, 
-            self.remove_output_button,
-            self.create_folder_button
-        ])
-        self._vbox2.children = (self.output_label, self.button_box_output)
+    #     self.button_box_output = widgets.HBox([
+    #         self.add_output_button, 
+    #         self.remove_output_button,
+    #         self.create_folder_button
+    #     ])
+    #     self._vbox2.children = (self.output_label, self.button_box_output)
 
     def create_output_folder(self, b):
         """Create a new output folder."""
@@ -414,105 +415,112 @@ class Interface:
         current_children.append(folder_creation_widget)
         self._vbox2.children = tuple(current_children)
 
-    def _create_method_widgets(self):
-        """Create method selection widgets."""
-        label_method = widgets.HTML(value="<b>Peak Detection Method</b>")
-        self.r_method = widgets.RadioButtons(
-            options=['persistent_homology', 'peak_local_max', 'LoG', 'DoG', 'DoH'],
-            value='persistent_homology',
-            description='',
-            disabled=False
-        )
-        self.w_method = widgets.VBox([label_method, self.r_method])
+    # def _create_method_widgets(self):
+    #     """Create method selection widgets."""
+    #     label_method = widgets.HTML(value="<b>Peak Detection Method</b>")
+    #     self.r_method = widgets.RadioButtons(
+    #         options=['persistent_homology', 'peak_local_max', 'LoG', 'DoG', 'DoH'],
+    #         value='persistent_homology',
+    #         description='',
+    #         disabled=False
+    #     )
+    #     self.w_method = widgets.VBox([label_method, self.r_method])
         
-        label_mode = widgets.HTML(value="<b>Analysis Mode</b>")
-        self.r_mode = widgets.RadioButtons(
-            options=['tic', 'mass_per_mass', '3D'],
-            value='tic',
-            description='',
-            disabled=False
-        )
-        self.w_mode = widgets.VBox([label_mode, self.r_mode])
+    #     label_mode = widgets.HTML(value="<b>Analysis Mode</b>")
+    #     self.r_mode = widgets.RadioButtons(
+    #         options=['tic', 'mass_per_mass', '3D'],
+    #         value='tic',
+    #         description='',
+    #         disabled=False
+    #     )
+    #     self.w_mode = widgets.VBox([label_mode, self.r_mode])
     
     
-    def _create_action_widgets(self):
-        """Create action buttons and output area."""
-        self.run_button = widgets.Button(
-            description="Run Analysis", 
-            button_style='primary',
-            icon='play'
-        )
-        self.clear_button = widgets.Button(
-            description="Clear Results", 
-            button_style='info',
-            icon='eraser'
-        )
-        self.output = widgets.Output()
+    # def _create_action_widgets(self):
+    #     """Create action buttons and output area."""
+    #     self.run_button = widgets.Button(
+    #         description="Run Analysis", 
+    #         button_style='primary',
+    #         icon='play'
+    #     )
+    #     self.clear_button = widgets.Button(
+    #         description="Clear Results", 
+    #         button_style='info',
+    #         icon='eraser'
+    #     )
+    #     self.output = widgets.Output()
         
-        self.clear_button.on_click(lambda b: self.output.clear_output())
+    #     self.clear_button.on_click(lambda b: self.output.clear_output())
     
-    def _create_help_text(self, text):
-        """Create formatted help text."""
-        return widgets.HTML(value=f"""
-            <div style="margin-left: 20px; font-style: italic; color: #666; font-size: 0.9em;">
-                <p>{text}</p>
-            </div>
-        """)
+    # def _create_help_text(self, text):
+    #     """Create formatted help text."""
+    #     return widgets.HTML(value=f"""
+    #         <div style="margin-left: 20px; font-style: italic; color: #666; font-size: 0.9em;">
+    #             <p>{text}</p>
+    #         </div>
+    #     """)
     
-    def _setup_callbacks(self):
-        """Set up callbacks for interactive widgets."""
-        self.run_button.on_click(self._on_button_click)
+    # def _setup_callbacks(self):
+    #     """Set up callbacks for interactive widgets."""
+    #     self.run_button.on_click(self._on_button_click)
     
     def _bold_widget(self, label, widget):
         """Create a widget with bold label."""
         bold_label = widgets.HTML(value=f'<b>{label}:</b>')
         return widgets.HBox([bold_label, widget])
     
-    def _validate_parameters(self):
-        """Validate input parameters."""
-        errors = []
+    # def _validate_parameters(self):
+    #     """Validate input parameters."""
+    #     errors = []
         
-        try:
-            noise_val = float(self.w_noise_factor.value)
-            if noise_val < 0:
-                errors.append("The noise factor must be non-negative")
-        except ValueError:
-            errors.append("The noise factor must be a valid number")
+    #     try:
+    #         noise_val = float(self.w_noise_factor.value)
+    #         if noise_val < 0:
+    #             errors.append("The noise factor must be non-negative")
+    #     except ValueError:
+    #         errors.append("The noise factor must be a valid number")
         
-        try:
-            pers_val = float(self.w_min_persistence.value)
-            if pers_val < 0:
-                errors.append("Minimum persistence must be non-negative")
-        except ValueError:
-            errors.append("Minimum persistence must be a valid number")
+    #     try:
+    #         pers_val = float(self.w_min_persistence.value)
+    #         if pers_val < 0:
+    #             errors.append("Minimum persistence must be non-negative")
+    #     except ValueError:
+    #         errors.append("Minimum persistence must be a valid number")
         
-        try:
-            abs_val = float(self.w_abs_threshold.value)
-            if abs_val < 0:
-                errors.append("Absolute threshold must be non-negative")
-        except ValueError:
-            errors.append("Absolute threshold must be a valid number")
+    #     try:
+    #         abs_val = float(self.w_abs_threshold.value)
+    #         if abs_val < 0:
+    #             errors.append("Absolute threshold must be non-negative")
+    #     except ValueError:
+    #         errors.append("Absolute threshold must be a valid number")
         
-        try:
-            rel_val = float(self.w_rel_threshold.value)
-            if rel_val < 0 or rel_val > 1:
-                errors.append("Relative threshold must be between 0 and 1")
-        except ValueError:
-            errors.append("Relative threshold must be a valid number")
+    #     try:
+    #         rel_val = float(self.w_rel_threshold.value)
+    #         if rel_val < 0 or rel_val > 1:
+    #             errors.append("Relative threshold must be between 0 and 1")
+    #     except ValueError:
+    #         errors.append("Relative threshold must be a valid number")
         
-        # if not self.w_output_path.value.strip():
-        #     errors.append("Output directory cannot be empty")
-        if not hasattr(self, 'output_chooser') or not self.output_chooser.selected_path:
-            errors.append("Output directory cannot être vide")
+    #     # if not self.w_output_path.value.strip():
+    #     #     errors.append("Output directory cannot be empty")
+    #     if not hasattr(self, 'output_chooser') or not self.output_chooser.selected_path:
+    #         errors.append("Output directory cannot être vide")
         
-        return errors
+    #     return errors
     
+    # def get_output_path(self):
+    #     """Get the output path from the output chooser."""
+    #     selected = self.output_chooser.selected
+    #     if selected:
+    #         print(f"📁 Output path selected: {selected}")
+    #         return selected
     def get_output_path(self):
         """Get the output path from the output chooser."""
-        selected = self.output_chooser.selected
-        if selected:
+        if hasattr(self, 'output_chooser') and self.output_chooser.selected:
+            selected = self.output_chooser.selected
             print(f"📁 Output path selected: {selected}")
             return selected
+        return None
     
 
     def get_all_files_from_selections(self):
@@ -599,3 +607,31 @@ class Interface:
             print(f"❌ Error while scanning directory  {directory_path}: {e}")
 
         return files
+
+
+
+
+    def validate_selections(self):
+        """Validate that files and output are properly selected."""
+        errors = []
+        
+        files = self.get_all_files_from_selections()
+        if not files:
+            errors.append("No compatible files selected")
+            
+        if not hasattr(self, 'output_chooser') or not self.output_chooser.selected_path:
+            errors.append("Output directory not selected")
+            
+        return errors, files
+
+    def create_help_text(self, text):
+        """Create formatted help text."""
+        return widgets.HTML(value=f"""
+            <div style="margin-left: 20px; font-style: italic; color: #666; font-size: 0.9em;">
+                <p>{text}</p>
+            </div>
+        """)
+
+    def get_file_selection_widgets(self):
+        """Return the file selection widgets for display."""
+        return widgets.VBox([self._vbox, self._vbox2])
