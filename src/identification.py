@@ -535,7 +535,7 @@ def sample_identification(path, file, output_path,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
                           num_sigma,
                           formated_spectra, match_factor_min, min_persistence,
-                          overlap, eps, min_samples, nist=False,quant_method="mass",extract_patch=False,output_hdf5_file=None):
+                          overlap, eps, min_samples, nist=False, quant_method="mass", extract_patch=True, output_hdf5_file=None):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -584,6 +584,8 @@ def sample_identification(path, file, output_path,
     """
     #if os.path.exists(output_hdf5_file):
     #    raise FileExistsError(f"The file '{output_hdf5_file}' already exists.")
+    if output_hdf5_file is None:
+        output_hdf5_file= os.path.join(output_path, "data_set.h5")
 
     print('Identification started\n')
     start_time = time.time()
