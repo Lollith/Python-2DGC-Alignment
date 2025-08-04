@@ -632,7 +632,7 @@ def sample_identification(path, file, output_path,
 
 def cohort_identification_sample_metadata(file, sample_metadata_list,
                                      output_path):
-    file_path= output_path + '/'+ file + "sample_metadata.csv"
+    file_path= output_path + '/'+ file + "_sample_metadata.csv"
     
     fieldnames = sample_metadata_list[0].keys()
     with open(file_path, 'w', newline='') as csvfile:
