@@ -256,10 +256,19 @@ def detect_peak_dog( chromato_tic,
                                              threshold=intensity_threshold,
                                              sigma_ratio=sigma_ratio)
         # Compute radii in the 3rd column.
-        blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
-        blobs_dog = blobs_dog.astype(int)
-        blobs_dog = np.array(blobs_dog)
-        coordinates, radius = np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
+        #blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
+        
+        #blobs_dog = np.array(blobs_dog)
+        #coordinates, radius = np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
+        
+        # blobs_dog shape: (N, 3), where columns are (y, x, sigma)
+        # Adjust radii: radius = sigma * sqrt(2)
+        radii = blobs_dog[:, 2] * math.sqrt(2)
+
+        # Keep coordinates as float (y,x)
+        blobs_dog = np.rint(blobs_dog).astype(int)
+        coordinates = np.array(blobs_dog[:, :2])
+        
         return coordinates
 
 

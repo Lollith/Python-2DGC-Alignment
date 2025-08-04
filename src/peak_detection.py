@@ -726,12 +726,22 @@ def DoG(
                                              threshold=intensity_threshold,
                                              sigma_ratio=sigma_ratio)
 
-        # Compute radii in the 3rd column.
-        blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
-        blobs_dog = blobs_dog.astype(int)
-        blobs_dog = np.array(blobs_dog)
-        return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
 
+
+        # blobs_dog shape: (N, 3), where columns are (y, x, sigma)
+        # Adjust radii: radius = sigma * sqrt(2)
+        radii = blobs_dog[:, 2] * math.sqrt(2)
+
+        # Keep coordinates as float (y,x)
+        centers = blobs_dog[:, :2]
+        
+        # Compute radii in the 3rd column.
+        # blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
+        # blobs_dog = blobs_dog.astype(int)
+        # blobs_dog = np.array(blobs_dog)
+        # return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
+ 
+        return centers,radii
 
 def blob_doh_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
                     sigma, num_sigma, min_sigma, max_sigma, overlap):
