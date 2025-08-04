@@ -616,14 +616,14 @@ def sample_identification(path, file, output_path,
         print("Identification done", time.time()-start_time, 's')
         print("output_path from identificqtion", output_path)
         cohort_identification_alignment_input_format_txt(
-            file[:-4], matches_identification, output_path)
+            os.path.splitext(file)[0], matches_identification, output_path)
         if(extract_patch):
-            cohort_identification_sample_metadata(file[:-4], sample_metadata_list,
+            cohort_identification_sample_metadata(os.path.splitext(file)[0], sample_metadata_list,
                                      output_path)
         else:
-            cohort_identification_to_csv(file[:-4], matches_identification,
+            cohort_identification_to_csv(os.path.splitext(file)[0], matches_identification,
                                      output_path)
-        return (f'{output_path + file[:-4]}.txt created')
+        return (f'{output_path + os.path.splitext(file)[0]}.txt created')
 
     except Exception as e:
         traceback.print_exc()
