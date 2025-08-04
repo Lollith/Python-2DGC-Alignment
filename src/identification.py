@@ -147,7 +147,8 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
     matches = np.array(matches, dtype=object)
     min_mz, max_mz = int(mass_range[0]), int(mass_range[1])
     canonical_length = max_mz - min_mz + 1
-    sample_name_group=sample_name[:-4]
+    basename = os.path.splitext(sample_name)[0]
+    sample_name_group=basename
     if extract_patch: 
         with h5py.File(output_hdf5_file, "a") as h5_file:
             if sample_name_group not in h5_file:
@@ -581,6 +582,8 @@ def sample_identification(path, file, output_path,
     >>> sample_identification("/path/to/data/", "sample.cdf",
         OUTPUT_PATH="/path/to/results/")
     """
+    #if os.path.exists(output_hdf5_file):
+    #    raise FileExistsError(f"The file '{output_hdf5_file}' already exists.")
 
     print('Identification started\n')
     start_time = time.time()
