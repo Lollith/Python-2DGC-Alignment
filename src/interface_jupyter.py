@@ -21,9 +21,7 @@ class Interface:
         self.supported_extensions = supported_extensions
         self._setup_style()
         self._initialize_widgets()
-        self._create_base_widgets()
-        # self._setup_callbacks()
-        self._setup_environment()
+        
     
     def _setup_environment(self):
         """Set up environment variables and paths."""
@@ -460,9 +458,9 @@ class Interface:
     #         </div>
     #     """)
     
-    # def _setup_callbacks(self):
-    #     """Set up callbacks for interactive widgets."""
-    #     self.run_button.on_click(self._on_button_click)
+    def _setup_callbacks(self):
+        """Set up callbacks for interactive widgets."""
+        self.run_button.on_click(self._on_button_click)
     
     def _bold_widget(self, label, widget):
         """Create a widget with bold label."""
@@ -545,14 +543,6 @@ class Interface:
                 processed_paths.add(str(selected_path))
 
                 if fc.selected_filename:
-                    name_without_ext = fc.selected_filename.rsplit('.', 1)[0]
-
-                    if fc.selected_filename.endswith(".cdf") and name_without_ext in already_seen_files:
-                        print(f"⚠️  File already processed: {name_without_ext}.cdf")
-                        continue    
-
-                    if fc.selected_filename.endswith(".h5"):
-                        already_seen_files.add(name_without_ext)
 
                     if fc.selected_filename.endswith(self.supported_extensions):
                         full_path = selected_path / fc.selected_filename
@@ -560,7 +550,6 @@ class Interface:
                         print(f"📄 File added: {full_path}")
                     else:
                         print(f"⚠️  Unsupported file ignored: {fc.selected_filename}")
-                        print(f"   Supported extensions: {', '.join(self.supported_extensions)}")
 
                 else: # ce n 'est pas un fichier
                     print(f"📁 Processing folder: {selected_path}")
@@ -607,6 +596,24 @@ class Interface:
             print(f"❌ Error while scanning directory  {directory_path}: {e}")
 
         return files
+    
+    def _create_action_widgets(self):
+        """Create action buttons and output area."""
+        run_button = widgets.Button(
+            description="Run Analysis", 
+            button_style='primary',
+            icon='play'
+        )
+        clear_button = widgets.Button(
+            description="Clear Results", 
+            button_style='info',
+            icon='eraser'
+        )
+        output = widgets.Output()
+        
+        clear_button.on_click(lambda b: output.clear_output())
+        
+        return run_button, clear_button, output
 
 
 

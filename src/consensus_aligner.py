@@ -5,7 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 import os
 import platform
 
-class chromatographicAligner:
+class ChromatographicAligner:
     """
     Class for aligning chromatographic data using consensus alignment.
 

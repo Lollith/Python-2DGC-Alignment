@@ -7,6 +7,7 @@ services:
       dockerfile: Dockerfile.prod
     ports:
       - "8888:8888"
+      - "8866:8866" # for voila
     volumes:
     - type: bind
       source: ${HOST_VOLUME_PATH}/
