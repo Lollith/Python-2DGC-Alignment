@@ -4,6 +4,7 @@ from multiprocessing import Pool, cpu_count
 from concurrent.futures import ProcessPoolExecutor
 import os
 import platform
+from datetime import datetime
 
 class ChromatographicAligner:
     """
@@ -445,7 +446,7 @@ class ChromatographicAligner:
                 'Alignment_Matrix': final_matrix.iloc[order_rt],
                 'Peak_Info': seed_sample[0].iloc[order_rt],
                 'RT_group': final_matrix_rt.iloc[order_rt],
-                'spectra_group': final_matrix_spectra.iloc[order_rt]
+                'spectra_group': final_matrix_spectra.iloc[order_rt],
             }
         else:
             self.alignment_results = {
@@ -517,6 +518,8 @@ class ChromatographicAligner:
         filtered_results : dict, optional
             Dictionary containing filtered versions of all matrices
         """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
         
@@ -525,44 +528,44 @@ class ChromatographicAligner:
         
         # Save Alignment Matrix
         self.alignment_results['Alignment_Matrix'].to_csv(
-            os.path.join(output_dir, "py_Alignment_Matrix.csv"),
+            os.path.join(output_dir, f"alignment_matrix_{timestamp}.csv"),
             sep="\t", index=True, na_rep="NA"
         )
         
         # Save Peak Info
         self.alignment_results['Peak_Info'].to_csv(
-            os.path.join(output_dir, "py_Peak_Info.csv"),
+            os.path.join(output_dir, f"peak_info_{timestamp}.csv"),
             sep="\t", index=False
         )
         
         # Save RT Group
         self.alignment_results['RT_group'].to_csv(
-            os.path.join(output_dir, "py_RT_Group.csv"),
+            os.path.join(output_dir, f"RT_group_{timestamp}.csv"),
             sep="\t", index=True
         )
         
         # Save Spectra Group
         self.alignment_results['spectra_group'].to_csv(
-            os.path.join(output_dir, "py_Spectra_Group.csv"),
+            os.path.join(output_dir, f"spectra_group_{timestamp}.csv"),
             sep="\t", index=True
         )
         
         # Save filtered matrix if provided
         if filtered_results is not None:
             filtered_results['Alignment_Matrix'].to_csv(
-                os.path.join(output_dir, "py_Alignment_Matrix_after_filter.csv "),
+                os.path.join(output_dir, f"alignment_Matrix_after_filter_{timestamp}.csv"),
                 sep="\t", index=True, na_rep="NA"
             )
             filtered_results['Peak_Info'].to_csv(
-            os.path.join(output_dir, "py_Peak_Info_after_filter.csv"),
-            sep="\t", index=False
+                os.path.join(output_dir, f"peak_Info_after_filter_{timestamp}.csv"),
+                sep="\t", index=False
             )
             filtered_results['RT_group'].to_csv(
-                os.path.join(output_dir, "py_RT_Group_after_filter.txt"),
+                os.path.join(output_dir, f"RT_Group_after_filter_{timestamp}.csv"),
                 sep="\t", index=True
             )
             filtered_results['spectra_group'].to_csv(
-                os.path.join(output_dir, "py_Spectra_Group_after_filter.csv"),
+                os.path.join(output_dir, f"spectra_group_after_filter_{timestamp}.csv"),
                 sep="\t", index=True
             )
             
@@ -583,10 +586,11 @@ if __name__ == "__main__":
 
     folder = "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
     file = [folder + "751303_v3_E3AM_5jui.txt" , 
-        folder + "751309_v3_E3PM_6jui.txt", 
-        folder + "854512_v3_E2AM_4jui.txt", 
-        folder + "854517_v3_E2AM_5jui.txt", 
-        folder + "802107_v1_E1PM_3jui.txt"]
+        # folder + "751309_v3_E3PM_6jui.txt", 
+        # folder + "854512_v3_E2AM_4jui.txt", 
+        # folder + "854517_v3_E2AM_5jui.txt", 
+        # folder + "802107_v1_E1PM_3jui.txt"
+        ]
     print("Importing files...", file)
     aligner = ChromatographicAligner(
         rt1_penalty=1,
