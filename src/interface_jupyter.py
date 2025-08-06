@@ -44,15 +44,7 @@ class Interface:
         self._create_path_widgets()
         self._create_output_widgets()
 
-    def _create_path_widgets(self):_penalty = 1
-        self._rt2_penalty = 5
-        self._similarity_cutoff = 90
-        self._disimilarity_cutoff = 90
-        self._num_cores = 1
-        self._missing_value_limit = 0
-        self._quant_method= "T"
-        self._auto_tune_match_stringency = False
-        self._missi
+    def _create_path_widgets(self):
         """Create path selection widgets."""
         self.path_label = widgets.HTML(value=f'''
             <b>Input files</b><br>
