@@ -283,7 +283,7 @@ def detect_peak_dog_mp(chromato_cube,
     inputs = range(chromato_cube.shape[0])
     results=[]
     if(multi_processing):
-        num_workers = min(multiprocessing.cpu_count(),64)
+        num_workers = min(multiprocessing.cpu_count(),32)
         with multiprocessing.Pool(processes = num_workers) as pool:
                     for i, result in enumerate(pool.starmap(detect_peak_dog, [(chromato_cube[mass,:,:],
                                                                                 abs_threshold,
