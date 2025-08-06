@@ -588,7 +588,7 @@ if __name__ == "__main__":
         folder + "854517_v3_E2AM_5jui.txt", 
         folder + "802107_v1_E1PM_3jui.txt"]
     print("Importing files...", file)
-    aligner = chromatographicAligner(
+    aligner = ChromatographicAligner(
         rt1_penalty=1,
         rt2_penalty=5,
         similarity_cutoff=90,
