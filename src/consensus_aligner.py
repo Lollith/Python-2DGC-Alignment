@@ -505,7 +505,7 @@ class ChromatographicAligner:
             'RT_group': self.alignment_results['RT_group'].iloc[mask_keep.values],
             'spectra_group': self.alignment_results['spectra_group'].iloc[mask_keep.values]
         }
-        
+        return filtered_results
 
     def save_results(self, output_dir, filtered_results=None):
         """
@@ -569,7 +569,7 @@ class ChromatographicAligner:
                 sep="\t", index=True
             )
             
-        print(f"Results saved to directory: {output_dir}")
+        print(f"✅ Filter applied. Results saved to directory: {output_dir}")
 
 if __name__ == "__main__":
     # file = [

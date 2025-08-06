@@ -25,7 +25,14 @@ def filter_best_hits(list_hits, match_factor_min):
     ]
     return filtered_hits
 
-def matching_nist():
+# def matching_nist():
+def matching_nist(df, match_factor_min): #TODO modif ici
+    """
+    This function performs a search in the NIST database using the pyms_nist_search library.
+    It reads a CSV file containing mass spectra, performs a search for each spectrum,
+    and writes the results to a new CSV file.
+    """
+    # Uncomment and adjust the paths if needed
   #   search = pyms_nist_search.Engine(
 #                     "C:/Users/camil/Documents/NIST/mainlib/",
 #                     pyms_nist_search.NISTMS_MAIN_LIB,
@@ -43,7 +50,7 @@ def matching_nist():
     logger.setLevel('ERROR')
 
     # df = pd.read_csv("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic/Align_table_info.csv",sep=";",  )
-    df = pd.read_csv("annotate/Align_table_info.csv", sep=";")
+    # df = pd.read_csv("annotate/Align_table_info.csv", sep=";") #TODO supprime ici
     df['compound_name'] = ""
     df['casno'] = ""
     df['compound_formula'] = ""
