@@ -72,8 +72,8 @@ def chromato_cube_corrected_baseline(chromato_cube,sg_windows=50):
     >>> chromato_cube = read_chroma.full_spectra_to_chromato_cube(full_spectra=full_spectra, spectra_obj=spectra_obj)
     >>> chromato_cube = np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube))
     """
-    cpu_count = multiprocessing.cpu_count()
-    # cpu_count = min(multiprocessing.cpu_count(), 32) #TODO
+    #cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(), 32) #TODO
     chromato_cube_no_baseline = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
         for i, result in enumerate(pool.starmap(chromato_reduced_noise, [(m_chromato, j,sg_windows) for j, m_chromato in enumerate(chromato_cube)])):
