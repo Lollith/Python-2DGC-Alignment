@@ -29,7 +29,7 @@ import nist_engine
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-nist = nist_engine.NistEngine()
+# nist = nist_engine.NistEngine()#DEBUG
 
 load_dotenv()
 auth = HTTPBasicAuth()

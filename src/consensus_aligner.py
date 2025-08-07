@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool, cpu_count
 from concurrent.futures import ProcessPoolExecutor
-import warnings
 import os
 import platform
+from datetime import datetime
 
-class chromatographicAligner:
+class ChromatographicAligner:
     """
     Class for aligning chromatographic data using consensus alignment.
 
@@ -71,6 +71,7 @@ class chromatographicAligner:
         # results storage
         self.imported_files = None
         self.alignment_results = None
+        self.filtered_results = None
 
 
     def importFile(self, file):
@@ -344,7 +345,7 @@ class chromatographicAligner:
 
         # Process each sample
         for samp_num in range(len(self.imported_files)):
-            print(f"Processing sample: {samp_num + 1}")
+            # print(f"Processing sample: {samp_num + 1}")
             # Generate similarity frames (this function needs to be implemented)
             sim_cutoffs = self.generate_sim_frames(self.imported_files[samp_num], seed_sample)
 
@@ -446,7 +447,7 @@ class chromatographicAligner:
                 'Alignment_Matrix': final_matrix.iloc[order_rt],
                 'Peak_Info': seed_sample[0].iloc[order_rt],
                 'RT_group': final_matrix_rt.iloc[order_rt],
-                'spectra_group': final_matrix_spectra.iloc[order_rt]
+                'spectra_group': final_matrix_spectra.iloc[order_rt],
             }
         else:
             self.alignment_results = {
@@ -471,13 +472,13 @@ class chromatographicAligner:
         return self.alignment_results['Peak_Info']
 
 
-    def filter_alignment_matrix(self, missing_value_threshold=0.5):
+    def filter_alignment_matrix(self, missing_value_threshold=None):
         """
         Filter the alignment matrix based on missing value threshold.
         
         Parameters:
         -----------
-        missing_value_threshold : float, default 0.5
+        missing_value_threshold : float, default 0.05
             Minimum proportion of non-missing values required to keep a row
             (e.g., 0.5 means keep rows with more than 50% non-missing values)
             
@@ -485,6 +486,11 @@ class chromatographicAligner:
         --------
         pd.DataFrame : Filtered alignment matrix
         """ 
+        if missing_value_threshold is None:
+            missing_value_threshold = self.missing_value_limit
+        else:
+            self.missing_value_limit = missing_value_threshold
+
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
     
@@ -499,15 +505,14 @@ class chromatographicAligner:
             f"(threshold: {missing_value_threshold*100:.0f}% non-missing values)")
 
         # Application du masque booléen (même position, pas besoin d'utiliser .loc avec labels)
-        filtered_results = {
+        self.filtered_results = {
             'Alignment_Matrix': alignment_matrix[mask_keep],
             'Peak_Info': self.alignment_results['Peak_Info'].iloc[mask_keep.values].reset_index(drop=True),
             'RT_group': self.alignment_results['RT_group'].iloc[mask_keep.values],
             'spectra_group': self.alignment_results['spectra_group'].iloc[mask_keep.values]
         }
-        
 
-    def save_results(self, output_dir, filtered_results=None):
+    def save_results(self, output_dir, with_filter=False):
         """
         Save alignment results to files in tab-separated format.
         
@@ -518,55 +523,35 @@ class chromatographicAligner:
         filtered_results : dict, optional
             Dictionary containing filtered versions of all matrices
         """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
         
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
+        name_filter = ""
+        if with_filter:
+            name_filter = f"_filter_{self.missing_value_limit}"
         
-        # Save Alignment Matrix
-        self.alignment_results['Alignment_Matrix'].to_csv(
-            os.path.join(output_dir, "py_Alignment_Matrix.csv"),
+        self.filtered_results['Alignment_Matrix'].to_csv(
+            os.path.join(output_dir, f"alignment_Matrix{name_filter}_{timestamp}.csv"),
             sep="\t", index=True, na_rep="NA"
         )
-        
-        # Save Peak Info
-        self.alignment_results['Peak_Info'].to_csv(
-            os.path.join(output_dir, "py_Peak_Info.csv"),
+        self.filtered_results['Peak_Info'].to_csv(
+            os.path.join(output_dir, f"peak_Info{name_filter}_{timestamp}.csv"),
             sep="\t", index=False
         )
-        
-        # Save RT Group
-        self.alignment_results['RT_group'].to_csv(
-            os.path.join(output_dir, "py_RT_Group.csv"),
+        self.filtered_results['RT_group'].to_csv(
+            os.path.join(output_dir, f"RT_Group{name_filter}_{timestamp}.csv"),
             sep="\t", index=True
         )
-        
-        # Save Spectra Group
-        self.alignment_results['spectra_group'].to_csv(
-            os.path.join(output_dir, "py_Spectra_Group.csv"),
+        self.filtered_results['spectra_group'].to_csv(
+            os.path.join(output_dir, f"spectra_group{name_filter}_{timestamp}.csv"),
             sep="\t", index=True
         )
-        
-        # Save filtered matrix if provided
-        if filtered_results is not None:
-            filtered_results['Alignment_Matrix'].to_csv(
-                os.path.join(output_dir, "py_Alignment_Matrix_after_filter.csv "),
-                sep="\t", index=True, na_rep="NA"
-            )
-            filtered_results['Peak_Info'].to_csv(
-            os.path.join(output_dir, "py_Peak_Info_after_filter.csv"),
-            sep="\t", index=False
-            )
-            filtered_results['RT_group'].to_csv(
-                os.path.join(output_dir, "py_RT_Group_after_filter.txt"),
-                sep="\t", index=True
-            )
-            filtered_results['spectra_group'].to_csv(
-                os.path.join(output_dir, "py_Spectra_Group_after_filter.csv"),
-                sep="\t", index=True
-            )
-            
+
+        print(f"✅ Filter {self.missing_value_limit} applied.")
         print(f"Results saved to directory: {output_dir}")
 
 if __name__ == "__main__":
@@ -584,12 +569,13 @@ if __name__ == "__main__":
 
     folder = "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
     file = [folder + "751303_v3_E3AM_5jui.txt" , 
-        folder + "751309_v3_E3PM_6jui.txt", 
-        folder + "854512_v3_E2AM_4jui.txt", 
-        folder + "854517_v3_E2AM_5jui.txt", 
-        folder + "802107_v1_E1PM_3jui.txt"]
+        # folder + "751309_v3_E3PM_6jui.txt", 
+        # folder + "854512_v3_E2AM_4jui.txt", 
+        # folder + "854517_v3_E2AM_5jui.txt", 
+        # folder + "802107_v1_E1PM_3jui.txt"
+        ]
     print("Importing files...", file)
-    aligner = chromatographicAligner(
+    aligner = ChromatographicAligner(
         rt1_penalty=1,
         rt2_penalty=5,
         similarity_cutoff=90,
