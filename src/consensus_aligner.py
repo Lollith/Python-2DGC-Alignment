@@ -511,7 +511,6 @@ class ChromatographicAligner:
             'RT_group': self.alignment_results['RT_group'].iloc[mask_keep.values],
             'spectra_group': self.alignment_results['spectra_group'].iloc[mask_keep.values]
         }
-        # return self.filtered_results
 
     def save_results(self, output_dir, with_filter=False):
         """
@@ -535,32 +534,6 @@ class ChromatographicAligner:
         if with_filter:
             name_filter = f"_filter_{self.missing_value_limit}"
         
-        # # Save Alignment Matrix
-        # self.alignment_results['Alignment_Matrix'].to_csv(
-        #     os.path.join(output_dir, f"alignment_matrix_{timestamp}.csv"),
-        #     sep="\t", index=True, na_rep="NA"
-        # )
-        
-        # # Save Peak Info
-        # self.alignment_results['Peak_Info'].to_csv(
-        #     os.path.join(output_dir, f"peak_info_{timestamp}.csv"),
-        #     sep="\t", index=False
-        # )
-        
-        # # Save RT Group
-        # self.alignment_results['RT_group'].to_csv(
-        #     os.path.join(output_dir, f"RT_group_{timestamp}.csv"),
-        #     sep="\t", index=True
-        # )
-        
-        # # Save Spectra Group
-        # self.alignment_results['spectra_group'].to_csv(
-        #     os.path.join(output_dir, f"spectra_group_{timestamp}.csv"),
-        #     sep="\t", index=True
-        # )
-        
-        # Save filtered matrix if provided
-        # if best_filter:
         self.filtered_results['Alignment_Matrix'].to_csv(
             os.path.join(output_dir, f"alignment_Matrix{name_filter}_{timestamp}.csv"),
             sep="\t", index=True, na_rep="NA"
