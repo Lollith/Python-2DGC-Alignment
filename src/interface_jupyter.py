@@ -16,7 +16,7 @@ class Interface:
     Users can select individual files, folders, or subfolders - all compatible files will be processed.
     """
     
-    def __init__(self, supported_extensions=('.cdf', '.h5')):
+    def __init__(self, supported_extensions):
         """Initialize the base UI with supported file extensions."""
         self.supported_extensions = supported_extensions
         self._setup_style()
@@ -324,7 +324,7 @@ class Interface:
         """Get the output path from the output chooser."""
         if hasattr(self, 'output_chooser') and self.output_chooser.selected:
             selected = self.output_chooser.selected
-            print(f"📁 Output path selected: {selected}")
+            # print(f"📁 Output path selected: {selected}")
             return selected
         return None
     
@@ -385,7 +385,7 @@ class Interface:
             for root, _, filenames in os.walk(directory_path):
                 for filename in filenames:
                     ext = os.path.splitext(filename)[1].lower()
-                    if ext not in ['.cdf', '.h5']:
+                    if ext not in self.supported_extensions:
                         continue
 
                     full_path = os.path.join(root, filename)
@@ -393,7 +393,8 @@ class Interface:
 
                     if name_without_ext in file_map:
                         existing_ext = os.path.splitext(file_map[name_without_ext])[1].lower()
-                        if existing_ext == '.cdf' and ext == '.h5':
+                        # Priorité à l’ordre donné dans self.supported_extensions
+                        if self.supported_extensions.index(ext) < self.supported_extensions.index(existing_ext):
                             file_map[name_without_ext] = full_path
                     else:
                         file_map[name_without_ext] = full_path
