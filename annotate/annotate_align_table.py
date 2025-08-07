@@ -87,16 +87,17 @@ def matching_nist(df, match_factor_min): #TODO modif ici
             'compound_formula': join_field('formula'),
             'match_factor': join_field('match_factor'),
         }
-        else:
-            identification_data_dict = {
-            'compound_name': f"Analyte_{row+1}",
-            'casno': '',
-            'compound_formula': '',
-            'match_factor': '',
-            }
+        # else: #TODO modif ici
+        #     identification_data_dict = {
+        #     'compound_name': f"Analyte_{row+1}",
+        #     'casno': '',
+        #     'compound_formula': '',
+        #     'match_factor': '',
+        #     }
    
-        for key in identification_data_dict:
-            df.at[row, key] = identification_data_dict[key]
+            for key in identification_data_dict: #modif ici
+                df.at[row, key] = identification_data_dict[key]
+    return df #modif ici
 
     # df.to_csv("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic/Align_table_info_annotated.csv", index=False,sep=";")
     df.to_csv("Annotate/align_table_info_annotated_hits.csv", sep=";", index=False, encoding="utf-8-sig") #compatibilite avec excel
