@@ -247,9 +247,13 @@ def plot_mass(mass_values, int_values, title="", top_n_mass=10, figsize=(32, 18)
 
 def point_is_visible(point, indexes):
     x,y = point[0], point[1]
-    if (x <= indexes[0][0] or x >= indexes[1][0] or y <= indexes[0][1] or y >= indexes[1][1]):
+    if(x >= indexes[0][0] & x <= indexes[1][0] & y >= indexes[0][1] & y <= indexes[1][1]):
+        return True
+    else :
         return False
-    return True
+    # if (x < indexes[0][0] or x > indexes[1][0] or y < indexes[0][1] or y > indexes[1][1]):
+    #     return False
+    # return True
 
 def plot(chromato_obj):
     """USELESS"""
@@ -329,7 +333,8 @@ def visualizer(
     """
     chromato, time_rn = chromato_obj
     shape = chromato.shape
-    X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    #X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
     Y = np.linspace(0, mod_time, shape[1])
     if (rt1 is not None and rt2 is not None):
         rt1minusrt1window = rt1 - rt1_window
@@ -361,11 +366,8 @@ def visualizer(
             indexes[0][0]:indexes[1][0],
             indexes[0][1]:indexes[1][1]
             ]
-        X = np.linspace(
-            rt1minusrt1window, rt1plusrt1window, indexes[1][0] - indexes[0][0]
-            )
-        Y = np.linspace(rt2minusrt2window, rt2plusrt2window,
-                        indexes[1][1] - indexes[0][1])
+        X=X[indexes[0][0]:indexes[1][0]]
+        Y=Y[indexes[0][1]:indexes[1][1]]
     elif (center_pt_window_1 and center_pt_window_2):
         center_pt1_minusrt1window = center_pt[0] - center_pt_window_1
         center_pt1_plusrt1window = center_pt[0] + center_pt_window_1
@@ -396,8 +398,8 @@ def visualizer(
         #indexes_in_chromato = matrix_to_chromato(indexes,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
         indexes_in_chromato = indexes
 
-        X = np.linspace(indexes[0][0], indexes[1][0], chromato.shape[0])
-        Y = np.linspace(indexes[0][1], indexes[1][1], chromato.shape[1])
+        X=X[center_pt1_minusrt1window:center_pt1_plusrt1window + 1]
+        Y=Y[center_pt2_minusrt2window:center_pt2_plusrt2window + 1]
 
         indexes = np.array([
             [center_pt1_minusrt1window, center_pt2_minusrt2window],
@@ -575,7 +577,8 @@ def visualizer2(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_windo
     """
     chromato, time_rn = chromato_obj
     shape = chromato.shape
-    X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    #X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
     Y = np.linspace(0, mod_time, shape[1])
     if (rt1 is not None and rt2 is not None):
         rt1minusrt1window = rt1 - rt1_window
@@ -595,39 +598,12 @@ def visualizer2(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_windo
             rt2plusrt2window = mod_time
             rt2minusrt2window = rt2 - rt2_window
         position_in_chromato = np.array([[rt1minusrt1window, rt2minusrt2window], [rt1plusrt1window, rt2plusrt2window]])
-        indexes = chromato_to_matrix(position_in_chromato,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
-        indexes_in_chromato = matrix_to_chromato(indexes,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
-        chromato = chromato[indexes[0][0]:indexes[1][0], indexes[0][1]:indexes[1][1]]
-        X = np.linspace(rt1minusrt1window, rt1plusrt1window, indexes[1][0] - indexes[0][0])
-        Y = np.linspace(rt2minusrt2window, rt2plusrt2window, indexes[1][1] - indexes[0][1])
-    elif (center_pt_window_1 and center_pt_window_2):
-        center_pt1_minusrt1window = center_pt[0] - center_pt_window_1
-        center_pt1_plusrt1window =  center_pt[0] + center_pt_window_1
-        center_pt2_minusrt2window =  center_pt[1] - center_pt_window_2
-        center_pt2_plusrt2window =  center_pt[1] + center_pt_window_2
-        if (center_pt1_minusrt1window < 0):
-            center_pt1_minusrt1window = 0
-            center_pt1_plusrt1window = 2 * center_pt[0]
-        if (center_pt1_plusrt1window >= shape[0]):
-            center_pt1_plusrt1window = shape[0] - 1
-            center_pt1_minusrt1window = center_pt[0] - abs(center_pt[0] - center_pt1_plusrt1window)
-        if (center_pt2_minusrt2window < 0):
-            center_pt2_minusrt2window = 0
-            center_pt2_plusrt2window = 2 * center_pt[1]
-        if (center_pt2_plusrt2window >= shape[1]):
-            center_pt2_plusrt2window = shape[1] - 1
-            center_pt2_minusrt2window = center_pt[1] - abs(center_pt[1] - center_pt2_plusrt2window)
-
-        chromato = chromato[center_pt1_minusrt1window:center_pt1_plusrt1window + 1, center_pt2_minusrt2window:center_pt2_plusrt2window + 1]
-        position_in_chromato = np.array([[center_pt1_minusrt1window, center_pt2_minusrt2window], [center_pt1_plusrt1window, center_pt2_plusrt2window]])
-        indexes = matrix_to_chromato(position_in_chromato,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
-        #indexes_in_chromato = matrix_to_chromato(indexes,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
-        indexes_in_chromato=indexes
-
-        X = np.linspace(indexes[0][0], indexes[1][0], chromato.shape[0])
-        Y = np.linspace(indexes[0][1], indexes[1][1], chromato.shape[1])
-
-        indexes = np.array([[center_pt1_minusrt1window, center_pt2_minusrt2window], [center_pt1_plusrt1window + 1, center_pt2_plusrt2window + 1]])
+        indexrt1= [ i for i ,(rt) in enumerate(X) if  rt1minusrt1window <= rt <= rt1plusrt1window]
+        indexrt2= [ i for i ,(rt) in enumerate(Y) if  rt2minusrt2window <= rt <= rt2plusrt2window]
+        indexes = np.array(([min(indexrt1),min(indexrt2)],[max(indexrt1),max(indexrt2)]))
+        chromato = chromato[np.ix_(indexrt1, indexrt2)]
+        X=X[indexrt1]
+        Y=Y[indexrt2]
     if (log_chromato):
         chromato = np.log(chromato)
     chromato = np.transpose(chromato)
@@ -639,61 +615,12 @@ def visualizer2(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_windo
     if (title != ""):
         plt.title(title)
     if (points is not None):
-        if ((rt1 and rt2) or (center_pt_window_1 and center_pt_window_2)):
-            tmp = []
+        if ((rt1 is not None and rt2 is not None)):
             point_indexes = chromato_to_matrix(points,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
-            for i, point in enumerate(point_indexes):
-                if (point_is_visible(point, indexes)):
-                    tmp.append(points[i])
-
-            points = np.array(tmp)
-        if (radius is not None and len(points) > 0):
-            for i in range(len(points)):
-                c = plt.Circle((points[i][0], points[i][1]), radius[i] / shape[1] , color="red", linewidth=2, fill=False)
-                ax.add_patch(c)
+            index = [idx for idx, (i, j) in enumerate(point_indexes) if indexes[0][0] <= i < indexes[1][0] and indexes[0][1] <= j < indexes[1][1]]
+            points=points[index]
         if (len(points) > 0):
-            if (casnos_dict != None):
-                mol_name = []
-                scatter_list = []
-                comp_list = list(casnos_dict.keys())
-                nb_comp = len(comp_list)
-                cmap = get_cmap(nb_comp)
-                for i, casno in enumerate(comp_list):
-                    tmp_pt_list = []
-                    for pt in casnos_dict[casno]:
-                        if (not((rt1 and rt2) or (center_pt_window_1 and center_pt_window_2)) or point_is_visible(pt, indexes_in_chromato)):
-                            print(casno)
-                            tmp_pt_list.append(pt)
-                    '''x_pts = np.array(casnos_dict[casno])[:,0]
-                    y_pts = np.array(casnos_dict[casno])[:,1]'''
-                    if len(tmp_pt_list) == 0:
-                        continue
-                    print("----")
-
-                    mol_name.append(comp_list[i])
-                    tmp_pt_list = np.array(tmp_pt_list)
-                    x_pts = tmp_pt_list[:,0]
-                    y_pts = tmp_pt_list[:,1]
-                    tmp = ax.scatter(x_pts,y_pts, c=cmap(i), marker=pt_shape, cmap='hsv')
-                    scatter_list.append(tmp)
-                print(mol_name)
-                plt.legend(scatter_list,
-                    mol_name,
-                    scatterpoints=1, fontsize=8, ncol=1, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left",
-                mode="expand")
-            else:
                 ax.plot(points[:,0], points[:,1], "r" + pt_shape)
-    if (len(contour)):
-        if (center_pt_window_1 and center_pt_window_2):
-            indexes_in_chromato = matrix_to_chromato(indexes,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
-            tmp = []
-            for i in range(len(contour)):
-                if (point_is_visible(contour[i], indexes_in_chromato)):
-                    tmp.append(contour[i])
-            tmp=np.array(tmp)
-            ax.plot(tmp[:,0], tmp[:,1], "b.")
-        else:
-            ax.plot(contour[:,0], contour[:,1], "b.")
     if (save):
         plt.savefig("figs/chromato_" + title + ".png")
     plt
