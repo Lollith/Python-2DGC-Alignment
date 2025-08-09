@@ -237,18 +237,18 @@ def matching_nist_lib_from_chromato_cube(
                     'spectra': int_values
                     }
                 match_results.append(match_data)
-        # else:
-        #     # Composé non identifié
-        #     nb_analyte += 1
-        #     match_results.append({
-        #         'spectra': int_values,
-        #         'compound_name': f'Analyte{nb_analyte}',
-        #         'casno': '',
-        #         'compound_formula': '',
-        #         'hit_prob': '',
-        #         'match_factor': '',
-        #         'reverse_match_factor': ''
-        #         })
+        else:
+            # Composé non identifié
+            nb_analyte += 1
+            match_results.append({
+                'spectra': int_values,
+                'compound_name': f'Analyte{nb_analyte}',
+                'casno': '',
+                'compound_formula': '',
+                'hit_prob': '',
+                'match_factor': '',
+                'reverse_match_factor': ''
+                })
 
         matches.append([[(coordinates_in_chromato[i][0]),
                        (coordinates_in_chromato[i][1])], match_results, coord])
