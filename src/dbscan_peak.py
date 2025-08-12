@@ -133,16 +133,16 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
         # cluster close peaks 
         distance_matrix=compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta=2*mod_time, rt2_delta=0.05)
         coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates,thr_debscan=0.02,min_sample_db_scan=1)
-        # merge peaks cut but the modulation
-        coordinates_in_chromato=projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
-        # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
-        mask = (coordinates_in_chromato[:, 1] > (mod_time-0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
-        bound= coordinates[mask]    
-        # 2.cluster without RT2 penalty 
-        distance_matrix=compute_distance_metric(bound,chromato_cube,mod_time,time_rn,rt1_delta=mod_time, rt2_delta=100000)
-        bound_cluster, clusters= cluster_peak(distance_matrix,chromato,bound,thr_debscan=0.02,min_sample_db_scan=1)
-        # 3. replace cluster 
-        coordinates = np.concatenate((coordinates[~mask], bound_cluster), axis=0)
+        # # merge peaks cut but the modulation
+        # coordinates_in_chromato=projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
+        # # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
+        # mask = (coordinates_in_chromato[:, 1] > (mod_time-0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+        # bound= coordinates[mask]    
+        # # 2.cluster without RT2 penalty 
+        # distance_matrix=compute_distance_metric(bound,chromato_cube,mod_time,time_rn,rt1_delta=mod_time, rt2_delta=100000)
+        # bound_cluster, clusters= cluster_peak(distance_matrix,chromato,bound,thr_debscan=0.02,min_sample_db_scan=1)
+        # # 3. replace cluster 
+        # coordinates = np.concatenate((coordinates[~mask], bound_cluster), axis=0)
         print(str(len(coordinates))+ " detected peaks after filter")
     return coordinates
 

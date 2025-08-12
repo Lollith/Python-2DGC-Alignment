@@ -165,10 +165,10 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
         else: 
             chormato_m=chromato
         blob = integration.peak_pool_similarity_check(
-            chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-            threshold=0.5, plot_labels=True,
-            similarity_threshold=similarity_threshold)
-        
+                chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
+                threshold=0.5, plot_labels=True,
+                similarity_threshold=similarity_threshold)
+            
         area = integration.compute_area(chormato_m, blob) 
 
        
