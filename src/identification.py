@@ -164,12 +164,18 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
             chormato_m = chromato_cube[majority_mass,:,:] ## pas sur le chromato mais sur la masse majoritaire 
         else: 
             chormato_m=chromato
+        
         blob = integration.peak_pool_similarity_check(
                 chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-                threshold=0.5, plot_labels=True,
+                threshold=0.01, plot_labels=True,
                 similarity_threshold=similarity_threshold)
             
-        area = integration.compute_area(chormato_m, blob) 
+        area_total = integration.compute_area(chormato_m, blob) 
+        mask = np.zeros_like(blob)
+        mask[coord[0],: ] = blob[coord[0],:]
+
+        area_mod_max= integration.compute_area(chormato_m, mask) 
+
 
        
         height = chormato_m[coord[0], coord[1]]
@@ -186,7 +192,8 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
             'reverse_match_factor': join_field('reverse_match_factor'),
             'rt1': match[0][0],
             'rt2': match[0][1],
-            'area': area,
+            'area': area_total,
+            'area_mod_max':area_mod_max,
             'height': height,
             "quant_mass":majority_mass + mass_range[0]
         }
