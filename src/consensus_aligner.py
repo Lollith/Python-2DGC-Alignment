@@ -5,6 +5,8 @@ from concurrent.futures import ProcessPoolExecutor
 import os
 import platform
 from datetime import datetime
+import nist_search
+import matching
 
 class ChromatographicAligner:
     """
@@ -32,7 +34,8 @@ class ChromatographicAligner:
         auto_tune_match_stringency=False,
         missing_peak_finder_similarity_lax=0.85,
         quant_method="T",
-        num_cores=1
+        num_cores=1,
+        nist_api=None
         ):
         """
         Initialize the chromatographic aligner with parameters.
@@ -67,6 +70,7 @@ class ChromatographicAligner:
         self.missing_peak_finder_similarity_lax = missing_peak_finder_similarity_lax
         self.quant_method = quant_method
         self.num_cores = num_cores
+        self.nist_api = nist_api
 
         # results storage
         self.imported_files = None
@@ -255,7 +259,9 @@ class ChromatographicAligner:
     def consensus_align_bis(self, input_file_list,
                         seed_file=0,  # Python uses 0-based indexing
                         common_ions=None,
-                        standard_library=None):
+                        # standard_library=None,
+                        # nist=False
+                        ):
         """
         Consensus alignment function for chromatographic data.
         
@@ -307,6 +313,8 @@ class ChromatographicAligner:
             self.disimilarity_cutoff = self.similarity_cutoff - 90
         if common_ions is None:
             common_ions = []
+        
+       
         
         # Import files if not provided
         if self.imported_files is None:
@@ -458,6 +466,56 @@ class ChromatographicAligner:
             }
         
         return self.alignment_results
+    
+    def nist_identification(self, nist=False, match_factor_min)
+    #TODO corriger langlais
+    """
+    Identify the aligned spectra with NIST.
+    # - nist = True : identifie uniquement ceux qui n ont pas encore ete identifies
+    - nist= relance l'identification pour tous
+
+    """
+    if self.nist_api is None:
+        raise RuntimeError("api nist is missing")
+    if not hasattr(self, "alignment_result"):
+        raise RuntimeError("none alignment, run the alignment before")
+    
+    if not self.nist_api.check_nist_health():
+        print("⚠️ Service NIST indisponible, identifications sautées.")
+        return self.alignment_result
+
+    spectra_group = self.alignment_result["spectra_group"]
+    identification = []
+
+    for spectrum in spectra_group:
+        already_identified = isinstance(spectrum, dict) and "Compounds" in spectrum
+        if not already_identified or nist:
+            
+            serialized_spectrum = {
+                "mass": [float(m) for m in spectrum.mass_list],
+                "intensity": [float(x) for x in spectrum.intensity_list]
+            }
+            results = self.nist_api.nist_single_search(serialized_spectrum)
+            list_hits = self.nist_api.hit_list_from_nist_api(results)
+            top_hits = matching.filter_best_hits(list_hits, match_factor_min)
+
+            if top_hits:
+                compounds = [hit[0].name for hit in filtered_hits]
+                scores = [str(hit[0].match_factor) for hit in filtered_hits]
+                identifications.append({
+                    "Compounds": "/".join(compounds),
+                    "Scores": "/".join(scores)
+                })
+            else:
+                identifications.append({"Compounds": "NA", "Scores": "NA"})
+        else:
+            identifications.append({
+                "Compounds": spectrum.get("Compounds", "NA"),
+                "Scores": spectrum.get("Scores", "NA")
+            })
+        
+    self.alignment_result["Identification"] = identifications
+    return self.alignment_result
 
     def get_alignment_matrix(self):
         """Get the alignment matrix from the last alignment."""
