@@ -28,7 +28,7 @@ Write-Host "=== Docker est prêt ==="
 
 # Activation de l'environnement Flask
 Write-Host "=== Lancement de Flask ==="
-Set-Location "$env:FLASK_DIR"
+Set-Location "$env:PROJECT_PATH\interface_flask"
 
 # Active le venv s'il existe
 if (Test-Path "$env:VENV_PATH") {
