@@ -187,6 +187,10 @@ def matching_nist_lib_from_chromato_cube(
     # top_hits = []
     # serialized_spectra = []
     nist_api = nist_search.NISTSearchWrapper() if nist else None
+    if nist:
+        print("NIST API is enabled for matching.")
+    else:
+        print("NIST API is disabled for matching.") 
 
     # cache = {}
     for i, coord in enumerate(coordinates):
@@ -216,7 +220,7 @@ def matching_nist_lib_from_chromato_cube(
                 cache[spectrum_hash] = top_hits
                 print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
         else:
-            print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
+            # print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
             top_hits = []
 
         match_results = []
