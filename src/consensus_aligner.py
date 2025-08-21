@@ -5,7 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 import os
 import platform
 from datetime import datetime
-import nist_search
+# import nist_search
 import matching
 
 class ChromatographicAligner:
@@ -466,56 +466,8 @@ class ChromatographicAligner:
             }
         
         return self.alignment_results
-    
-    def nist_identification(self, nist=False, match_factor_min)
-    #TODO corriger langlais
-    """
-    Identify the aligned spectra with NIST.
-    # - nist = True : identifie uniquement ceux qui n ont pas encore ete identifies
-    - nist= relance l'identification pour tous
 
-    """
-    if self.nist_api is None:
-        raise RuntimeError("api nist is missing")
-    if not hasattr(self, "alignment_result"):
-        raise RuntimeError("none alignment, run the alignment before")
-    
-    if not self.nist_api.check_nist_health():
-        print("⚠️ Service NIST indisponible, identifications sautées.")
-        return self.alignment_result
 
-    spectra_group = self.alignment_result["spectra_group"]
-    identification = []
-
-    for spectrum in spectra_group:
-        already_identified = isinstance(spectrum, dict) and "Compounds" in spectrum
-        if not already_identified or nist:
-            
-            serialized_spectrum = {
-                "mass": [float(m) for m in spectrum.mass_list],
-                "intensity": [float(x) for x in spectrum.intensity_list]
-            }
-            results = self.nist_api.nist_single_search(serialized_spectrum)
-            list_hits = self.nist_api.hit_list_from_nist_api(results)
-            top_hits = matching.filter_best_hits(list_hits, match_factor_min)
-
-            if top_hits:
-                compounds = [hit[0].name for hit in filtered_hits]
-                scores = [str(hit[0].match_factor) for hit in filtered_hits]
-                identifications.append({
-                    "Compounds": "/".join(compounds),
-                    "Scores": "/".join(scores)
-                })
-            else:
-                identifications.append({"Compounds": "NA", "Scores": "NA"})
-        else:
-            identifications.append({
-                "Compounds": spectrum.get("Compounds", "NA"),
-                "Scores": spectrum.get("Scores", "NA")
-            })
-        
-    self.alignment_result["Identification"] = identifications
-    return self.alignment_result
 
     def get_alignment_matrix(self):
         """Get the alignment matrix from the last alignment."""
@@ -569,6 +521,59 @@ class ChromatographicAligner:
             'RT_group': self.alignment_results['RT_group'].iloc[mask_keep.values],
             'spectra_group': self.alignment_results['spectra_group'].iloc[mask_keep.values]
         }
+
+
+    def nist_identification(self, nist=False, match_factor_min=650):
+    # TODO corriger langlais
+        """
+        Identify the aligned spectra with NIST.
+        # - nist = True : identifie uniquement ceux qui n ont pas encore ete identifies
+        - nist= relance l'identification pour tous
+
+        """
+        # if self.nist_api is None: #TODO a remettre
+        #   raise RuntimeError("api nist is missing")
+        if self.alignment_results is None:
+            raise ValueError("No alignment results available. Run the alignment first.")  
+
+        # if not self.nist_api.check_nist_health():#TODO a remettre
+        #     print("⚠️ Service NIST indisponible, identifications sautées.")
+        #     return self.filtered_results
+
+        spectra_group = self.filtered_results["spectra_group"]
+        
+        print("spectra gouep",spectra_group)
+        identifications = []
+
+        for spectrum in spectra_group:
+            already_identified = isinstance(spectrum, dict) and "Compounds" in spectrum
+            if not already_identified or nist:
+                print("ICI",spectrum)
+                serialized_spectrum = {
+                    "mass": [float(m) for m in spectrum.mass_values],
+                    "intensity": [float(x) for x in spectrum.intensity_values]
+                }
+                results = self.nist_api.nist_single_search(serialized_spectrum)
+                list_hits = self.nist_api.hit_list_from_nist_api(results)
+                top_hits = matching.filter_best_hits(list_hits, match_factor_min)
+
+                if top_hits:
+                    compounds = [hit[0].name for hit in top_hits]
+                    scores = [str(hit[0].match_factor) for hit in top_hits]
+                    identifications.append({
+                        "Compounds": "/".join(compounds),
+                        "Scores": "/".join(scores)
+                    })
+                else:
+                    identifications.append({"Compounds": "NA", "Scores": "NA"})
+            else:
+                identifications.append({
+                    "Compounds": spectrum.get("Compounds", "NA"),
+                    "Scores": spectrum.get("Scores", "NA")
+                })
+            
+        self.filtered_results["Identification"] = identifications
+        return self.filtered_results
 
     def save_results(self, output_dir, with_filter=False):
         """
@@ -625,13 +630,19 @@ if __name__ == "__main__":
     #     folder + "2025-05-14_817827-QC_23EI_prep22-0.txt",
     # ]
 
-    folder = "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
-    file = [folder + "751303_v3_E3AM_5jui.txt" , 
+    # folder = "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
+    # file = [folder + "751303_v3_E3AM_5jui.txt" , 
         # folder + "751309_v3_E3PM_6jui.txt", 
         # folder + "854512_v3_E2AM_4jui.txt", 
         # folder + "854517_v3_E2AM_5jui.txt", 
         # folder + "802107_v1_E1PM_3jui.txt"
+        # ]
+    folder = "C:/Users/adeli/Documents/programmation/uvsq/app/output/aout_without_nist_before_align/"
+    file = [folder + "A-F-028-817822-droite-ReCIV.txt",
+        folder + "J-A-034-751325-Tedla.txt",
+        folder + "P-L-007-801838-Tedla.txt"
         ]
+
     print("Importing files...", file)
     aligner = ChromatographicAligner(
         rt1_penalty=1,
@@ -649,9 +660,13 @@ if __name__ == "__main__":
         input_file_list=file,
         seed_file=0
     )
+    aligner.filter_alignment_matrix()
+    aligner.nist_identification(nist=True, match_factor_min=650)
+    output_dir = "C:/Users/adeli/Documents/programmation/uvsq/app/output/te1234"
+    aligner.save_results(output_dir)
 
-    filtered_results = aligner.filter_alignment_matrix(missing_value_threshold=0.5)
+    # filtered_results = aligner.filter_alignment_matrix(missing_value_threshold=0.5)
 
-    # # Save results
-    output_dir = "D:/Dossiers Persos/Adeline/Python-2DGC-Alignment/consensus/"
-    aligner.save_results(output_dir, filtered_results)
+
+    # # Save result
+    # aligner.save_results(output_dir, filtered_results)
