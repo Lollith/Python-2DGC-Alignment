@@ -543,16 +543,22 @@ class ChromatographicAligner:
         spectra_group = self.filtered_results["spectra_group"]
         
         print("spectra gouep",spectra_group)
+        def parse_spectrum_string(spectrum_str):
+            if spectrum_str is None or spectrum_str == "NA":
+                return {"mass": [], "intensity": []}
+            pairs = spectrum_str.strip().split()
+            mz, intensity = zip(*(p.split(":") for p in pairs))
+            return {
+                "mass": [float(m) for m in mz],
+                "intensity": [float(i) for i in intensity]
+            }
+        
         identifications = []
+        for analyte, row in spectra_group.iterrows():
+            spectrum_str = row.dropna().iloc[0]  # récupère la première cellule non-nulle (si un spectre est présent)
+            serialized_spectrum = parse_spectrum_string(spectrum_str)
 
-        for spectrum in spectra_group:
-            already_identified = isinstance(spectrum, dict) and "Compounds" in spectrum
-            if not already_identified or nist:
-                print("ICI",spectrum)
-                serialized_spectrum = {
-                    "mass": [float(m) for m in spectrum.mass_values],
-                    "intensity": [float(x) for x in spectrum.intensity_values]
-                }
+            if serialized_spectrum["mass"]:  # si le spectre n'est pas vide
                 results = self.nist_api.nist_single_search(serialized_spectrum)
                 list_hits = self.nist_api.hit_list_from_nist_api(results)
                 top_hits = matching.filter_best_hits(list_hits, match_factor_min)
@@ -567,11 +573,8 @@ class ChromatographicAligner:
                 else:
                     identifications.append({"Compounds": "NA", "Scores": "NA"})
             else:
-                identifications.append({
-                    "Compounds": spectrum.get("Compounds", "NA"),
-                    "Scores": spectrum.get("Scores", "NA")
-                })
-            
+                identifications.append({"Compounds": "NA", "Scores": "NA"})
+
         self.filtered_results["Identification"] = identifications
         return self.filtered_results
 
