@@ -523,7 +523,7 @@ class ChromatographicAligner:
         }
 
 
-    def nist_identification(self, nist=False, match_factor_min=650):
+    def nist_identification(self, match_factor_min=650):
     # TODO corriger langlais
         """
         Identify the aligned spectra with NIST.
@@ -531,18 +531,20 @@ class ChromatographicAligner:
         - nist= relance l'identification pour tous
 
         """
-        # if self.nist_api is None: #TODO a remettre
-        #   raise RuntimeError("api nist is missing")
+        print("NIST identification started...       ")
+        print("nist", self.nist_api)
+        if self.nist_api is None: #TODO a remettre
+            raise RuntimeError("api nist is missing")
+            # return self.filtered_results
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run the alignment first.")  
 
-        # if not self.nist_api.check_nist_health():#TODO a remettre
-        #     print("⚠️ Service NIST indisponible, identifications sautées.")
-        #     return self.filtered_results
+        if not self.nist_api.check_nist_health():#TODO a remettre
+            print("⚠️ Service NIST indisponible, identifications sautées.")
+            return self.filtered_results
 
         spectra_group = self.filtered_results["spectra_group"]
         
-        print("spectra gouep",spectra_group)
         def parse_spectrum_string(spectrum_str):
             if spectrum_str is None or spectrum_str == "NA":
                 return {"mass": [], "intensity": []}
@@ -557,6 +559,7 @@ class ChromatographicAligner:
         for analyte, row in spectra_group.iterrows():
             spectrum_str = row.dropna().iloc[0]  # récupère la première cellule non-nulle (si un spectre est présent)
             serialized_spectrum = parse_spectrum_string(spectrum_str)
+            # print("serialized spectrum", serialized_spectrum)
 
             if serialized_spectrum["mass"]:  # si le spectre n'est pas vide
                 results = self.nist_api.nist_single_search(serialized_spectrum)
