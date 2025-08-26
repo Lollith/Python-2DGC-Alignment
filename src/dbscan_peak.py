@@ -9,6 +9,8 @@ from multiprocessing import Pool
 import skimage
 import gc
 from scipy.spatial.distance import cdist
+from scipy.interpolate import griddata
+from whittaker_eilers import WhittakerSmoother
 
 
 # parameters to optimmize: 
@@ -246,7 +248,27 @@ def detect_peak_dog( chromato_tic,
                     min_sigma, max_sigma,
                     sigma_ratio,
                     overlap):
+
+        optimal_lambda_list=[]
+        # find optimal lambda for smoothing 
+        for j in range(0,chromato_tic.shape[1],10):
+            data_to_smooth = chromato_tic[:,j]
+            smoother = WhittakerSmoother(lmbda=10, order=1, data_length=len(data_to_smooth))
+            results = smoother.smooth_optimal(data_to_smooth, break_serial_correlation=True)
+            optimal_lambda = results.get_optimal().get_lambda()
+            optimal_lambda_list.append(optimal_lambda)
         
+        optimal_lambda=np.quantile(optimal_lambda_list,0.25)
+
+        if optimal_lambda >40 :
+            optimal_lambda=40
+        elif optimal_lambda <5:
+            optimal_lambda=5
+
+        # baseline and smooting    
+        correct=baseline_correct(chromato_tic,block_size=10,gamma=0.25, lmbd=optimal_lambda)
+
+        chromato_tic=correct 
         sigma = estimate_sigma(chromato_tic, channel_axis=None)
         intensity_threshold = intensity_threshold_decision_rule(
             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
@@ -269,7 +291,7 @@ def detect_peak_dog( chromato_tic,
         blobs_dog = np.rint(blobs_dog).astype(int)
         coordinates = np.array(blobs_dog[:, :2])
         
-        return coordinates
+        return coordinates , radii
 
 
 def detect_peak_dog_mp(chromato_cube,
@@ -327,6 +349,63 @@ def cluster_per_mass(coordinate,chromato_cube,time_rn, mod_time,rt1_delta, rt2_d
     return coordinate_cluster
 
 
+
+def smooth2d(arr, lmbd):
+    # Lissage par lignes
+    smoother = WhittakerSmoother(lmbda=lmbd, order=1, data_length=arr.shape[1])
+    arr_smooth = np.array([smoother.smooth(row) for row in arr])
+
+    # Lissage par colonnes
+    smoother = WhittakerSmoother(lmbda=lmbd, order=1, data_length=arr.shape[0])
+    arr_smooth = np.array([smoother.smooth(col) for col in arr_smooth.T]).T
+    
+    return arr_smooth
+
+def baseline_correct(mat,block_size = 20,gamma=0.25,lmbd=15):
+            
+    if(np.all(mat == 0)) :
+          return mat
+
+    mat = smooth2d(mat, lmbd=lmbd)
+
+    n=mat.shape[0]
+    m=mat.shape[1]
+    n_blocks = (n + block_size - 1) // block_size
+    m_blocks = (m + block_size - 1) // block_size
+
+    min_grid = np.zeros((n_blocks, m_blocks))
+
+    for bi, i in enumerate(range(0, n, block_size)):
+        for bj, j in enumerate(range(0, m, block_size)):
+            block = mat[i:i+block_size, j:j+block_size]
+            min_grid[bi, bj] = block.min()
+
+    min_grid_smooth = smooth2d(min_grid, lmbd=25)
+    sigma=np.std(min_grid)
+
+    # --- 3. Préparer pour interpolation ---
+    points = []
+    values = []
+    for bi in range(n_blocks):
+        for bj in range(m_blocks):
+            ci = bi*block_size + block_size//2
+            cj = bj*block_size + block_size//2
+            if ci < n and cj < m:  # éviter dépassement
+                points.append((ci, cj))
+                values.append(min_grid_smooth[bi, bj])
+
+    points = np.array(points)
+    values = np.array(values) + gamma*sigma
+
+    # Grille complète (n x m)
+    grid_x, grid_y = np.mgrid[0:n, 0:m]
+
+    # --- 4. Interpolation linéaire 2D ---
+    interp_mat = griddata(points, values, (grid_x, grid_y), method='nearest')
+
+    correct=mat-interp_mat
+    correct[correct<0]=min(correct[correct>0])
+    return(correct)
 
 # peak_local_max detection
     # intensity_threshold = intensity_threshold_decision_rule(

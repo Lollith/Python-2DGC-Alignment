@@ -28,7 +28,7 @@ import plot
 #     >>> read_chroma.print_chroma_header(filename)
 #     """
 #     ds = nc.Dataset(filename)
-#     print(ds)
+#     print(ds)fh5
 #     range_min = math.ceil(ds["mass_range_min"][0])
 #     range_max = math.floor(ds["mass_range_max"][0])
 #     print(range_min)
@@ -236,9 +236,9 @@ def read_chromato_and_chromato_cube(filename,
 
     # baseline correction
     if (pre_process):
-        tic_chromato = baseline_correction.chromato_reduced_noise(tic_chromato)
+        tic_chromato = baseline_correction.baseline_correct_window(tic_chromato)
         chromato_cube = np.array(
-            baseline_correction.chromato_cube_corrected_baseline(
+            baseline_correction.baseline_correct_window_cube(
                 chromato_cube))
         print("baseline corrected")
     sigma = skimage.restoration.estimate_sigma(tic_chromato, channel_axis=None)
