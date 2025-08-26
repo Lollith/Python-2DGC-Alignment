@@ -101,7 +101,7 @@ def read_chroma(filename, mod_time, max_val=None):
     except AttributeError:
         raise ValueError("The file must be a .h5 or .cdf")
     else:
-        with (h5py.File(filename, 'r') if is_h5 else nc.Dataset(filename)) as g:
+        with (h5py.File(filename, 'r') if is_h5 else nc.Dataset(filename, encoding="latin-1")) as g:
             def get_var(key):
                 return g[key][:]
 
@@ -181,7 +181,7 @@ def read_chroma(filename, mod_time, max_val=None):
 
 def read_chromato_and_chromato_cube(filename, 
                                     mod_time,
-                                    pre_process=True):
+                                    pre_process=True,plot_=True):
     r"""Same as read_chromato_cube(Read chromatogram file and compute TIC
     chromatogram, 3D chromatogram and noise std.) but do not returns full
     spectra_obj (only range_min and range_max) because of RAM issue.
@@ -220,7 +220,8 @@ def read_chromato_and_chromato_cube(filename,
     start_time = time.time()
     chromato_obj = read_chroma(filename, mod_time)
     tic_chromato, time_rn, spectra_obj = chromato_obj
-    plot.visualizer((tic_chromato, time_rn), mod_time, title="Chromatogram TIC")
+    if plot_:
+        plot.visualizer((tic_chromato, time_rn), mod_time, title="Chromatogram TIC")
     (l1, l2, mv, iv, range_min, range_max) = spectra_obj
     print("chromato read", time.time()-start_time, 's')
 

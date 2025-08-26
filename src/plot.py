@@ -486,7 +486,7 @@ def visualizer(
     if (save):
         plt.savefig("figs/chromato_" + title + ".png")
 
-    plt.show()
+    plt.show(block=False)
     if (plotly):
         fig = go.Figure(data=go.Contour(
             z=np.transpose(chromato),

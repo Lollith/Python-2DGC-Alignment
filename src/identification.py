@@ -287,7 +287,7 @@ def identification(filename,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence, overlap, eps, min_samples, nist,quant,extract_patch,output_hdf5_file):
+                   min_persistence, overlap, eps, min_samples, nist,quant,extract_patch,output_hdf5_file, plot_):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -334,7 +334,7 @@ def identification(filename,
     chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
         read_chroma.read_chromato_and_chromato_cube(filename, 
                                                     mod_time,
-                                                    pre_process=True
+                                                    pre_process=True,plot_=plot_
                                                     ))
     
     
@@ -378,11 +378,12 @@ def identification(filename,
             min_samples=min_samples)
     print("nb peaks", len(coordinates))
     
-    coordinates_in_chromato = projection.matrix_to_chromato(
-            coordinates, time_rn, mod_time, chromato_tic.shape)
-    plot.visualizer((chromato_tic, time_rn), mod_time,
-                        title=f"peak detection with mode {mode} and method {method}",
-                        log_chromato=True, points=coordinates_in_chromato)
+    if(plot_):
+        coordinates_in_chromato = projection.matrix_to_chromato(
+                coordinates, time_rn, mod_time, chromato_tic.shape)
+        plot.visualizer((chromato_tic, time_rn), mod_time,
+                            title=f"peak detection with mode {mode} and method {method}",
+                            log_chromato=True, points=coordinates_in_chromato)
 
     matches = matching.matching_nist_lib_from_chromato_cube(
             (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
@@ -535,7 +536,7 @@ def sample_identification(path, file, output_path,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
                           num_sigma,
                           formated_spectra, match_factor_min, min_persistence,
-                          overlap, eps, min_samples, nist=False, quant_method="mass", extract_patch=True, output_hdf5_file=None):
+                          overlap, eps, min_samples, nist=False, quant_method="mass", extract_patch=True, output_hdf5_file=None, plot_=False):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -610,11 +611,11 @@ def sample_identification(path, file, output_path,
                                                 overlap,
                                                 eps,
                                                 min_samples,
-                                                nist, quant_method,extract_patch,output_hdf5_file)
+                                                nist, quant_method,extract_patch,output_hdf5_file,plot_)
 
 
         print("Identification done", time.time()-start_time, 's')
-        print("output_path from identificqtion", output_path)
+        print("output_path from identification", output_path, file)
         cohort_identification_alignment_input_format_txt(
             os.path.splitext(file)[0], matches_identification, output_path)
         if(extract_patch):
@@ -623,6 +624,7 @@ def sample_identification(path, file, output_path,
         else:
             cohort_identification_to_csv(os.path.splitext(file)[0], matches_identification,
                                      output_path)
+        print(f'{output_path + os.path.splitext(file)[0]}.txt created')
         return (f'{output_path + os.path.splitext(file)[0]}.txt created')
 
     except Exception as e:
