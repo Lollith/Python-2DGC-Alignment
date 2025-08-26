@@ -694,39 +694,82 @@ class ChromatographicAligner:
 #         ]
 #         print("NIST identifications ajoutées à RT_group et spectra_group.")
 
+    # def _update_results_with_identifications(self, identifications):
+    #     """
+    #     Met à jour les résultats de l'alignement avec les identifications NIST.
+        
+    #     identifications : pd.DataFrame
+    #         DataFrame renvoyé par _run_nist_on_spectra. Chaque cellule contient
+    #         la chaîne "compound1/compound2 | score1/score2" ou "NA".
+    #     """
+    #     # Transformation en listes pour correspondre aux DataFrames existants
+    #     compounds_list = []
+    #     scores_list = []
+
+    #     for row_idx, row in identifications.iterrows():
+    #         for col in identifications.columns:
+    #             val = row[col]
+    #             if isinstance(val, str) and "|" in val:
+    #                 comp_part, score_part = val.split("|", 1)
+    #                 compounds_list.append(comp_part.strip())
+    #                 scores_list.append(score_part.strip())
+    #             else:
+    #                 compounds_list.append(val)
+    #                 scores_list.append("NA")
+
+    #     # Ajustement de la longueur pour correspondre à Peak_Info
+    #     n_peaks = len(self.alignment_results["Peak_Info"])
+    #     self.alignment_results["Peak_Info"]["Compounds"] = compounds_list[:n_peaks]
+    #     self.alignment_results["Peak_Info"]["Scores"] = scores_list[:n_peaks]
+
+    #     # Mise à jour des RT_group si nécessaire
+    #     n_rt = len(self.filtered_results["RT_group"])
+    #     self.filtered_results["RT_group"]["Compounds"] = compounds_list[:n_rt]
+
+    #     print("✅ NIST identifications mises à jour dans Peak_Info et RT_group.")
+
+
+    #TODO a tester
     def _update_results_with_identifications(self, identifications):
         """
-        Met à jour les résultats de l'alignement avec les identifications NIST.
-        
-        identifications : pd.DataFrame
-            DataFrame renvoyé par _run_nist_on_spectra. Chaque cellule contient
-            la chaîne "compound1/compound2 | score1/score2" ou "NA".
+        Met à jour les DataFrames Peak_Info et RT_group avec les résultats NIST.
+        identifications : DataFrame ou liste de dict avec les clés 'Compounds' et 'Scores'.
         """
-        # Transformation en listes pour correspondre aux DataFrames existants
-        compounds_list = []
-        scores_list = []
 
-        for row_idx, row in identifications.iterrows():
-            for col in identifications.columns:
-                val = row[col]
-                if isinstance(val, str) and "|" in val:
-                    comp_part, score_part = val.split("|", 1)
-                    compounds_list.append(comp_part.strip())
-                    scores_list.append(score_part.strip())
-                else:
-                    compounds_list.append(val)
-                    scores_list.append("NA")
+        # Vérifier que Peak_Info existe
+        if "Peak_Info" not in self.alignment_results:
+            raise ValueError("Peak_Info non trouvé dans alignment_results")
 
-        # Ajustement de la longueur pour correspondre à Peak_Info
-        n_peaks = len(self.alignment_results["Peak_Info"])
-        self.alignment_results["Peak_Info"]["Compounds"] = compounds_list[:n_peaks]
-        self.alignment_results["Peak_Info"]["Scores"] = scores_list[:n_peaks]
+        peak_info = self.alignment_results["Peak_Info"]
+        n_rows = len(peak_info)
 
-        # Mise à jour des RT_group si nécessaire
-        n_rt = len(self.filtered_results["RT_group"])
-        self.filtered_results["RT_group"]["Compounds"] = compounds_list[:n_rt]
+        # Si identifications est un DataFrame (comme retourné par _run_nist_on_spectra)
+        if isinstance(identifications, pd.DataFrame):
+            compounds = identifications.apply(lambda row: " | ".join(row.dropna().astype(str)), axis=1)
+            scores = identifications.apply(lambda row: " | ".join(row.dropna().astype(str)), axis=1)
+        # Si identifications est une liste de dict
+        elif isinstance(identifications, list):
+            compounds = [i.get("Compounds", "NA") for i in identifications]
+            scores = [i.get("Scores", "NA") for i in identifications]
+        else:
+            raise TypeError("identifications doit être un DataFrame ou une liste de dict")
 
-        print("✅ NIST identifications mises à jour dans Peak_Info et RT_group.")
+        # Ajuster la longueur pour correspondre à Peak_Info
+        compounds = compounds[:n_rows] if len(compounds) >= n_rows else list(compounds) + ["NA"]*(n_rows - len(compounds))
+        scores = scores[:n_rows] if len(scores) >= n_rows else list(scores) + ["NA"]*(n_rows - len(scores))
+
+        # Mise à jour de Peak_Info
+        peak_info["Compounds"] = compounds
+        peak_info["Scores"] = scores
+
+        # Mise à jour de RT_group si existant
+        if "RT_group" in self.filtered_results:
+            rt_group = self.filtered_results["RT_group"]
+            rt_group["Compounds"] = compounds
+            rt_group["Scores"] = scores
+
+        print("✅ NIST identifications ajoutées à Peak_Info et RT_group.")
+
 
     def _csv_results_exist(self):
         """
