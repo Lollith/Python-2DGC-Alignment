@@ -523,7 +523,9 @@ class ChromatographicAligner:
         }
 
 
-    def nist_identification(self, nist=False, match_factor_min=650):
+    def nist_identification(self,
+                            #nist=False, 
+                            match_factor_min=650):
         """
         Inject NIST identifications into Alignment_Matrix, Peak_Info, RT_group, and spectra_group.
 
@@ -539,7 +541,9 @@ class ChromatographicAligner:
         if self.alignment_results is not None:
             print("👉 Cas 1 : résultats en mémoire")
             spectra_group = self.filtered_results["spectra_group"]
-            identifications = self._run_nist_on_spectra(spectra_group, nist, match_factor_min)
+            identifications = self._run_nist_on_spectra(spectra_group, 
+                                                        #nist, 
+                                                        match_factor_min)
             # Mettre à jour résultats en mémoire
             self._update_results_with_identifications(identifications)
             return self.filtered_results
@@ -552,7 +556,7 @@ class ChromatographicAligner:
 
             identifications_exist = "Compounds" in peak_info.columns
 
-            if identifications_exist and not nist:
+            if identifications_exist: # and not nist:
                 print("✅ Identifications déjà présentes, rien à faire.")
                 return {
                     "Alignment_Matrix": alignment_matrix,
@@ -562,7 +566,9 @@ class ChromatographicAligner:
                 }
 
             # Relancer identifications (cas 2, ou cas 3 avec nist=True)
-            identifications = self._run_nist_on_spectra(spectra_group, True, match_factor_min)
+            identifications = self._run_nist_on_spectra(spectra_group,
+                                                        #True,
+                                                        match_factor_min)
 
             # Mettre à jour les CSV
             self._update_csv_results_with_identifications(
@@ -584,7 +590,9 @@ class ChromatographicAligner:
 # Fonctions utilitaires
 # ----------------------------------------------------------------------
 
-    def _run_nist_on_spectra(self, spectra_group, force, match_factor_min):
+    def _run_nist_on_spectra(self, spectra_group, 
+                             #force,
+                             match_factor_min):
         """
         Lance NIST sur tous les spectres.
         - force=True => ré-identifie même si déjà identifié
@@ -593,7 +601,8 @@ class ChromatographicAligner:
 
         for spectrum in spectra_group:
             already_identified = isinstance(spectrum, dict) and "Compounds" in spectrum
-            if not already_identified or force:
+            print("spectrum:", spectrum)
+            if not already_identified: # or force:
                 serialized_spectrum = {
                     "mass": [float(m) for m in spectrum.mass_values],
                     "intensity": [float(x) for x in spectrum.intensity_values],
