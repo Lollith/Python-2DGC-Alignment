@@ -13,15 +13,24 @@ if (Test-Path $envPath) {
     exit 1
 }
 
-# Lancement de Docker Desktop
+# verifier que wsl est accessible
+wsl --status > $null 2>&1
+i($LASTEXITCODE -ne 0){
+    Write-Host "WSL n'est pas disponible. Docker Desktop 
+    ne pourra pas demarrer." -ForegroundColor Red
+    exit 1
+}
+
+# Lancement de Docker Desktop / verifie que docker peut utiliser WSL
 Write-Host "=== Lancement de Docker Desktop ==="
 Start-Process "$env:DOCKER_DESKTOP_PATH"
-
-# Attente du démarrage de Docker
-Write-Host "=== Attente du démarrage de Docker... ==="
+$dockerReady = $false
 do {
     Start-Sleep -Seconds 3
-    $dockerReady = & docker info 2>$null
+    docker info > $null 2>&1
+    if ($LASTEXITCODE -eq 0){$dockerReady =$true}
+    else {Write-Host "Docker Desktop n'est pas encore pret ou WSL
+    n'est pas compatible..."}
 } until ($dockerReady)
 
 Write-Host "=== Docker est prêt ==="
