@@ -227,8 +227,8 @@ def matching_nist_lib_from_chromato_cube(
         if top_hits:
             for j, hit in enumerate(top_hits):
                 search_result, ref_data = hit
-                print(f"hit {j}: {search_result.name}: {search_result.cas}, "
-                      f"with match_factor:{search_result.match_factor}.")
+                # print(f"hit {j}: {search_result.name}: {search_result.cas}, "
+                #       f"with match_factor:{search_result.match_factor}.")
 
                 match_data = {
                     'number': j,
