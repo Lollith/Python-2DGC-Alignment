@@ -35,6 +35,25 @@ do {
 
 Write-Host "=== Docker est prêt ==="
 
+# Nettoyage des serveurs Flask existants (port 8080)
+Write-Host "=== Vérification des serveurs Flask sur le port 8080 ==="
+$port = 8080
+$flaskPids = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue |
+             Select-Object -ExpandProperty OwningProcess -Unique
+
+if ($flaskPids) {
+    foreach ($pid in $flaskPids) {
+        try {
+            Write-Host "Arrêt du serveur Flask sur le port $port (PID=$pid)"
+            Stop-Process -Id $pid -Force
+        } catch {
+            Write-Host "Impossible de stopper PID=$pid" -ForegroundColor Red
+        }
+    }
+} else {
+    Write-Host "Aucun Flask actif sur le port $port."
+}
+
 # Activation de l'environnement Flask
 Write-Host "=== Lancement de Flask ==="
 Set-Location "$env:PROJECT_PATH\interface_flask"
