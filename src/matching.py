@@ -216,7 +216,7 @@ def matching_nist_lib_from_chromato_cube(
                 cache[spectrum_hash] = top_hits
                 print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
         else:
-            print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
+            # print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
             top_hits = []
 
         match_results = []

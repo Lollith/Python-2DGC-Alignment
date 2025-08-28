@@ -457,7 +457,6 @@ def sample_identification(path, file, output_path,
     >>> sample_identification("/path/to/data/", "sample.cdf",
         OUTPUT_PATH="/path/to/results/")
     """
-
     print('Identification started\n')
     start_time = time.time()
     try:
