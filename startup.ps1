@@ -15,8 +15,8 @@ if (Test-Path $envPath) {
 
 # verifier que wsl est accessible
 wsl --status > $null 2>&1
-i($LASTEXITCODE -ne 0){
-    Write-Host "WSL n'est pas disponible. Docker Desktop 
+if ($LASTEXITCODE -ne 0){
+    Write-Host "❌WSL n'est pas disponible. Docker Desktop 
     ne pourra pas demarrer." -ForegroundColor Red
     exit 1
 }
@@ -36,18 +36,18 @@ do {
 Write-Host "=== Docker est prêt ==="
 
 # Nettoyage des serveurs Flask existants (port 8080)
-Write-Host "=== Vérification des serveurs Flask sur le port 8080 ==="
+Write-Host "=== Verification des serveurs Flask sur le port 8080 ==="
 $port = 8080
 $flaskPids = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue |
              Select-Object -ExpandProperty OwningProcess -Unique
 
 if ($flaskPids) {
-    foreach ($pid in $flaskPids) {
+    foreach ($procId in $flaskPids) {
         try {
-            Write-Host "Arrêt du serveur Flask sur le port $port (PID=$pid)"
-            Stop-Process -Id $pid -Force
+            Write-Host "Arrêt du serveur Flask sur le port $port (PID=$procId)"
+            Stop-Process -Id $procId -Force
         } catch {
-            Write-Host "Impossible de stopper PID=$pid" -ForegroundColor Red
+            Write-Host "Impossible de stopper PID=$procId" -ForegroundColor Red
         }
     }
 } else {
