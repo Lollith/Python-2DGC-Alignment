@@ -118,7 +118,7 @@ class Interface:
 
     def add_output_chooser(self, b):
         """Add a new output path chooser."""
-        print("Add Output clicked")
+        # print("Add Output clicked")
         self.output_chooser = FileChooser(
             path=self.docker_volume_path,
             select_dirs=True,
@@ -131,7 +131,7 @@ class Interface:
             self.button_box_output,
             self.output_chooser
         ]
-        print("Output chooser added successfully")
+        # print("Output chooser added successfully")
         
     def remove_output_chooser(self, b):
         """Remove the output path chooser."""
