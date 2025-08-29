@@ -72,6 +72,9 @@ interface_flask/converted_data/
 interface_flask/tests/tests_data/*cdf
 interface_flask/tests/reference_results/*h5
 interface_flask/tests/output_tmp/*h5
+notebooks/run_interfaces.ipynb
+notebooks/run_peak_alignment.ipynb
+notebooks/run_peak_detection.ipynb
 
 # Environment variables
 .env
