@@ -122,11 +122,8 @@ def main():
             display_path = f.replace(docker_volume_path, "")
         else:
             display_path = f
-        display_path = display_path
+        # display_path = display_path
         print(f"  {i}. /{display_path}")
-        # print(f"\n{'='*60}")
-        # print(f"🔬 Processing file {i}/{len(args.input)}: {f}")
-        # print(f"{'='*60}")
         try:
             path = os.path.dirname(f)
             file = os.path.basename(f)
