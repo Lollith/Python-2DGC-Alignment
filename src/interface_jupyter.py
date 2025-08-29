@@ -456,3 +456,18 @@ class Interface:
     def get_file_selection_widgets(self):
         """Return the file selection widgets for display."""
         return widgets.VBox([self._vbox, self._vbox2])
+
+    def _on_stop_click(self, b):
+        """Stop the running analysis process."""
+        with self.output:
+            if hasattr(self, "current_process") and self.current_process:
+                print(f"\n{'='*60}")
+                print("⛔ Stopping analysis...")
+                try:
+                    self.current_process.terminate()  # envoie SIGTERM
+                    retcode = self.current_process.wait()  # attends la fin
+                    print(f"Process stopped, return code: {retcode}")
+                    print(f"\n{'='*60}")
+                    self.current_process = None
+                except Exception as e:
+                    print(f"⚠️ Impossible de terminer le process : {e}")
