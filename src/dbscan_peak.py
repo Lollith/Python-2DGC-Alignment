@@ -249,26 +249,26 @@ def detect_peak_dog( chromato_tic,
                     sigma_ratio,
                     overlap):
 
-        optimal_lambda_list=[]
-        # find optimal lambda for smoothing 
-        for j in range(0,chromato_tic.shape[1],10):
-            data_to_smooth = chromato_tic[:,j]
-            smoother = WhittakerSmoother(lmbda=10, order=1, data_length=len(data_to_smooth))
-            results = smoother.smooth_optimal(data_to_smooth, break_serial_correlation=True)
-            optimal_lambda = results.get_optimal().get_lambda()
-            optimal_lambda_list.append(optimal_lambda)
+        # optimal_lambda_list=[]
+        # # find optimal lambda for smoothing 
+        # for j in range(0,chromato_tic.shape[1],10):
+        #     data_to_smooth = chromato_tic[:,j]
+        #     smoother = WhittakerSmoother(lmbda=10, order=1, data_length=len(data_to_smooth))
+        #     results = smoother.smooth_optimal(data_to_smooth, break_serial_correlation=True)
+        #     optimal_lambda = results.get_optimal().get_lambda()
+        #     optimal_lambda_list.append(optimal_lambda)
         
-        optimal_lambda=np.quantile(optimal_lambda_list,0.25)
+        # optimal_lambda=np.quantile(optimal_lambda_list,0.25)
 
-        if optimal_lambda >40 :
-            optimal_lambda=40
-        elif optimal_lambda <5:
-            optimal_lambda=5
+        # if optimal_lambda >40 :
+        #     optimal_lambda=40
+        # elif optimal_lambda <5:
+        #     optimal_lambda=5
 
-        # baseline and smooting    
-        correct=baseline_correct(chromato_tic,block_size=10,gamma=0.25, lmbd=optimal_lambda)
+        # # baseline and smooting    
+        # correct=baseline_correct(chromato_tic,block_size=10,gamma=0.25, lmbd=optimal_lambda)
 
-        chromato_tic=correct 
+        #chromato_tic=correct 
         sigma = estimate_sigma(chromato_tic, channel_axis=None)
         intensity_threshold = intensity_threshold_decision_rule(
             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
@@ -291,7 +291,7 @@ def detect_peak_dog( chromato_tic,
         blobs_dog = np.rint(blobs_dog).astype(int)
         coordinates = np.array(blobs_dog[:, :2])
         
-        return coordinates , radii
+        return coordinates 
 
 
 def detect_peak_dog_mp(chromato_cube,

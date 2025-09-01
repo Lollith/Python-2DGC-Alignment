@@ -236,9 +236,9 @@ def read_chromato_and_chromato_cube(filename,
 
     # baseline correction
     if (pre_process):
-        tic_chromato = baseline_correction.baseline_correct_window(tic_chromato)
+        tic_chromato = baseline_correction.chromato_reduced_noise(tic_chromato)
         chromato_cube = np.array(
-            baseline_correction.baseline_correct_window_cube(
+            baseline_correction.chromato_cube_corrected_baseline(
                 chromato_cube))
         print("baseline corrected")
     sigma = skimage.restoration.estimate_sigma(tic_chromato, channel_axis=None)

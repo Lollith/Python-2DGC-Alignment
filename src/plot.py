@@ -333,8 +333,8 @@ def visualizer(
     """
     chromato, time_rn = chromato_obj
     shape = chromato.shape
-    #X = np.linspace(time_rn[0], time_rn[1], shape[0])
-    X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
+    X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    #X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
     Y = np.linspace(0, mod_time, shape[1])
     if (rt1 is not None and rt2 is not None):
         rt1minusrt1window = rt1 - rt1_window
@@ -577,8 +577,8 @@ def visualizer2(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_windo
     """
     chromato, time_rn = chromato_obj
     shape = chromato.shape
-    #X = np.linspace(time_rn[0], time_rn[1], shape[0])
-    X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
+    X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    #X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
     Y = np.linspace(0, mod_time, shape[1])
     if (rt1 is not None and rt2 is not None):
         rt1minusrt1window = rt1 - rt1_window

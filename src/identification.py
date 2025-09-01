@@ -154,7 +154,8 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
             if sample_name_group not in h5_file:
                 sample_group_h5 = h5_file.create_group(sample_name_group)
 
-    for match in matches:
+    for j, match in enumerate(matches):
+        #print(j)
         match_data_list = match[1] \
             if isinstance(match[1], list) else [match[1]]
         coord = match[2]
@@ -167,7 +168,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
         
         blob = integration.peak_pool_similarity_check(
                 chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-                threshold=0.01, plot_labels=True,
+                threshold=0.5, plot_labels=True,
                 similarity_threshold=similarity_threshold)
             
         area_total = integration.compute_area(chormato_m, blob) 
@@ -193,7 +194,6 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
             'rt1': match[0][0],
             'rt2': match[0][1],
             'area': area_total,
-            'area_mod_max':area_mod_max,
             'height': height,
             "quant_mass":majority_mass + mass_range[0]
         }
@@ -273,7 +273,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
                     # --- Collect Metadata ---
             metadata = {
                         "unique_id": unique_id_data,
-                        "Sample": sample_name_group, "Mol": identification_data_dict['compound_name'], "mass": mass, "Area": area,
+                        "Sample": sample_name_group, "Mol": identification_data_dict['compound_name'], "mass": mass, "Area": area_total,
                         "RT1_theoretical": identification_data_dict['rt1'], "RT2_theoretical": identification_data_dict['rt2'],
                         "RT1_corrected": identification_data_dict['rt1'], "RT2_corrected": identification_data_dict['rt2'],
                         "signal_noise_ratio": None, # Store calculated SNR
