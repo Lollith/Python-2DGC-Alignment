@@ -17,7 +17,7 @@
 #' PrecompressFiles(inputFileList=system.file("extdata", "SampleA.txt", package="R2DGC"))
 library(parallel)
 
-PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarityCutoff=95, numCores=1, commonIons=c(), quantMethod="T", outputFiles=F){
+PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarityCutoff=95, numCores=1, commonIons=NULL, quantMethod="T", outputFiles=F){
 
   #Create empty list to store record of all peaks that should be combined
   combinedList<-list()

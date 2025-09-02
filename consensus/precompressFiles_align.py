@@ -5,7 +5,13 @@ from datetime import datetime
 import numpy as np
 
 class ChromatographicPrecompressFiles:
-    def __init__(self, rt1_penalty=1, rt2_penalty=10, similarity_cutoff=90, num_cores=1, common_ions=None, quant_method="T", output_files=False):
+    def __init__(self, rt1_penalty=1,
+                 rt2_penalty=10,
+                 similarity_cutoff=95,
+                 num_cores=1,
+                 common_ions=None,
+                 quant_method="T",
+                 output_files=False):
         self.rt1_penalty = rt1_penalty
         self.rt2_penalty = rt2_penalty
         self.similarity_cutoff = similarity_cutoff
@@ -27,8 +33,9 @@ class ChromatographicPrecompressFiles:
         """
 
         #read the file    
-        current_raw_file = pd.read_csv(file, sep="\t", header=0,skipinitialspace=True)
+        current_raw_file = pd.read_csv(file, sep="\t", header=0, skipinitialspace=True)
         current_raw_file = current_raw_file.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else x))
+
 
         # Convert columns to string
         current_raw_file.iloc[:, 4] = current_raw_file.iloc[:, 4].astype(str)
@@ -134,7 +141,7 @@ class ChromatographicPrecompressFiles:
         Exclut les ions communs.
         """
         pairs = [s.split(":") for s in spectrum_str.split()]
-        arr = np.array([[int(mz), float(intensity)] for mz, intensity in pairs])
+        arr = np.array([[float(mz), float(intensity)] for mz, intensity in pairs])
         # arr = arr[~np.isin(arr[:, 0], common_ions)]
         arr = arr[np.argsort(arr[:, 0])]
         return arr[:, 1]
@@ -157,7 +164,7 @@ class ChromatographicPrecompressFiles:
                 num_reps = max(len(m) for m in matches) - 1
                 if self.quant_method in ["T"]:
                     # Find mates to combine
-                    mates = [x[0] if len(x) > 0 else None for x in matches]
+                    mates = [x[0] - 1 if len(x) > 0 else None for x in matches]
                     binding_areas = imported_files[samp_num][0].iloc[
                         [m for m in mates if m is not None], 2
                     ].values
@@ -173,15 +180,16 @@ class ChromatographicPrecompressFiles:
                         imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
                         pd.Series([input_file_list[samp_num]] * len(to_bind), name="source").reset_index(drop=True)
                     ], axis=1)
+
                     # Sum peak areas
                     to_bind.loc[:, to_bind.columns[2]] += binding_areas
-
                     # Création d’une colonne Bound
                     # Ensure only one peak combination gets included in output
                     to_bind["Bound"] = [
                         f"{min(m, i)}"
                         for i, m in enumerate(mates) if m is not None
                     ]
+
                     to_bind = to_bind.drop_duplicates(subset=["Bound"])
 
                     # Update sample metabolite file to include on combined peak
@@ -194,10 +202,10 @@ class ChromatographicPrecompressFiles:
             #If any metabolites had greater than two peaks to combine, loop through and make those combinations iteratively
             if num_reps > 0:
                 for rep in range(num_reps):
-
+    
                     #Repeat similarity scores with combined peaks
                     df = imported_files[samp_num][0].copy()
-                    spectra_split = [self.parse_spectrum(row[4]) for _, row in df.iterrows()]
+                    spectra_split = [self.parse_spectrum(row.iloc[4]) for _, row in df.iterrows()]
                     spectra_matrix = np.vstack([
                         vec / np.sqrt(np.sum(vec ** 2)) for vec in spectra_split
                     ])
@@ -214,7 +222,7 @@ class ChromatographicPrecompressFiles:
                     #Repeat peak combination if more combinations are necessary
                     new_matches = [np.where(row >= self.similarity_cutoff)[0] for row in similarity_matrix]
                     if len(new_matches) > 0:
-                        if self.quantMethod == "T":
+                        if self.quant_method == "T":
                             mates = [m[0] if len(m) > 0 else None for m in new_matches]
                             binding_areas = df.iloc[
                                 [m for m in mates if m is not None], 2
@@ -225,19 +233,21 @@ class ChromatographicPrecompressFiles:
 
                             combined_list[input_file_list[samp_num]] = pd.concat(
                                 [
-                                    combined_list[input_file_list[samp_num]],
-                                    pd.concat([
-                                        to_bind,
-                                        df.iloc[[m for m in mates if m is not None], :],
-                                        pd.Series([input_file_list[samp_num]] * len(to_bind))
-                                    ], axis=1)
-                                ]
+                                    to_bind.reset_index(drop=True),
+                                    imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
+                                    pd.Series([input_file_list[samp_num]] * len(to_bind)).reset_index(drop=True)
+                                ],
+                                axis=1
                             )
+
                             to_bind.loc[:, to_bind.columns[2]] += binding_areas
                             to_bind["Bound"] = [
                                 f"{min(m, i)}"
                                 for i, m in enumerate(mates) if m is not None
                             ]
+                            # Sauvegarde du nombre de lignes avant, DEBUG
+                            n_before = len(to_bind)
+
                             to_bind = to_bind.drop_duplicates(subset=["Bound"])
 
                             imported_files[samp_num][0] = pd.concat([
@@ -254,7 +264,7 @@ class ChromatographicPrecompressFiles:
 
 
         #If outputFiles==TRUE, write processed files out to the input file directory
-        if self.outputFiles:
+        if self.output_files:
             for samp_num, imp in enumerate(imported_files):
                 out_name = (
                     input_file_list[samp_num][:-4] + "_Py_Processed.txt"
