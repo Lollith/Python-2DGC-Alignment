@@ -4,8 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 import numpy as np
 
-
-class ChromatographicPrecompressFiles:
+class PeakPrecompressor:
     """This Class is an optional pre-processing step before running consensus
     align to identify peaks that likely need to be combined prior to running
     consensus align and will perform a rough combine of these peaks depending
@@ -286,7 +285,7 @@ if __name__ == "__main__":
                  "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui.txt"]
 
 #test de find_matches
-    # precompressedFiles = ChromatographicPrecompressFiles(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=90)
+    # precompressedFiles = PeakPrecompressor(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=90)
     # ImportedFiles = [precompressedFiles.importFile(file) for file in listFiles] 
     # for samp_num in range(len(ImportedFiles)):
     #     match_list = precompressedFiles.find_matches(ImportedFiles[samp_num])
@@ -307,5 +306,5 @@ if __name__ == "__main__":
 
 
 #test precompressFiles
-    precompressedFiles = ChromatographicPrecompressFiles(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", output_files=True)
+    precompressedFiles = PeakPrecompressor(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", output_files=True)
     Result = precompressedFiles.PrecompressFiles(listFiles)
