@@ -116,7 +116,11 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
                        overlap,multi_processing=multi_processing)
     
     print("cluster_per_mass ")
-    results=cluster_per_mass(results,chromato_cube,time_rn,mod_time,rt1_delta=5, rt2_delta=0.1,thr_debscan=0.05,max_peak_per_mass=max_peak_per_mass)
+    results, radius_cluster, clusters_cluster, clusters_label_cluster =cluster_per_mass(results,chromato_cube,time_rn,mod_time,rt1_delta=5, rt2_delta=0.1,thr_debscan=0.05,max_peak_per_mass=max_peak_per_mass)
+    
+    print("deconvolution per mass")
+
+    
     results = [res for res in results if res is not None]
     coordinates_all_mass=[]
     for elt in results:
@@ -129,12 +133,12 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
     distance_matrix=compute_distance_metric(coordinates_all_mass,chromato_cube,mod_time,time_rn,rt1_delta=rt1_delta, rt2_delta=rt2_delta)
       
     print("start clustering")
-    coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates_all_mass,thr_debscan=thr_debscan,min_sample_db_scan=min_size_cluster_mass)
+    coordinates, radius, clusters,label= cluster_peak(distance_matrix,chromato,coordinates_all_mass,thr_debscan=thr_debscan,min_sample_db_scan=min_size_cluster_mass)
     print(str(len(coordinates)) + " peaks clustered")
     if(cleaning_close_peak):
         # cluster close peaks 
         distance_matrix=compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta=2*mod_time, rt2_delta=0.05)
-        coordinates, clusters= cluster_peak(distance_matrix,chromato,coordinates,thr_debscan=0.02,min_sample_db_scan=1)
+        coordinates, clusters,label= cluster_peak(distance_matrix,chromato,coordinates,thr_debscan=0.02,min_sample_db_scan=1)
         # merge peaks cut but the modulation
         coordinates_in_chromato=projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
         # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
@@ -142,7 +146,7 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
         bound= coordinates[mask]    
         # 2.cluster without RT2 penalty 
         distance_matrix=compute_distance_metric(bound,chromato_cube,mod_time,time_rn,rt1_delta=mod_time, rt2_delta=100000)
-        bound_cluster, clusters= cluster_peak(distance_matrix,chromato,bound,thr_debscan=0.02,min_sample_db_scan=1)
+        bound_cluster, clusters,label= cluster_peak(distance_matrix,chromato,bound,thr_debscan=0.02,min_sample_db_scan=1)
         # 3. replace cluster 
         coordinates = np.concatenate((coordinates[~mask], bound_cluster), axis=0)
         print(str(len(coordinates))+ " detected peaks after filter")
@@ -218,26 +222,62 @@ def compute_cosine_distance_batch(spectra,batch_size=10000):
     return spec_dists
 
 
-def cluster_peak(distance_matrix,chromato,coordinates, thr_debscan,min_sample_db_scan):
+# def cluster_peak(distance_matrix,chromato,coordinates, thr_debscan,min_sample_db_scan):
+#     clustering = DBSCAN(eps=thr_debscan, min_samples=min_sample_db_scan, metric='precomputed').fit(distance_matrix)
+#     labels = clustering.labels_
+#     unique_labels = set(labels)
+#     unique_labels.discard(-1)  # Ignore noise
+#     ncluster=len(unique_labels)
+#     clusters = []
+#     clusters_label=[]
+#     for i in range(ncluster):
+#         clusters.append([])
+#         clusters_label.append([])
+#     for i, (t1, t2) in enumerate(coordinates):
+#         if(clustering.labels_[i]!=-1):
+#             clusters[clustering.labels_[i]].append([t1, t2])
+#             clusters_label[clustering.labels_[i]].append(i)
+#     coordinates = []
+#     for cluster in clusters:
+#         if (len(cluster) > 1):
+#             coord = cluster[np.argmax(np.array([chromato[coord[0], coord[1]] for coord in cluster]))]
+#         else:
+#             coord = cluster[0]
+#         coordinates.append(coord)
+#     coordinates = np.array(coordinates)
+#     return coordinates, clusters,clusters_label
+
+
+def cluster_peak(distance_matrix,chromato,coordinates, radius, thr_debscan,min_sample_db_scan):
     clustering = DBSCAN(eps=thr_debscan, min_samples=min_sample_db_scan, metric='precomputed').fit(distance_matrix)
     labels = clustering.labels_
     unique_labels = set(labels)
-    unique_labels.discard(-1)  # Ignore noise
+    unique_labels.discard(-1)
     ncluster=len(unique_labels)
     clusters = []
+    clusters_label=[]
     for i in range(ncluster):
         clusters.append([])
-    for i, (t1, t2) in enumerate(coordinates):
-        clusters[clustering.labels_[i]].append([t1, t2])
-    coordinates = []
+        clusters_label.append([])
+    for i in range(len(coordinates)):
+        if(clustering.labels_[i]!=-1):
+            clusters[clustering.labels_[i]].append(([coordinates[i],radius[i]]))
+            clusters_label[clustering.labels_[i]].append(i)
+    coordinates_clus = []
+    radius_clus = []
     for cluster in clusters:
         if (len(cluster) > 1):
-            coord = cluster[np.argmax(np.array([chromato[coord[0], coord[1]] for coord in cluster]))]
+            coord = cluster[np.argmax(np.array([chromato[coord[0][0], coord[0][1]] for coord in cluster]))][0]
+            rad = cluster[np.argmax(np.array([chromato[coord[0][0], coord[0][1]] for coord in cluster]))][1]
         else:
-            coord = cluster[0]
-        coordinates.append(coord)
-    coordinates = np.array(coordinates)
-    return coordinates, clusters
+            coord = cluster[0][0]
+            rad= cluster[0][1]
+        coordinates_clus.append(coord)
+        radius_clus.append(rad)
+    coordinates_clus = np.array(coordinates_clus)
+    radius_clus = np.array(radius_clus)
+    return coordinates_clus, radius_clus , clusters, clusters_label
+
 
 import math 
 
@@ -249,26 +289,6 @@ def detect_peak_dog( chromato_tic,
                     sigma_ratio,
                     overlap):
 
-        optimal_lambda_list=[]
-        # find optimal lambda for smoothing 
-        for j in range(0,chromato_tic.shape[1],10):
-            data_to_smooth = chromato_tic[:,j]
-            smoother = WhittakerSmoother(lmbda=10, order=1, data_length=len(data_to_smooth))
-            results = smoother.smooth_optimal(data_to_smooth, break_serial_correlation=True)
-            optimal_lambda = results.get_optimal().get_lambda()
-            optimal_lambda_list.append(optimal_lambda)
-        
-        optimal_lambda=np.quantile(optimal_lambda_list,0.25)
-
-        if optimal_lambda >40 :
-            optimal_lambda=40
-        elif optimal_lambda <5:
-            optimal_lambda=5
-
-        # baseline and smooting    
-        correct=baseline_correct(chromato_tic,block_size=10,gamma=0.25, lmbd=optimal_lambda)
-
-        chromato_tic=correct 
         sigma = estimate_sigma(chromato_tic, channel_axis=None)
         intensity_threshold = intensity_threshold_decision_rule(
             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
@@ -329,83 +349,49 @@ def detect_peak_dog_mp(chromato_cube,
     return results
 
 
-def cluster_per_mass(coordinate,chromato_cube,time_rn, mod_time,rt1_delta, rt2_delta,thr_debscan,max_peak_per_mass):
+def cluster_per_mass(coordinate,radius,baseline_cube,chromato_cube,time_rn, mod_time,rt1_delta, rt2_delta,thr_debscan,max_peak_per_mass):
     coordinate_cluster=[]
-    for mass, coord in enumerate(coordinate) :
-        tmp=chromato_cube[mass,:,:]
-        npeak=len(coord)
-        if(npeak!=0):  
-                distance_matrix=compute_distance_metric(coord,chromato_cube,mod_time,time_rn,rt1_delta, rt2_delta)
-                coordinates, clusters= cluster_peak(distance_matrix,tmp,coord,thr_debscan,min_sample_db_scan=1)
-                npeak= len(coordinates)
-                if npeak>max_peak_per_mass:
-                    intensities = np.array([tmp[coord[0], coord[1]] for coord in coordinates])
-                    top_indices = np.argsort(intensities)[-max_peak_per_mass:][::-1]  # descending order
-                    coordinates = coordinates[top_indices]
-                res=[]
-                for x,y in coordinates:
-                    res.append([mass,x,y])
-                coordinate_cluster.append(res)
-    return coordinate_cluster
+    radius_cluster=[]
+    for i in range(len(coordinate)):
+        coordinate_cluster.append([])
+        radius_cluster.append([])
+    for mass in range(len(coordinate)) :
+        coord_m=coordinate[mass]
+        rad_m= radius[mass]
+        tmp=baseline_cube[mass,:,:]
+        npeak=len(coord_m)
+        if(npeak!=0):
+            # peak clusturing
+            distance_matrix=compute_distance_metric(coord_m,chromato_cube,mod_time,time_rn,rt1_delta,rt2_delta)
+            coord_cluster, rad_cluster , clusters, clusters_label= cluster_peak(distance_matrix,tmp,coord_m,rad_m,thr_debscan, min_sample_db_scan=1)
 
-
-
-def smooth2d(arr, lmbd):
-    # Lissage par lignes
-    smoother = WhittakerSmoother(lmbda=lmbd, order=1, data_length=arr.shape[1])
-    arr_smooth = np.array([smoother.smooth(row) for row in arr])
-
-    # Lissage par colonnes
-    smoother = WhittakerSmoother(lmbda=lmbd, order=1, data_length=arr.shape[0])
-    arr_smooth = np.array([smoother.smooth(col) for col in arr_smooth.T]).T
-    
-    return arr_smooth
-
-def baseline_correct(mat,block_size = 20,gamma=0.25,lmbd=15):
+            if npeak > max_peak_per_mass:
+                intensities = np.array([tmp[coord[0], coord[1]] for coord in coord_cluster])
+                top_indices = np.argsort(intensities)[-max_peak_per_mass:][::-1]  # descending order
+                coord_cluster = coord_cluster[top_indices]
+                rad_cluster=rad_cluster[top_indices]
             
-    if(np.all(mat == 0)) :
-          return mat
+            # merge peaks cut but the modulation
+            coordinates_in_chromato=projection.matrix_to_chromato(coord_cluster, time_rn,mod_time, tmp.shape)
+            # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
+            mask = (coordinates_in_chromato[:, 1] > (mod_time-0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+            if(any(mask)):
+                bound= coord_cluster[mask] 
+                radius_bound= rad_cluster[mask]      
+                        # 2.cluster without RT2 penalty 
+                distance_matrix=compute_distance_metric(bound,chromato_cube,mod_time,time_rn,rt1_delta=mod_time, rt2_delta=100000)
+                bound_cluster, radius_bound_cluster, clusters, clusters_label = cluster_peak(distance_matrix,tmp,bound,radius_bound,thr_debscan=thr_debscan,min_sample_db_scan=1)
+                        # 3. replace cluster 
+                
+                coord_cluster = np.concatenate((coord_cluster[~mask], bound_cluster), axis=0)
+                rad_cluster = np.concatenate((rad_cluster[~mask], radius_bound_cluster), axis=0)
+        else :
+            coord_cluster = []
+            rad_cluster = []
+        coordinate_cluster[mass] = coord_cluster
+        radius_cluster[mass]=rad_cluster
+    return coordinate_cluster, radius_cluster
 
-    mat = smooth2d(mat, lmbd=lmbd)
-
-    n=mat.shape[0]
-    m=mat.shape[1]
-    n_blocks = (n + block_size - 1) // block_size
-    m_blocks = (m + block_size - 1) // block_size
-
-    min_grid = np.zeros((n_blocks, m_blocks))
-
-    for bi, i in enumerate(range(0, n, block_size)):
-        for bj, j in enumerate(range(0, m, block_size)):
-            block = mat[i:i+block_size, j:j+block_size]
-            min_grid[bi, bj] = block.min()
-
-    min_grid_smooth = smooth2d(min_grid, lmbd=25)
-    sigma=np.std(min_grid)
-
-    # --- 3. Préparer pour interpolation ---
-    points = []
-    values = []
-    for bi in range(n_blocks):
-        for bj in range(m_blocks):
-            ci = bi*block_size + block_size//2
-            cj = bj*block_size + block_size//2
-            if ci < n and cj < m:  # éviter dépassement
-                points.append((ci, cj))
-                values.append(min_grid_smooth[bi, bj])
-
-    points = np.array(points)
-    values = np.array(values) + gamma*sigma
-
-    # Grille complète (n x m)
-    grid_x, grid_y = np.mgrid[0:n, 0:m]
-
-    # --- 4. Interpolation linéaire 2D ---
-    interp_mat = griddata(points, values, (grid_x, grid_y), method='nearest')
-
-    correct=mat-interp_mat
-    correct[correct<0]=min(correct[correct>0])
-    return(correct)
 
 # peak_local_max detection
     # intensity_threshold = intensity_threshold_decision_rule(
@@ -433,6 +419,28 @@ def baseline_correct(mat,block_size = 20,gamma=0.25,lmbd=15):
 #     print("Results:", res)
 #     print("Total time:", round(time.time() - start, 2), "seconds")
 #     return res
+
+
+        # optimal_lambda_list=[]
+        # # find optimal lambda for smoothing 
+        # for j in range(0,chromato_tic.shape[1],10):
+        #     data_to_smooth = chromato_tic[:,j]
+        #     smoother = WhittakerSmoother(lmbda=10, order=1, data_length=len(data_to_smooth))
+        #     results = smoother.smooth_optimal(data_to_smooth, break_serial_correlation=True)
+        #     optimal_lambda = results.get_optimal().get_lambda()
+        #     optimal_lambda_list.append(optimal_lambda)
+        
+        # optimal_lambda=np.quantile(optimal_lambda_list,0.25)
+
+        # if optimal_lambda >10 :
+        #     optimal_lambda=10
+        # elif optimal_lambda <5:
+        #     optimal_lambda=5
+
+        # # baseline and smooting    
+        # correct=baseline_correct(chromato_tic,block_size=10,gamma=0.25, lmbd=optimal_lambda)
+
+        # chromato_tic=correct 
 
 def intensity_threshold_decision_rule(
         abs_threshold,
