@@ -6,6 +6,7 @@ import os
 import platform
 from datetime import datetime
 
+
 class ChromatographicAligner:
     """
     Class for aligning chromatographic data using consensus alignment.
@@ -72,6 +73,8 @@ class ChromatographicAligner:
         self.imported_files = None
         self.alignment_results = None
         self.filtered_results = None
+
+        self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
 
     def importFile(self, file):
@@ -500,7 +503,7 @@ class ChromatographicAligner:
         non_na_count = alignment_matrix.notna().sum(axis=1)
         threshold = missing_value_threshold * alignment_matrix.shape[1]
         mask_keep = non_na_count > threshold
-
+        
         print(f"Filtering: kept {mask_keep.sum()} rows out of {alignment_matrix.shape[0]} "
             f"(threshold: {missing_value_threshold*100:.0f}% non-missing values)")
 
@@ -552,7 +555,11 @@ class ChromatographicAligner:
         )
 
         print(f"✅ Filter {self.missing_value_limit} applied.")
-        print(f"Results saved to directory: {output_dir}")
+        if output_dir.startswith(self.docker_volume_path):
+            display_path = output_dir.replace(self.docker_volume_path, "")
+        else:
+            display_path = output_dir
+        print(f"Results saved to directory: /{display_path}")
 
 if __name__ == "__main__":
     # file = [
