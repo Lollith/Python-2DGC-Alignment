@@ -10,7 +10,8 @@ class PeakPrecompressor:
     consensus align and will perform a rough combine of these peaks depending
     on the quant method as an output"""
 
-    def __init__(self, rt1_penalty=1,
+    def __init__(self,
+                 rt1_penalty=1,
                  rt2_penalty=10,
                  similarity_cutoff=95,
                  num_cores=1,
@@ -151,7 +152,7 @@ class PeakPrecompressor:
         arr = arr[np.argsort(arr[:, 0])]
         return arr[:, 1]
     
-    def PrecompressFiles(self, input_file_list):
+    def precompressFiles(self, input_file_list):
         if self.common_ions is None:
             common_ions = []
         combined_list = {}
@@ -307,4 +308,4 @@ if __name__ == "__main__":
 
 #test precompressFiles
     precompressedFiles = PeakPrecompressor(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", output_files=True)
-    Result = precompressedFiles.PrecompressFiles(listFiles)
+    Result = precompressedFiles.precompressFiles(listFiles)
