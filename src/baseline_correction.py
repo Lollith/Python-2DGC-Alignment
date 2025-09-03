@@ -110,40 +110,69 @@ def baseline_correct(mat,block_size = 20,gamma=0.25,lmbd=15):
 #   return z
 
 
-# def chromato_no_baseline(chromato, j=None): #rename
-def chromato_reduced_noise(chromato, j=None,sg_windows=5):
-    r"""Correct baseline and apply savgol filter.
-    ----------
-    chromato : ndarray
-        Input chromato.
-    Returns
-    -------
-    chromato :
-        The input chromato without baseline
-    Examples
-    --------
-    >>> import read_chroma
-    >>> import baseline_correction
-    >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
-    >>> chromato,time_rn,spectra_obj = chromato_obj
-    >>> chromato = baseline_correction.chromato_no_baseline(chromato)
-    """
+# # def chromato_no_baseline(chromato, j=None): #rename
+# def chromato_reduced_noise(chromato, j=None,sg_windows=5):
+#     r"""Correct baseline and apply savgol filter.
+#     ----------
+#     chromato : ndarray
+#         Input chromato.
+#     Returns
+#     -------
+#     chromato :
+#         The input chromato without baseline
+#     Examples
+#     --------
+#     >>> import read_chroma
+#     >>> import baseline_correction
+#     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
+#     >>> chromato,time_rn,spectra_obj = chromato_obj
+#     >>> chromato = baseline_correction.chromato_no_baseline(chromato)
+#     """
 
+#     # chromato= savgol_filter(chromato,
+#     #        window_length=sg_windows,  # 5, 11 pour un lissage + fort
+#     #        polyorder=3,
+#     #        mode='nearest')
+
+#     tmp = np.empty_like(chromato)
+#     for i in range(tmp.shape[1]):
+#         tmp[:, i] = chromato[:, i] - pybaselines.whittaker.asls(chromato[:, i],
+#                                                        lam=100,
+#                                                        p=0.001)[0]
+    
+#     if(np.all(tmp==0)) :
+#         return tmp
+#     tmp[tmp<0]=min(tmp[tmp>0])
+#     return tmp
+
+
+def chromato_reduced_noise(chromato, j=None,sg_windows=5):
     chromato= savgol_filter(chromato,
            window_length=sg_windows,  # 5, 11 pour un lissage + fort
            polyorder=3,
            mode='nearest')
     
-    tmp = np.empty_like(chromato)
-    for i in range(tmp.shape[1]):
-        tmp[:, i] = chromato[:, i] - pybaselines.whittaker.asls(chromato[:, i],
-                                                       lam=10**3,
-                                                       p=0.01)[0]
-    tmp[tmp < .0] = 0
-
-    tmp[tmp<0]=0
+    bs_mat = np.empty_like(chromato)
+    for i in range(bs_mat.shape[1]):
+        bs=pybaselines.whittaker.asls(chromato[:, i],lam=10**3,p=0.01)[0]
+        bs_mat[:, i] =  bs
+                                
+    bs_mat=savgol_filter(bs_mat,window_length=5,polyorder=2,
+           mode='nearest')                                                
+    tmp=chromato-bs_mat
+    if(np.all(tmp==0)) :
+        return tmp
+    tmp[tmp<=0]=min(tmp[tmp>0])
     return tmp
 
+def correct_per_mass(tic ,j=None,sg_windows=None):
+    if(np.all(tic==0)) :
+        return tic
+    chromato_safe = np.where(tic <= 0, min(tic[tic>0]), tic)
+    lmbd=0.25
+    correct=np.exp(chromato_reduced_noise(np.log(chromato_safe)))
+    correct=smooth2d((correct), lmbd=lmbd, lmbd2=0.001)
+    return(correct)
 
 def chromato_cube_corrected_baseline(chromato_cube,sg_windows=50):
     r"""Apply baseline correction on each chromato of the input.

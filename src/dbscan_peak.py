@@ -311,7 +311,8 @@ def detect_peak_dog( chromato_tic,
         blobs_dog = np.rint(blobs_dog).astype(int)
         coordinates = np.array(blobs_dog[:, :2])
         
-        return coordinates , radii
+        index = [j for j,coord in enumerate(coordinates) if coord[0] != 0]
+        return coordinates[index] , radii[index]
 
 
 def detect_peak_dog_mp(chromato_cube,
