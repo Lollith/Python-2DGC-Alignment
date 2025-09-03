@@ -17,14 +17,15 @@ class PeakPrecompressor:
                  num_cores=1,
                  common_ions=None,
                  quant_method="T",
-                 output_files=False):
+                #  output_files=False
+                ):
         self.rt1_penalty = rt1_penalty
         self.rt2_penalty = rt2_penalty
         self.similarity_cutoff = similarity_cutoff
         self.num_cores = num_cores
         self.common_ions = common_ions
         self.quant_method = quant_method
-        self.output_files = output_files
+        # self.output_files = output_files
 
     def importFile(self, file):
         """Import and process chromatographic data file
@@ -140,7 +141,7 @@ class PeakPrecompressor:
             match_list.append((matches + 1).tolist() if len(matches) > 0 else [])
         
         return match_list
-    
+
     def parse_spectrum(self, spectrum_str):
         """
         Parse un spectre du format 'ion:intensité ...'
@@ -151,7 +152,7 @@ class PeakPrecompressor:
         # arr = arr[~np.isin(arr[:, 0], common_ions)]
         arr = arr[np.argsort(arr[:, 0])]
         return arr[:, 1]
-    
+
     def precompressFiles(self, input_file_list):
         if self.common_ions is None:
             common_ions = []
@@ -270,13 +271,14 @@ class PeakPrecompressor:
 
 
         #If outputFiles==TRUE, write processed files out to the input file directory
-        if self.output_files:
-            for samp_num, imp in enumerate(imported_files):
-                out_name = (
-                    input_file_list[samp_num][:-4] + "_Py_Processed.txt"
-                )
-                imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
+        # if self.output_files:
+        for samp_num, imp in enumerate(imported_files):
+            out_name = (
+                input_file_list[samp_num][:-4] + "_Py_Processed.txt"
+            )
+            imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
 
+        print("combined_frame:", combined_frame)
         return combined_frame
 
 
@@ -307,5 +309,7 @@ if __name__ == "__main__":
 
 
 #test precompressFiles
-    precompressedFiles = PeakPrecompressor(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", output_files=True)
+    precompressedFiles = PeakPrecompressor(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", 
+                                           #output_files=True
+                                           )
     Result = precompressedFiles.precompressFiles(listFiles)

@@ -55,9 +55,10 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
     return(list(currentRawFile,spectraSplit, ionNames))
   }
   importedFiles<-mclapply(inputFileList, ImportFile, mc.cores=numCores)
-
+  
   #Calculate pair wise similarity scores between all metabolite spectras
   FindMatches<-function(Sample){
+    # str(combinedList)
     spectraFrame<-do.call(cbind,Sample[[2]])
     spectraFrame<-t(spectraFrame)
     spectraFrame<-as.matrix(spectraFrame)/sqrt(apply((as.matrix(spectraFrame))^2,1,sum))
@@ -117,22 +118,37 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
         #Find mates to combine
         Mates<-lapply(MatchList[[SampNum]],function(x) x[1])
         BindingAreas<-importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),3]
+        print(Mates)
 
         #Find mates partners to combine
         toBind<-importedFiles[[SampNum]][[1]][which(!is.na(Mates)),]
+        # cat ("tobind1")
+        # print(toBind[0])
         #Add peak info to combined list for output
         # combinedList[[inputFileList[SampNum]]]<-cbind(toBind,importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),],inputFileList[SampNum])
         #correction
         combinedList[[SampNum]] <- cbind(toBind,importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),],input_file = inputFileList[[SampNum]])
+        
+        if (SampNum == 1) {
+          write.csv(combinedList[[SampNum]], file = "combinedList_sample.csv", row.names = FALSE)
+        }
+        
+        
         toBind[,"Bound"]<-rep(NA, nrow(toBind))
-
+        # print(toBind[,"Bound"])
+        # cat ("tobind2")
+        # print(toBind)
+        # cat("combined List samptum\n")
+        # print(combinedList[[SampNum]])
         #Sum peak areas
         toBind[,3]<-toBind[,3]+BindingAreas
-
+        # cat ("tobind3")
+        # print(toBind)
         #Ensure only one peak combination gets included in output
         toBind$Bound<-paste(toBind$Bound,apply(cbind(unlist(Mates[which(!is.na(Mates))]),which(!is.na(Mates))),1,min),sep="_")
         toBind<-toBind[which(!duplicated(toBind$Bound)),]
-
+        # cat ("tobind4")
+        # print(toBind) 
         #Update sample metabolite file to include on combined peak
         importedFiles[[SampNum]][[1]]<-importedFiles[[SampNum]][[1]][which(is.na(Mates)),]
         importedFiles[[SampNum]][[1]]<-rbind(importedFiles[[SampNum]][[1]],toBind[,-ncol(toBind)])
@@ -193,6 +209,8 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
             # combinedList[[inputFileList[SampNum]]]<-rbind(combinedList[[inputFileList[SampNum]]],cbind(toBind,importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),],inputFileList[SampNum]))
             #corrigee
             combinedList[[SampNum]] <- rbind(combinedList[[SampNum]], cbind(toBind,importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),], input_file = inputFileList[[SampNum]]))
+            # cat("combined List samptum2\n")
+            # print(combinedList[[SampNum]])
             toBind[,"Bound"]<-rep(NA, nrow(toBind))
             toBind[,3]<-toBind[,3]+BindingAreas
             toBind$Bound<-paste(toBind$Bound,apply(cbind(unlist(Mates[which(!is.na(Mates))]),which(!is.na(Mates))),1,min),sep="_")
@@ -216,11 +234,19 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
       utils::write.table(importedFiles[[SampNum]][[1]][,1:5], paste0(substr(inputFileList[[SampNum]],1,nchar(inputFileList[[SampNum]])-4),"_Processed.txt"),sep="\t",quote=F,row.names=F)
     }
   }
+  write.csv(combinedFrame, file = "combinedFrame.csv", row.names = TRUE)
   return(combinedFrame)
 }
 
 
-inputFileList <- list("/home/camille/Documents/app/data/output/751303_v3_E3AM_5jui.txt", 
-                   "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui.txt")
+# inputFileList <- list("/home/camille/Documents/app/data/output/751303_v3_E3AM_5jui.txt", 
+#                    "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui.txt")
+inputFileList <- list("/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE.txt" ,
+                      "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q.txt",
+                      "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split.txt",
+                      "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split.txt"
+                      )
 
-Result <- PrecompressFiles(inputFileList, RT1Penalty=1, RT2Penalty=10,similarityCutoff=95, numCores=1, commonIons=NULL, quantMethod="T", outputFiles=TRUE)
+CombinedFrame <- PrecompressFiles(inputFileList, RT1Penalty=1, RT2Penalty=1, similarityCutoff=5, numCores=1, commonIons=NULL, quantMethod="T", outputFiles=TRUE)
+# print(Result 5
+# write.csv(CombinedFrame, file = "combinedFrame.csv", row.names = TRUE)

@@ -1,8 +1,14 @@
 # chemins des fichiers à comparer
-file1 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Processed.txt"
-file2 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Py_Processed.txt"
-
-
+# file1 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Processed.txt"
+file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Processed.txt"
+# file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q_Processed.txt"
+# file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Processed.txt"
+# file1= "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split_Processed.txt"
+# file2 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Py_Processed.txt"
+file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Py_Processed.txt"
+# file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q_Py_Processed.txt"
+# file2 ="/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Py_Processed.txt"
+# file2= "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split_Py_Processed.txt"
 
 import pandas as pd
 

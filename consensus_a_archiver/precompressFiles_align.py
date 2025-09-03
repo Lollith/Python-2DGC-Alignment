@@ -1,8 +1,12 @@
+from tkinter import TRUE
+from turtle import write
 import pandas as pd
 from multiprocessing import Pool, cpu_count
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 class ChromatographicPrecompressFiles:
@@ -138,7 +142,7 @@ class ChromatographicPrecompressFiles:
         for row in sim_matrix:
             matches = np.where(row >= self.similarity_cutoff)[0]
             match_list.append((matches + 1).tolist() if len(matches) > 0 else [])
-        
+             # match_list.append(matches.tolist()) # TODO modif ici, NON fonctionnel
         return match_list
     
     def parse_spectrum(self, spectrum_str):
@@ -160,6 +164,7 @@ class ChromatographicPrecompressFiles:
         # utilisation de multiprocessing.pool est plus proche de mclapply en R et plus simple. pas besoin de ProcessPoolExecutor ici (plus puissant, gestion d erreur,...)
         with Pool(processes=self.num_cores) as pool:
             imported_files = pool.map(self.importFile, input_file_list)
+            # print("imported_files:", imported_files)
 
         with Pool(processes=self.num_cores) as pool:
             match_list = pool.map(self.find_matches, imported_files)
@@ -170,7 +175,9 @@ class ChromatographicPrecompressFiles:
                 num_reps = max(len(m) for m in matches) - 1
                 if self.quant_method in ["T"]:
                     # Find mates to combine
+                    # print(f"Samp {samp_num}, matches: {matches}")
                     mates = [x[0] - 1 if len(x) > 0 else None for x in matches]
+                    # print(f"mates: {mates}")
                     binding_areas = imported_files[samp_num][0].iloc[
                         [m for m in mates if m is not None], 2
                     ].values
@@ -179,13 +186,45 @@ class ChromatographicPrecompressFiles:
                     to_bind = imported_files[samp_num][0].iloc[
                         [i for i, m in enumerate(mates) if m is not None], :
                     ].copy()
-            
+                    # print("tobind1", to_bind) 
                     # Add peak info to combined list for output
-                    combined_list[input_file_list[samp_num]] = pd.concat([
-                        to_bind.reset_index(drop=True),
-                        imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
-                        pd.Series([input_file_list[samp_num]] * len(to_bind), name="source").reset_index(drop=True)
-                    ], axis=1)
+                    # combined_list[input_file_list[samp_num]] = pd.concat([
+                    #     to_bind.reset_index(drop=True),
+                    #     imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
+                    #     pd.Series([input_file_list[samp_num]] * len(to_bind), name="source").reset_index(drop=True)
+                    # ], axis=1)
+                    # Filtrer les mates valides #TODO MODIF
+                    valid_mates = [m for m in mates if m is not None and not pd.isna(m)]
+                    print("valid_mates", valid_mates)
+
+                    # Sélectionner les lignes correspondantes
+                    mates_df = imported_files[samp_num][0].iloc[valid_mates, :].reset_index(drop=True)
+                    # print("mates_df", mates_df)
+
+                    # S'assurer que to_bind a le même nombre de lignes que mates_df
+                    # Ici on suppose que to_bind doit être répété si nécessaire
+                    # to_bind_repeated = pd.concat([to_bind]*len(valid_mates), ignore_index=True)
+                    # répéter to_bind si c'est un seul analyte
+                    n_mates = len(valid_mates)
+                    if len(to_bind) == 1:
+                        to_bind_repeated = pd.concat([to_bind]*n_mates, ignore_index=True)
+                    else:
+                        # Si to_bind a plusieurs lignes, il doit correspondre exactement à n_mates
+                        to_bind_repeated = to_bind.reset_index(drop=True).iloc[:n_mates, :]
+                    # print("to_bind_repeated", to_bind_repeated)
+
+                    # Ajouter la colonne source
+                    source_series = pd.Series([input_file_list[samp_num]] * len(valid_mates), name="source")
+                    # print("source_series", source_series)
+
+                    # Concaténation finale
+                    combined_list[input_file_list[samp_num]] = pd.concat([to_bind_repeated, mates_df, source_series], axis=1)
+                    # print("combined List", combined_list[input_file_list[samp_num]])#DEBUG
+                    if samp_num == 0:
+                        combined_list_df = pd.DataFrame(combined_list[input_file_list[samp_num]])
+                        combined_list_df.to_csv("py_combined_list.txt", sep="\t", index=False)
+
+
 
                     # Sum peak areas
                     to_bind.loc[:, to_bind.columns[2]] += binding_areas
@@ -204,13 +243,16 @@ class ChromatographicPrecompressFiles:
                             [i for i, m in enumerate(mates) if m is None], :
                             ], to_bind.drop(columns=["Bound"])
                             ])
+                    
 
             #If any metabolites had greater than two peaks to combine, loop through and make those combinations iteratively
             if num_reps > 0:
+                original_df = imported_files[samp_num][0].copy()
                 for rep in range(num_reps):
     
                     #Repeat similarity scores with combined peaks
                     df = imported_files[samp_num][0].copy()
+                    # print("df", df)
                     spectra_split = [self.parse_spectrum(row.iloc[4]) for _, row in df.iterrows()]
                     spectra_matrix = np.vstack([
                         vec / np.sqrt(np.sum(vec ** 2)) for vec in spectra_split
@@ -227,9 +269,11 @@ class ChromatographicPrecompressFiles:
             
                     #Repeat peak combination if more combinations are necessary
                     new_matches = [np.where(row >= self.similarity_cutoff)[0] for row in similarity_matrix]
-                    if len(new_matches) > 0:
+                    # print(new_matches)
+                    # if len(new_matches) > 0:
+                    if any(len(arr) > 0 for arr in new_matches):
                         if self.quant_method == "T":
-                            mates = [m[0] if len(m) > 0 else None for m in new_matches]
+                            mates = [m[0] - 1 if len(m) > 0 else None for m in new_matches] #TODO modif ici -1
                             binding_areas = df.iloc[
                                 [m for m in mates if m is not None], 2
                             ].values
@@ -237,29 +281,108 @@ class ChromatographicPrecompressFiles:
                                 [i for i, m in enumerate(mates) if m is not None], :
                             ].copy()
 
+                            # combined_list[input_file_list[samp_num]] = pd.concat(
+                            #     [
+                            #         to_bind.reset_index(drop=True),
+                            #         imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
+                            #         pd.Series([input_file_list[samp_num]] * len(to_bind)).reset_index(drop=True)
+                            #     ],
+                            #     axis=1
+                            # )# TODO modif
+                            # Sélectionner les mates valides
+                            # print("new_matches", new_matches)
+                            # print("mates before filtering", mates)
+
+                            valid_mates = [m for m in mates if m is not None and not pd.isna(m)]
+                            n_mates = len(valid_mates)
+                            print("valid_mates 2", valid_mates)
+
+                            # DataFrame des mates
+                            mates_df = original_df.iloc[valid_mates, :].reset_index(drop=True)
+                            # print("mates_df", mates_df)
+
+                            # S'assurer que to_bind a le même nombre de lignes que mates_df
+                            if len(to_bind) == 1:
+                                # répéter to_bind pour chaque mate
+                                to_bind_repeated = pd.concat([to_bind]*n_mates, ignore_index=True)
+                            else:
+                                # Si to_bind a plusieurs lignes, on coupe ou on garde les n_mates premières lignes
+                                to_bind_repeated = to_bind.reset_index(drop=True).iloc[:n_mates, :]
+                            # print("to_bind_repeated", to_bind_repeated)
+
+                            # Colonne source
+                            # source_series = pd.Series([input_file_list[samp_num]] * n_mates, name="source")
+                            # # print("source_series", source_series)
+
+                            # # Concaténation finale
+                            # combined_list[input_file_list[samp_num]] = pd.concat(
+                            #     [to_bind_repeated, mates_df, source_series],
+                            #     axis=1
+                            # )
+                            # Ajouter colonne source
+                            source_series = pd.Series([input_file_list[samp_num]] * n_mates, name="source")
+
+                            # Écriture CSV pour le premier échantillon
+                            # if samp_num == 0:
+                            #     combined_list[input_file_list[samp_num]].to_csv("py_combined_list2.txt", sep="\t", index=False)
+                             # --- Préparer le DataFrame à ajouter au combined_list ---
+                            new_combined = pd.concat([to_bind_repeated, mates_df], axis=1)
+                            new_combined["source"] = input_file_list[samp_num]
+
+                            # --- Ajouter au combined_list existant ---
+                            if input_file_list[samp_num] not in combined_list:
+                                combined_list[input_file_list[samp_num]] = pd.DataFrame()  # initialisation
                             combined_list[input_file_list[samp_num]] = pd.concat(
-                                [
-                                    to_bind.reset_index(drop=True),
-                                    imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
-                                    pd.Series([input_file_list[samp_num]] * len(to_bind)).reset_index(drop=True)
-                                ],
-                                axis=1
+                                [combined_list[input_file_list[samp_num]], new_combined],
+                                ignore_index=True
                             )
-
+                            # --- Mettre à jour to_bind avec les aires combinées ---
+                            binding_areas = original_df.iloc[valid_mates, 2].values
                             to_bind.loc[:, to_bind.columns[2]] += binding_areas
-                            to_bind["Bound"] = [
-                                f"{min(m, i)}"
-                                for i, m in enumerate(mates) if m is not None
-                            ]
-                            # Sauvegarde du nombre de lignes avant, DEBUG
-                            n_before = len(to_bind)
-
+                            to_bind["Bound"] = [f"{min(m, i)}" for i, m in enumerate(mates) if m is not None]
                             to_bind = to_bind.drop_duplicates(subset=["Bound"])
 
+                            # --- Remplacer le DataFrame original avec les pics non liés + pics combinés ---
                             imported_files[samp_num][0] = pd.concat([
                                 df.iloc[[i for i, m in enumerate(mates) if m is None], :],
                                 to_bind.drop(columns=["Bound"])
                             ])
+                        else:
+                            # Pas de mates : on garde juste le DataFrame original
+                            if input_file_list[samp_num] not in combined_list:
+                                combined_list[input_file_list[samp_num]] = df.copy()
+                            combined_list[input_file_list[samp_num]]["source"] = input_file_list[samp_num]
+
+                        # --- Écriture CSV pour debug pour le premier échantillon ---
+                        # if samp_num == 0:
+                        #     combined_list[input_file_list[samp_num]].to_csv("py_combined_list3.txt", sep="\t", index=False)
+
+
+                            # to_bind.loc[:, to_bind.columns[2]] += binding_areas
+                            # to_bind["Bound"] = [
+                            #     f"{min(m, i)}"
+                            #     for i, m in enumerate(mates) if m is not None
+                            # ]
+                            # # Sauvegarde du nombre de lignes avant, DEBUG
+                            # n_before = len(to_bind)
+
+                            # to_bind = to_bind.drop_duplicates(subset=["Bound"])
+
+                            # imported_files[samp_num][0] = pd.concat([
+                            #     df.iloc[[i for i, m in enumerate(mates) if m is None], :],
+                            #     to_bind.drop(columns=["Bound"])
+                            # ])
+                    # else:
+                    #     # Pas de mates : on garde juste le DataFrame original
+                    #     combined_list[input_file_list[samp_num]] = original_df.copy()
+                    #     combined_list[input_file_list[samp_num]]["source"] = input_file_list[samp_num]
+                    # if samp_num == 0:
+                    #     combined_list[input_file_list[samp_num]].to_csv("py_combined_list3.txt", sep="\t", index=False)
+                    else:
+                        # Pas de mates : garder le DataFrame original
+                        if input_file_list[samp_num] not in combined_list:
+                            combined_list[input_file_list[samp_num]] = original_df.copy()
+                        combined_list[input_file_list[samp_num]]["source"] = input_file_list[samp_num]
 
 
         #Make data frame with all combined peak pair info
@@ -282,10 +405,13 @@ class ChromatographicPrecompressFiles:
 
 
 if __name__ == "__main__":
-    listFiles = ["/home/camille/Documents/app/data/output/751303_v3_E3AM_5jui.txt", 
-                 "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui.txt"]
+    listFiles = ["/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE.txt",
+                    #   "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q.txt",
+                    #   "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split.txt",
+                    #   "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split.txt"
+                ]
 
-#test de find_matches
+#test find_matches
     # precompressedFiles = ChromatographicPrecompressFiles(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=90)
     # ImportedFiles = [precompressedFiles.importFile(file) for file in listFiles] 
     # for samp_num in range(len(ImportedFiles)):
@@ -307,5 +433,10 @@ if __name__ == "__main__":
 
 
 #test precompressFiles
-    precompressedFiles = ChromatographicPrecompressFiles(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", output_files=True)
-    Result = precompressedFiles.PrecompressFiles(listFiles)
+    precompressedFiles = ChromatographicPrecompressFiles(rt1_penalty=1, rt2_penalty=1, similarity_cutoff=30, num_cores=1, common_ions=None, quant_method="T", output_files=True)
+    combined_frame = precompressedFiles.PrecompressFiles(listFiles)
+    # print(combined_frame)
+
+    # precompressedFiles.plot_combined_peaks(combined_frame, "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE.txt").
+    combined_frame_df = pd.DataFrame(combined_frame)
+    combined_frame_df.to_csv("py_combined_frame.csv", sep="\t", index=False)
