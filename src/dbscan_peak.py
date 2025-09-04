@@ -11,7 +11,7 @@ import gc
 from scipy.spatial.distance import cdist
 from scipy.interpolate import griddata
 from whittaker_eilers import WhittakerSmoother
-
+import deconvolution
 
 # parameters to optimmize: 
 #clustering
@@ -36,7 +36,7 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
                                                 max_sigma=20,
                                                 sigma_ratio=2,
                                                 overlap=0.5, 
-                                                max_peak_per_mass=600,
+                                                max_peak_per_mass=400,
                                                 rt1_delta=2, 
                                                 rt2_delta=0.02,
                                                 min_size_cluster_mass=2, 
@@ -99,7 +99,7 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
         If True, process m/z slices in parallel to accelerate detection.
 
     cleaning_close_peak: bool, optional
-        If True, start a second clusturing to merge duplicate peaks, and TODO, peaks cut but a modulation (present at RT2 mod_time and 0) 
+        If True, start a second clusturing to merge duplicate peaks
 
     Returns
     -------
@@ -116,41 +116,81 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
                        overlap,multi_processing=multi_processing)
     
     print("cluster_per_mass ")
-    results, radius_cluster, clusters_cluster, clusters_label_cluster =cluster_per_mass(results,chromato_cube,time_rn,mod_time,rt1_delta=5, rt2_delta=0.1,thr_debscan=0.05,max_peak_per_mass=max_peak_per_mass)
-    
-    print("deconvolution per mass")
+    coordinate = [x[0] for x in results ]
+    radius=[x[1] for x in results  ]
+    coordinate_cluster, radius=cluster_per_mass(coordinate,radius,chromato_cube,time_rn,mod_time,rt1_delta=5, rt2_delta=0.1,thr_debscan=0.03,max_peak_per_mass=max_peak_per_mass)    
+    print(str(np.sum([len(x) for x in coordinate_cluster]))+ " peaks")
 
-    
-    results = [res for res in results if res is not None]
+    print("deconvolution per mass")
+    quanti=deconvolution.deconvolution(chromato_cube, time_rn, mod_time, coordinate_cluster, radius,multi_processing=multi_processing)
+    quanti_all_mass=[]
+    for m,elt in enumerate(quanti):
+        if(len(elt[0])>0):
+            for x,y in elt:
+                quanti_all_mass.append([m,x,y])
     coordinates_all_mass=[]
-    for elt in results:
-        for x,y,z in elt:
-            coordinates_all_mass.append([x,y,z])
-    
-    coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+    for elt in coordinate_cluster:
+        for x,y in elt:
+            coordinates_all_mass.append([x,y])
     
     print("compute distance metric "+ str(len(coordinates_all_mass)) + " peaks")
-    distance_matrix=compute_distance_metric(coordinates_all_mass,chromato_cube,mod_time,time_rn,rt1_delta=rt1_delta, rt2_delta=rt2_delta)
-      
+    distance_matrix=compute_distance_metric(np.array(coordinates_all_mass),chromato_cube,mod_time,time_rn,rt1_delta=rt1_delta, rt2_delta=rt2_delta)
+
     print("start clustering")
-    coordinates, radius, clusters,label= cluster_peak(distance_matrix,chromato,coordinates_all_mass,thr_debscan=thr_debscan,min_sample_db_scan=min_size_cluster_mass)
+    coordinates, coordinates, clusters, label= cluster_peak(distance_matrix,chromato,coordinates_all_mass,coordinates_all_mass,thr_debscan=thr_debscan,min_sample_db_scan=min_size_cluster_mass)
+
     print(str(len(coordinates)) + " peaks clustered")
+    
     if(cleaning_close_peak):
-        # cluster close peaks 
-        distance_matrix=compute_distance_metric(coordinates,chromato_cube,mod_time,time_rn,rt1_delta=2*mod_time, rt2_delta=0.05)
-        coordinates, clusters,label= cluster_peak(distance_matrix,chromato,coordinates,thr_debscan=0.02,min_sample_db_scan=1)
-        # merge peaks cut but the modulation
-        coordinates_in_chromato=projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
-        # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
-        mask = (coordinates_in_chromato[:, 1] > (mod_time-0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
-        bound= coordinates[mask]    
-        # 2.cluster without RT2 penalty 
-        distance_matrix=compute_distance_metric(bound,chromato_cube,mod_time,time_rn,rt1_delta=mod_time, rt2_delta=100000)
-        bound_cluster, clusters,label= cluster_peak(distance_matrix,chromato,bound,thr_debscan=0.02,min_sample_db_scan=1)
-        # 3. replace cluster 
-        coordinates = np.concatenate((coordinates[~mask], bound_cluster), axis=0)
+        # 1. Convertir les coordonnées en chromatogramme
+        coordinates_in_chromato = projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
+
+        # 2. Identifier les lignes à supprimer (bound = up_bound + low_bound)
+        mask = (coordinates_in_chromato[:, 1] > (mod_time - 0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+        bound = coordinates[mask]
+
+        # 3. Clustering sans pénalité RT2
+        distance_matrix = compute_distance_metric(bound, chromato_cube, mod_time, time_rn, rt1_delta=mod_time, rt2_delta=100000)
+        bound_cluster, _, clusters_bound, label_bound = cluster_peak(distance_matrix, chromato, bound, bound, thr_debscan=0.02, min_sample_db_scan=2)
+
+        # 4. Vérification et traitement des clusters
+        if clusters_bound and all([len(x) == 2 for x in clusters_bound]):
+            label_f = []
+            index_delete = []
+
+            for pair in label_bound:
+                if len(pair) == 2:
+                    x, y = pair
+                    index1 = np.where(mask)[0][x]
+                    index2 = np.where(mask)[0][y]
+                    label_new = label[index1] + label[index2]
+                    label_f.append(label_new)
+                    index_delete.extend([index1, index2])
+
+            # Mise à jour des labels
+            label = [x for j, x in enumerate(label) if j not in index_delete] + label_f
+
+            # Sécuriser bound_cluster
+            bound_cluster = np.array(bound_cluster)
+            if bound_cluster.ndim == 1:
+                if bound_cluster.size == 0:
+                    bound_cluster = np.empty((0, 2), dtype=int)
+                else:
+                    bound_cluster = bound_cluster.reshape(-1, 2)
+
+            # Sécuriser les coordonnées à garder
+            kept_coordinates = np.array([x for i, x in enumerate(coordinates) if i not in index_delete])
+            if kept_coordinates.ndim == 1:
+                kept_coordinates = kept_coordinates.reshape(-1, 2)
+
+            # Concaténation sécurisée
+            coordinates = np.concatenate((kept_coordinates, bound_cluster), axis=0)
+
         print(str(len(coordinates))+ " detected peaks after filter")
-    return coordinates
+
+    sepc_list, area = deconvolution.construct_spectrum(quanti_all_mass,label,chromato_cube.shape[0])
+
+    return coordinates, sepc_list, area
 
 # def rt_penalty(rt_vals, rt1_delta=5, rt2_delta=0.1): # rt en seconde !! 
 #     rt1 = rt_vals[:, 0][:, None]
@@ -350,7 +390,7 @@ def detect_peak_dog_mp(chromato_cube,
     return results
 
 
-def cluster_per_mass(coordinate,radius,baseline_cube,chromato_cube,time_rn, mod_time,rt1_delta, rt2_delta,thr_debscan,max_peak_per_mass):
+def cluster_per_mass(coordinate,radius,chromato_cube,time_rn, mod_time,rt1_delta, rt2_delta,thr_debscan,max_peak_per_mass):
     coordinate_cluster=[]
     radius_cluster=[]
     for i in range(len(coordinate)):
@@ -359,7 +399,7 @@ def cluster_per_mass(coordinate,radius,baseline_cube,chromato_cube,time_rn, mod_
     for mass in range(len(coordinate)) :
         coord_m=coordinate[mass]
         rad_m= radius[mass]
-        tmp=baseline_cube[mass,:,:]
+        tmp=chromato_cube[mass,:,:]
         npeak=len(coord_m)
         if(npeak!=0):
             # peak clusturing
@@ -448,7 +488,7 @@ def intensity_threshold_decision_rule(
         rel_threshold,
         noise_factor,
         sigma,
-        chromatogram):
+        chromatogram,thr_max=10**5):
     """
     Compute the intensity threshold for peak detection based on the provided
     absolute and relative thresholds, as well as the dynamic noise factor.
@@ -473,5 +513,5 @@ def intensity_threshold_decision_rule(
     # peaks.
     # if chonmatogram  is very clean: detect weaker peaks
 
-    intensity_threshold = max(abs_threshold, rel_threshold * max_peak_val, dynamic_noise_factor)
+    intensity_threshold = min(max(abs_threshold, rel_threshold * max_peak_val, dynamic_noise_factor),thr_max)
     return intensity_threshold

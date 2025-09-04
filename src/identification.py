@@ -1,6 +1,6 @@
 import read_chroma
 import mass_spec
-# import baseline_correction
+import baseline_correction
 import peak_detection
 import matching
 import integration
@@ -75,9 +75,9 @@ def mass_spectra_format(mass_range, int_values):
 
 from projection import chromato_to_matrix,matrix_to_chromato
 import uuid
-def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_time,
+def compute_matches_identification(matches, sepc_list, area,chromato, chromato_cube,time_rn,mod_time,
                                    mass_range, sample_name, formated_spectra,
-                                   quant="mass",extract_patch=False,output_hdf5_file=None,similarity_threshold=0.001
+                                   quant="mass",extract_patch=False,output_hdf5_file=None,itegration_mod_max=False,similarity_threshold=0.001
                                    ):
     """
     Computes the identification data for each match in a list of matches,
@@ -154,31 +154,35 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
             if sample_name_group not in h5_file:
                 sample_group_h5 = h5_file.create_group(sample_name_group)
 
-    for match in matches:
+    for j, match in enumerate(matches):
+        
         match_data_list = match[1] \
             if isinstance(match[1], list) else [match[1]]
+        
         coord = match[2]
         spectrum_data=match[1][0]['spectra']
-        majority_mass=np.argmax(spectrum_data)
+        spec_deconvo= sepc_list[j]
+        majority_mass=np.argmax(spec_deconvo)
+        
         if(quant=="mass"):
             chormato_m = chromato_cube[majority_mass,:,:] ## pas sur le chromato mais sur la masse majoritaire 
         else: 
             chormato_m=chromato
         
-        blob = integration.peak_pool_similarity_check(
-                chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-                threshold=0.01, plot_labels=True,
-                similarity_threshold=similarity_threshold)
-            
-        area_total = integration.compute_area(chormato_m, blob) 
-        mask = np.zeros_like(blob)
-        mask[coord[0],: ] = blob[coord[0],:]
+        if(itegration_mod_max):
+            blob = integration.peak_pool_similarity_check(
+                    chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
+                    threshold=0.01, plot_labels=True,
+                    similarity_threshold=similarity_threshold)                
+            area_total = integration.compute_area(chormato_m, blob) 
+            mask = np.zeros_like(blob)
+            mask[coord[0],: ] = blob[coord[0],:]
 
-        area_mod_max= integration.compute_area(chormato_m, mask) 
+            area_mod_max= integration.compute_area(chormato_m, mask) 
+        else : area_mod_max = 0 
 
-
-       
         height = chormato_m[coord[0], coord[1]]
+        area_j=area[j]
 
         def join_field(field):
             return '/'.join(str(m.get(field, '')) for m in match_data_list)
@@ -192,7 +196,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
             'reverse_match_factor': join_field('reverse_match_factor'),
             'rt1': match[0][0],
             'rt2': match[0][1],
-            'area': area_total,
+            'area': area_j,
             'area_mod_max':area_mod_max,
             'height': height,
             "quant_mass":majority_mass + mass_range[0]
@@ -204,6 +208,9 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
                 for m in match_data_list
                 if isinstance(m.get('spectra'), (list, np.ndarray)) and len(m['spectra']) > 0
             )
+
+            identification_data_dict['spectra_deconvo'] = mass_spectra_format(mass_range, spec_deconvo)
+
 
         if extract_patch:
             
@@ -273,7 +280,7 @@ def compute_matches_identification(matches, chromato, chromato_cube,time_rn,mod_
                     # --- Collect Metadata ---
             metadata = {
                         "unique_id": unique_id_data,
-                        "Sample": sample_name_group, "Mol": identification_data_dict['compound_name'], "mass": mass, "Area": area,
+                        "Sample": sample_name_group, "Mol": identification_data_dict['compound_name'], "mass": mass, "Area": area_j,
                         "RT1_theoretical": identification_data_dict['rt1'], "RT2_theoretical": identification_data_dict['rt2'],
                         "RT1_corrected": identification_data_dict['rt1'], "RT2_corrected": identification_data_dict['rt2'],
                         "signal_noise_ratio": None, # Store calculated SNR
@@ -294,7 +301,7 @@ def identification(filename,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence, overlap, eps, min_samples, nist,quant,extract_patch,output_hdf5_file, plot_):
+                   min_persistence, overlap, eps, min_samples, nist,quant,extract_patch,output_hdf5_file, method_baseline, plot_):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -341,13 +348,14 @@ def identification(filename,
     chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
         read_chroma.read_chromato_and_chromato_cube(filename, 
                                                     mod_time,
-                                                    pre_process=True,plot_=plot_
+                                                    pre_process=False,plot_=plot_
                                                     ))
     
+    baseline_cube=np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube,method=method_baseline))
     
     if (mode=="mass_per_mass") & (method=="DoG") :
         max_peak_per_mass=600
-        coordinates = dbscan_peak.detection_mass_par_mass_Dog(chromato_cube,(chromato_tic, time_rn),
+        coordinates,sepc_list, area = dbscan_peak.detection_mass_par_mass_Dog(baseline_cube,(chromato_tic, time_rn),
                                                             mod_time,
                                                                 abs_threshold,
                                                                 rel_threshold,
@@ -360,13 +368,13 @@ def identification(filename,
                                                                 rt1_delta=2, 
                                                                 rt2_delta=0.02,
                                                                 min_size_cluster_mass=2, 
-                                                                thr_debscan=0.02, 
+                                                                thr_debscan=0.04, 
                                                                 multi_processing=True,
                                                                 cleaning_close_peak=True)
     else:
         coordinates = peak_detection.peak_detection(
             (chromato_tic, time_rn, mass_range),
-            chromato_cube=chromato_cube,
+            chromato_cube=baseline_cube,
             sigma=sigma,
             noise_factor=noise_factor,
             abs_threshold=abs_threshold,
@@ -393,18 +401,18 @@ def identification(filename,
                             log_chromato=True, points=coordinates_in_chromato)
 
     matches = matching.matching_nist_lib_from_chromato_cube(
-            (chromato_tic, time_rn, mass_range), chromato_cube, coordinates,
+            (chromato_tic, time_rn, mass_range), baseline_cube, coordinates,
             mod_time,
             match_factor_min, nist)
+    
     print("nb match", len(matches))
     base_name = os.path.basename(filename)
 
-    print("start integration")
+    print("write data")
     matches_identification, sample_metadata_list = compute_matches_identification(
-            matches, chromato_tic, chromato_cube,time_rn,mod_time, mass_range,base_name,
+            matches, sepc_list, area, chromato_tic, baseline_cube,time_rn,mod_time, mass_range,base_name,
             formated_spectra, quant,extract_patch,output_hdf5_file)
     
-
     return matches_identification, sample_metadata_list
 
 
@@ -508,7 +516,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
 #             f.write(line)
 
 def cohort_identification_alignment_input_format_txt(
-        filename, matches_identification, PATH):
+        filename, matches_identification, PATH,deconvo=False):
     r"""Generate formatted peak table for alignment.
 
     Parameters
@@ -521,7 +529,11 @@ def cohort_identification_alignment_input_format_txt(
     PATH : optional
         Path to the resulting formatted peak table.
     """
-    with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
+    if deconvo:
+        name_file=PATH + filename+'_deconvo' + '.txt'
+    else:
+        name_file=PATH + filename + '.txt'
+    with open(name_file, 'w', encoding='UTF8') as f:
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
         
         for identification_data_dict in matches_identification:
@@ -529,7 +541,10 @@ def cohort_identification_alignment_input_format_txt(
             rt1 = identification_data_dict['rt1']
             rt2 = identification_data_dict['rt2']
             area = identification_data_dict['area']
-            formatted_spectrum = identification_data_dict['spectra']
+            if deconvo:
+                formatted_spectrum = identification_data_dict['spectra_deconvo']
+            else:
+                formatted_spectrum = identification_data_dict['spectra']
             f.write(write_line(compound_name, rt1, rt2, area,
                                formatted_spectrum))
 
@@ -543,7 +558,7 @@ def sample_identification(path, file, output_path,
                           min_distance, min_sigma, max_sigma, sigma_ratio,
                           num_sigma,
                           formated_spectra, match_factor_min, min_persistence,
-                          overlap, eps, min_samples, nist=False, quant_method="mass", extract_patch=True, output_hdf5_file=None, plot_=False):
+                          overlap, eps, min_samples, method_baseline,nist=False, quant_method="mass", extract_patch=True, output_hdf5_file=None, plot_=False):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -618,13 +633,15 @@ def sample_identification(path, file, output_path,
                                                 overlap,
                                                 eps,
                                                 min_samples,
-                                                nist, quant_method,extract_patch,output_hdf5_file,plot_)
+                                                nist, quant_method,extract_patch,output_hdf5_file,method_baseline,plot_)
 
 
         print("Identification done", time.time()-start_time, 's')
         print("output_path from identification", output_path, file)
         cohort_identification_alignment_input_format_txt(
             os.path.splitext(file)[0], matches_identification, output_path)
+        cohort_identification_alignment_input_format_txt(
+            os.path.splitext(file)[0], matches_identification, output_path, deconvo=True)
         if(extract_patch):
             cohort_identification_sample_metadata(os.path.splitext(file)[0], sample_metadata_list,
                                      output_path)
