@@ -117,8 +117,21 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
 
         #Find mates to combine
         Mates<-lapply(MatchList[[SampNum]],function(x) x[1])
+        print(length(Mates))
+        mates_with_values <- which(!sapply(Mates, function(x) is.null(x) || all(is.na(x)) || length(x) == 0))
+
+        for (i in mates_with_values) {
+          cat("Peak", i, "-> mates:", Mates[[i]], "\n")
+        }
+        num_peaks_with_mates <- sum(!sapply(Mates, function(x) is.null(x) || all(is.na(x)) || length(x) == 0))
+        cat("Nombre de peaks avec au moins un mate :", num_peaks_with_mates, "\n")
+        
+        
+
+      
+
+
         BindingAreas<-importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),3]
-        print(Mates)
 
         #Find mates partners to combine
         toBind<-importedFiles[[SampNum]][[1]][which(!is.na(Mates)),]
@@ -158,6 +171,7 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
 
     #If any metabolites had greater than two peaks to combine, loop through and make those combinations iteratively
     if(NumReps>0){
+      cat("Repeating peak combinations...\n")
       for(Rep in 1:NumReps){
 
         #Repeat similarity scores with combined peaks
@@ -204,6 +218,15 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
           # }
           if(quantMethod=="A"|quantMethod=="T"){
             Mates<-lapply(NewMatchList,function(x) x[1])
+            print(length(Mates))
+            mates_with_values <- which(!sapply(Mates, function(x) is.null(x) || all(is.na(x)) || length(x) == 0))
+
+            for (i in mates_with_values) {
+              cat("Peak", i, "-> mates:", Mates[[i]], "\n")
+            }
+            num_peaks_with_mates <- sum(!sapply(Mates, function(x) is.null(x) || all(is.na(x)) || length(x) == 0))
+            cat("Nombre de peaks avec au moins un mate :", num_peaks_with_mates, "\n")
+
             BindingAreas<-importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),3]
             toBind<-importedFiles[[SampNum]][[1]][which(!is.na(Mates)),]
             # combinedList[[inputFileList[SampNum]]]<-rbind(combinedList[[inputFileList[SampNum]]],cbind(toBind,importedFiles[[SampNum]][[1]][unlist(Mates[which(!is.na(Mates))]),],inputFileList[SampNum]))
@@ -231,7 +254,7 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
   #If outputFiles==TRUE, write processed files out to the input file directory
   if(outputFiles==TRUE){
     for(SampNum in 1:length(importedFiles)){
-      utils::write.table(importedFiles[[SampNum]][[1]][,1:5], paste0(substr(inputFileList[[SampNum]],1,nchar(inputFileList[[SampNum]])-4),"_Processed.txt"),sep="\t",quote=F,row.names=F)
+      utils::write.table(importedFiles[[SampNum]][[1]][,1:5], paste0(substr(inputFileList[[SampNum]],1,nchar(inputFileList[[SampNum]])-4),"_Processed.csv"),sep="\t",quote=F,row.names=F)
     }
   }
   write.csv(combinedFrame, file = "combinedFrame.csv", row.names = TRUE)
@@ -241,12 +264,13 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
 
 # inputFileList <- list("/home/camille/Documents/app/data/output/751303_v3_E3AM_5jui.txt", 
 #                    "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui.txt")
-inputFileList <- list("/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE.txt" ,
-                      "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q.txt",
-                      "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split.txt",
-                      "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split.txt"
+inputFileList <- list(
+                      #"/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE.txt" #,
+                      # "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q.txt",
+                      "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split.txt"#,
+                      # "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split.txt"
                       )
 
-CombinedFrame <- PrecompressFiles(inputFileList, RT1Penalty=1, RT2Penalty=1, similarityCutoff=5, numCores=1, commonIons=NULL, quantMethod="T", outputFiles=TRUE)
+CombinedFrame <- PrecompressFiles(inputFileList, RT1Penalty=1, RT2Penalty=10, similarityCutoff=90, numCores=1, commonIons=NULL, quantMethod="T", outputFiles=TRUE)
 # print(Result 5
 # write.csv(CombinedFrame, file = "combinedFrame.csv", row.names = TRUE)

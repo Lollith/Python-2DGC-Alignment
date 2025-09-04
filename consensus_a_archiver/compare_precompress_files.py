@@ -10,11 +10,23 @@ file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_
 # file2 ="/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Py_Processed.txt"
 # file2= "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split_Py_Processed.txt"
 
+#comparer les fichiers processed.txt
 import pandas as pd
+import numpy as np
 
 df1 = pd.read_csv(file1, sep="\t")
 df2 = pd.read_csv(file2, sep="\t")
 
+# Réinitialiser les index pour que la comparaison marche ligne à ligne
+df1 = df1.reset_index(drop=True)
+df2 = df2.reset_index(drop=True)
+
+# Vérifier si même nombre de lignes
+if len(df1) != len(df2):
+    print(f"⚠️ Les fichiers ont un nombre de lignes différent : {len(df1)} vs {len(df2)}")
+    min_len = min(len(df1), len(df2))
+    df1 = df1.iloc[:min_len]
+    df2 = df2.iloc[:min_len]
 
 cols_to_convert = ['Quant.Masses']  # ajoute d'autres colonnes si nécessaire
 
@@ -40,6 +52,71 @@ if 'Name' in df1.columns:
     diff_df['Name'] = df1['Name']
 
 # Sauvegarde
-output_file = "/home/camille/Documents/app/data/output/differences_full.txt"
+output_file = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/differences_full.txt"
 diff_df.to_csv(output_file, sep="\t", index=False)
 print(f"Différences enregistrées dans {output_file}")
+
+
+
+
+# comparer les combined_frame
+
+# Fichiers à comparer
+csv_r = "combinedFrame.csv"
+csv_py = "py_combined_frame.csv"
+output_diff = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/differences_combined_frame.csv"
+
+# Charger les CSV
+df_r = pd.read_csv(csv_r)
+df_py = pd.read_csv(csv_py)
+
+# Vérifier les colonnes
+print("Colonnes R :", df_r.columns.tolist())
+print("Colonnes Python :", df_py.columns.tolist())
+
+# S'assurer qu'on compare seulement les colonnes communes
+common_cols = df_r.columns.intersection(df_py.columns)
+df_r = df_r[common_cols]
+df_py = df_py[common_cols]
+
+# Vérifier les dimensions
+if df_r.shape != df_py.shape:
+    print(f"⚠️ Dimensions différentes : R={df_r.shape}, Python={df_py.shape}")
+
+# Comparaison ligne par ligne avec tolérance
+tolerance = 1e-6
+diffs = []
+
+for i in range(min(len(df_r), len(df_py))):
+    for col in common_cols:
+        val_r = df_r.iloc[i][col]
+        val_py = df_py.iloc[i][col]
+
+        if pd.isna(val_r) and pd.isna(val_py):
+            continue
+        if isinstance(val_r, (int, float, np.number)) and isinstance(val_py, (int, float, np.number)):
+            if not np.isclose(val_r, val_py, atol=tolerance):
+                diffs.append({
+                    "row": i,
+                    "column": col,
+                    "R_value": val_r,
+                    "Python_value": val_py,
+                    "difference": val_r - val_py if pd.notna(val_r) and pd.notna(val_py) else None
+                })
+        else:
+            if val_r != val_py:
+                diffs.append({
+                    "row": i,
+                    "column": col,
+                    "R_value": val_r,
+                    "Python_value": val_py,
+                    "difference": None
+                })
+
+# Résumé
+if diffs:
+    diff_df = pd.DataFrame(diffs)
+    diff_df.to_csv(output_diff, index=False)
+    print(f"⚠️ Différences trouvées : {len(diffs)} (voir {output_diff})")
+else:
+    print("✅ Les CSV sont identiques (dans la tolérance définie).")
