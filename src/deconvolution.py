@@ -274,7 +274,7 @@ def compute_bounds(coords, radii):
     for (rt, mz), radius in zip(coords, radii):
 
         rt_radius = radius * 2 * 1.7 / 60
-        mz_radius = radius * 7 * 0.005
+        mz_radius = radius * 6 * 0.005
 
         rt_min, rt_max = rt - rt_radius, rt + rt_radius
         mz_min, mz_max = mz - mz_radius, mz + mz_radius
@@ -445,14 +445,16 @@ def deconvolution_per_mass(coordinates,radius, chomato_mass, time_rn, mod_time, 
         res=[]
         for j in range(len(clusters)):
             res.append(fit_all_peaks_fixed_centers(chomato_mass, coordinates[clusters[j]], projection.chromato_to_matrix(final_bounds[j].T,time_rn, mod_time, chomato_mass.shape).T, plot=plot_deconvo))
-        
+         
         area=[]
         height=[]
+        coord_order=[]
         for x in res:
             for j in x :
                 height.append(j['params'][0])
-                area.append(j['area'])    
+                area.append(j['area'])   
+                coord_order.append(j['center'])  
 
-        return  np.column_stack((area, height))
+        return  np.column_stack((area, height)), np.array(coord_order)
     else :
          return ([],[])

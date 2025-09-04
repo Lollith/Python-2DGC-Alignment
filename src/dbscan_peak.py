@@ -118,20 +118,22 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
     print("cluster_per_mass ")
     coordinate = [x[0] for x in results ]
     radius=[x[1] for x in results  ]
-    coordinate_cluster, radius=cluster_per_mass(coordinate,radius,chromato_cube,time_rn,mod_time,rt1_delta=5, rt2_delta=0.1,thr_debscan=0.03,max_peak_per_mass=max_peak_per_mass)    
+    coordinate_cluster, radius=cluster_per_mass(coordinate,radius,chromato_cube,time_rn,mod_time,rt1_delta=5, rt2_delta=0.1,thr_debscan=0.04,max_peak_per_mass=max_peak_per_mass)    
     print(str(np.sum([len(x) for x in coordinate_cluster]))+ " peaks")
 
     print("deconvolution per mass")
-    quanti=deconvolution.deconvolution(chromato_cube, time_rn, mod_time, coordinate_cluster, radius,multi_processing=multi_processing)
+    quanti =deconvolution.deconvolution(chromato_cube, time_rn, mod_time, coordinate_cluster, radius,multi_processing=multi_processing)
+    
     quanti_all_mass=[]
+    coordinates_all_mass=[]
     for m,elt in enumerate(quanti):
         if(len(elt[0])>0):
-            for x,y in elt:
+            elt_quant=elt[0]
+            elt_coord=elt[1]
+            for x,y in elt_quant:
                 quanti_all_mass.append([m,x,y])
-    coordinates_all_mass=[]
-    for elt in coordinate_cluster:
-        for x,y in elt:
-            coordinates_all_mass.append([x,y])
+            for x,y in elt_coord:
+                coordinates_all_mass.append([x,y])
     
     print("compute distance metric "+ str(len(coordinates_all_mass)) + " peaks")
     distance_matrix=compute_distance_metric(np.array(coordinates_all_mass),chromato_cube,mod_time,time_rn,rt1_delta=rt1_delta, rt2_delta=rt2_delta)
@@ -351,8 +353,8 @@ def detect_peak_dog( chromato_tic,
         blobs_dog = np.rint(blobs_dog).astype(int)
         coordinates = np.array(blobs_dog[:, :2])
         
-        index = [j for j,coord in enumerate(coordinates) if coord[0] != 0]
-        return coordinates[index] , radii[index]
+        #index = [j for j,coord in enumerate(coordinates) if coord[0] != 0]
+        return coordinates , radii
 
 
 def detect_peak_dog_mp(chromato_cube,
