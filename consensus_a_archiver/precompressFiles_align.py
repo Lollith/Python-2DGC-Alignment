@@ -157,7 +157,7 @@ class ChromatographicPrecompressFiles:
         return arr[:, 1]
 
 
-   # TODO version fonctionnelle ms mate  en binome comme en R 
+#    # TODO version fonctionnelle ms mate  en binome comme en R 
     # def precompress_files(self, input_file_list):
     #     if self.common_ions is None:
     #         common_ions = []
@@ -186,7 +186,7 @@ class ChromatographicPrecompressFiles:
     #                 ].copy()
     #                 # Filtrer les mates valides #TODO MODIF
     #                 valid_mates = [m for m in mates if m is not None and not pd.isna(m)]
-    #                 print("valid_mates", valid_mates)
+    #                 # print("valid_mates", valid_mates)
 
     #                 # Sélectionner les lignes correspondantes
     #                 mates_df = imported_files[samp_num][0].iloc[valid_mates, :].reset_index(drop=True)
@@ -206,6 +206,13 @@ class ChromatographicPrecompressFiles:
     #                     combined_list_df = pd.DataFrame(combined_list[input_file_list[samp_num]])
     #                     combined_list_df.to_csv("py_combined_list.csv", sep="\t", index=False)
 
+
+    #                 current_df = imported_files[samp_num][0].copy()
+    #                 for i, m in enumerate(mates):
+    #                     if m is not None:
+    #                         area_i = current_df.iloc[i, 2]
+    #                         area_m = current_df.iloc[m, 2]
+    #                         print(f"[COMBINE] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
     #                 # Sum peak areas
     #                 to_bind.loc[:, to_bind.columns[2]] += binding_areas
     #                 # Ensure only one peak combination gets included in output
@@ -285,6 +292,13 @@ class ChromatographicPrecompressFiles:
     #                             [combined_list[input_file_list[samp_num]], new_combined],
     #                             ignore_index=True
     #                         )
+
+
+    #                         for i, m in enumerate(mates):
+    #                             if m is not None:
+    #                                 area_i = df.iloc[i, 2]
+    #                                 area_m = df.iloc[m, 2]
+    #                                 print(f"[REP {rep}] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
     #                         # --- Mettre à jour to_bind avec les aires combinées ---
     #                         binding_areas = df.iloc[valid_mates, 2].values
     #                         to_bind.loc[:, to_bind.columns[2]] += binding_areas
@@ -319,88 +333,275 @@ class ChromatographicPrecompressFiles:
     #     if self.output_files:
     #         for samp_num, imp in enumerate(imported_files):
     #             out_name = (
-    #                 input_file_list[samp_num][:-4] + "_Py_Processed.csv"
+    #                 input_file_list[samp_num][:-4] + "_Py_Processed1.csv"
     #             )
     #             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
 
     #     return combined_frame
 
+#all mates
+    # def precompress_files(self, input_file_list):
+    #     if self.common_ions is None:
+    #         common_ions = []
+        
+    #     combined_list = {}
+
+    #     # --- Import des fichiers en parallèle ---
+    #     with Pool(processes=self.num_cores) as pool:
+    #         imported_files = pool.map(self.importFile, input_file_list)
+
+    #     # --- Calcul des matchs spectres ---
+    #     with Pool(processes=self.num_cores) as pool:
+    #         match_list = pool.map(self.find_matches, imported_files)
+
+    #     for samp_num, matches in enumerate(match_list):
+    #         if len(matches) == 0:
+    #             continue
+            
+    #         # --- Crée la liste de tous les mates pour chaque peak ---
+    #         # mates_list = [ [i - 1 for i in x] if len(x) > 0 else [] for x in matches ]
+
+    #         print("matches:", matches)
+    #         # print("mates_list", mates_list)
+    #         # print("Matches for peak 287:", matches[287])
+
+    #         df = imported_files[samp_num][0].copy()
+    #         used_peaks = set()
+    #         combined_rows = []
+
+    #         # for peak_idx, mates in enumerate(mates_list):
+    #         # for peak_idx, mates in enumerate(matches):
+    #         #     if peak_idx in used_peaks:
+    #         #         continue
+    #         #     # Inclure le peak lui-même
+    #         #     all_indices = set([peak_idx] + mates)
+    #         #     # Ajouter récursivement tous les mates de ces mates
+    #         #     queue = list(all_indices)
+    #         #     while queue:
+    #         #         idx = queue.pop()
+    #         #         if idx not in all_indices:
+    #         #             all_indices.add(idx)
+    #         #         # for m in mates_list[idx]:
+    #         #         for m in matches[idx]:
+    #         #             if m not in all_indices:
+    #         #                 all_indices.add(m)
+    #         #                 queue.append(m)
+    #         for peak_idx, mates in enumerate(matches):
+    #             if peak_idx in used_peaks:
+    #                 continue
+
+    #             # Inclure le peak lui-même
+    #             all_indices = set([peak_idx] + mates)
+
+    #             # Ajouter récursivement tous les mates de ces mates
+    #             queue = list(all_indices)
+    #             while queue:
+    #                 idx = queue.pop()
+    #                 if idx < 0 or idx >= len(matches):
+    #                     continue  # protection contre indices hors limites
+    #                 for m in matches[idx]:
+    #                     if 0 <= m < len(df) and m not in all_indices:
+    #                         all_indices.add(m)
+    #                         queue.append(m)
+            
+
+    #             used_peaks.update(all_indices)
+    #             # all_indices = sorted(all_indices)
+    #             all_indices = sorted([i for i in all_indices if i < len(df)])  # sécurité
+
+
+    #             # Calcul de la somme des aires
+    #             if len(all_indices) == 1:
+    #                 combined_row = df.iloc[all_indices[0]].copy()
+    #                 combined_area = combined_row.iloc[2]  # aire inchangée
+    #             else:
+    #                 combined_area = df.iloc[all_indices, 2].sum()
+    #                 combined_row = df.iloc[all_indices[0]].copy()
+    #                 combined_row.iloc[2] = combined_area
+    #             # Somme des aires
+    #             # combined_area = df.iloc[all_indices, 2].sum()
+    #             # combined_row = df.iloc[all_indices[0]].copy()
+    #             # combined_row.iloc[2] = combined_area  # mettre la somme dans la colonne aire
+
+    #             # Concaténer les mates dans une colonne Bound
+    #             combined_row["Bound"] = "/".join(str(i+1) for i in all_indices)
+    #             # print("Combined peaks:", combined_row["Bound"])
+    #             # print(f"Combined peaks: {combined_row['Bound']} | Combined area: {combined_row.iloc[2]}")
+
+    #             combined_rows.append(combined_row)
+
+    #         combined_df = pd.DataFrame(combined_rows)
+    #         combined_df["source"] = input_file_list[samp_num]
+    #         combined_list[input_file_list[samp_num]] = combined_df
+
+    #         # Mettre à jour le DataFrame original pour inclure les pics combinés
+    #         imported_files[samp_num][0] = combined_df.drop(columns=["Bound", "source"])
+
+    #     # --- Concaténer tous les fichiers ---
+    #     if len(combined_list) > 0:
+    #         combined_frame = pd.concat(combined_list.values(), ignore_index=True)
+    #     else:
+    #         combined_frame = pd.DataFrame()
+
+    #     # --- Écrire les fichiers traités si demandé ---
+    #     if self.output_files:
+    #         for samp_num, imp in enumerate(imported_files):
+    #             out_name = input_file_list[samp_num][:-4] + "_Py_Processed_tot.csv"
+    #             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
+
+    #     return combined_frame
+    
+    # def precompress_files(self, input_file_list):
+    #     combined_list = {}
+
+    #     # --- Import des fichiers en parallèle ---
+    #     with Pool(processes=self.num_cores) as pool:
+    #         imported_files = pool.map(self.importFile, input_file_list)
+
+    #     # --- Calcul des matchs spectres ---
+    #     with Pool(processes=self.num_cores) as pool:
+    #         match_list = pool.map(self.find_matches, imported_files)
+
+    #     for samp_num, matches in enumerate(match_list):
+    #         if len(matches) == 0:
+    #             continue
+
+    #         df = imported_files[samp_num][0].copy()
+    #         used_peaks = set()
+    #         combined_rows = []
+
+    #         for peak_idx, mates in enumerate(matches):
+    #             if peak_idx in used_peaks or len(mates) == 0:
+    #                 # Pic déjà traité ou pic isolé → ignorer
+    #                 continue
+
+    #             # Inclure le peak lui-même
+    #             all_indices = set([peak_idx] + mates)
+
+    #             # Ajouter récursivement tous les mates de ces mates
+    #             queue = list(all_indices)
+    #             while queue:
+    #                 idx = queue.pop()
+    #                 if idx < 0 or idx >= len(matches):
+    #                     continue  # protection contre indices hors limites
+    #                 for m in matches[idx]:
+    #                     if 0 <= m < len(df) and m not in all_indices:
+    #                         all_indices.add(m)
+    #                         queue.append(m)
+
+    #             used_peaks.update(all_indices)
+    #             all_indices = sorted([i for i in all_indices if i < len(df)])  # sécurité
+
+    #             # Somme des aires
+    #             combined_area = df.iloc[all_indices, 2].sum()
+    #             combined_row = df.iloc[all_indices[0]].copy()
+    #             combined_row.iloc[2] = combined_area
+
+    #             # Concaténer les mates dans Bound
+    #             combined_row["Bound"] = "/".join(str(i+1) for i in all_indices)  # +1 si besoin pour compat R
+    #             print(f"Combined peaks: {combined_row['Bound']} | Combined area: {combined_area}")
+
+    #             combined_rows.append(combined_row)
+
+    #         if combined_rows:  # n’ajouter que si au moins un pic combiné
+    #             combined_df = pd.DataFrame(combined_rows)
+    #             combined_df["source"] = input_file_list[samp_num]
+    #             combined_list[input_file_list[samp_num]] = combined_df
+
+    #         # Mettre à jour le DataFrame original pour inclure uniquement les pics non combinés
+    #         non_combined_df = df.drop(index=list(used_peaks))
+    #         imported_files[samp_num][0] = non_combined_df
+
+    #     # --- Concaténer tous les fichiers combinés ---
+    #     if combined_list:
+    #         combined_frame = pd.concat(combined_list.values(), ignore_index=True)
+    #     else:
+    #         combined_frame = pd.DataFrame()
+
+    #     # --- Écrire les fichiers traités si demandé ---
+    #     if self.output_files:
+    #         for samp_num, imp in enumerate(imported_files):
+    #             out_name = input_file_list[samp_num][:-4] + "_Py_Processed_tot.csv"
+    #             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
+
+    #     return combined_frame
 
     def precompress_files(self, input_file_list):
-        if self.common_ions is None:
-            common_ions = []
-        
         combined_list = {}
 
         # --- Import des fichiers en parallèle ---
         with Pool(processes=self.num_cores) as pool:
             imported_files = pool.map(self.importFile, input_file_list)
 
-        # --- Calcul des matchs spectres ---
-        with Pool(processes=self.num_cores) as pool:
-            match_list = pool.map(self.find_matches, imported_files)
-
-        for samp_num, matches in enumerate(match_list):
-            if len(matches) == 0:
-                continue
-            
-            # --- Crée la liste de tous les mates pour chaque peak ---
-            mates_list = [ [i-1 for i in x] if len(x) > 0 else [] for x in matches ]
-
-            df = imported_files[samp_num][0].copy()
+        for samp_num, imported in enumerate(imported_files):
+            df = imported[0].copy()
+            matches = self.find_matches(imported)  # matches pour ce fichier
             used_peaks = set()
             combined_rows = []
 
-            for peak_idx, mates in enumerate(mates_list):
-                if peak_idx in used_peaks:
-                    continue
-                # Inclure le peak lui-même
-                all_indices = set([peak_idx] + mates)
-                # Ajouter récursivement tous les mates de ces mates
+            # --- Boucle sur chaque pic pour combiner les mates ---
+            for peak_idx, mates in enumerate(matches):
+                if peak_idx in used_peaks or len(mates) == 0:
+                    continue  # pic déjà combiné ou pic isolé
+
+                # --- Normalisation si matches 1-based (R) ---
+                mates_corrected = [m - 1 for m in mates]  # supprimer si matches déjà 0-based
+
+                # Inclure le pic lui-même
+                all_indices = set([peak_idx] + mates_corrected)
+
+                # Propagation récursive des mates
                 queue = list(all_indices)
                 while queue:
                     idx = queue.pop()
-                    if idx not in all_indices:
-                        all_indices.add(idx)
-                    for m in mates_list[idx]:
-                        if m not in all_indices:
-                            all_indices.add(m)
-                            queue.append(m)
+                    if idx < 0 or idx >= len(matches):
+                        continue
+                    for m in matches[idx]:
+                        m_corr = m - 1  # ajustement indices
+                        if 0 <= m_corr < len(df) and m_corr not in all_indices:
+                            all_indices.add(m_corr)
+                            queue.append(m_corr)
 
                 used_peaks.update(all_indices)
-                all_indices = sorted(all_indices)
+                all_indices = sorted([i for i in all_indices if i < len(df)])
 
-                # Somme des aires
+                # --- Création de la ligne combinée ---
                 combined_area = df.iloc[all_indices, 2].sum()
                 combined_row = df.iloc[all_indices[0]].copy()
-                combined_row.iloc[2] = combined_area  # mettre la somme dans la colonne aire
-
-                # Concaténer les mates dans une colonne Bound
+                combined_row.iloc[2] = combined_area
                 combined_row["Bound"] = "/".join(str(i+1) for i in all_indices)
-
                 combined_rows.append(combined_row)
+                print(f"Combined peaks: {combined_row['Bound']} | Combined area: {combined_area}")
 
-            combined_df = pd.DataFrame(combined_rows)
-            combined_df["source"] = input_file_list[samp_num]
-            combined_list[input_file_list[samp_num]] = combined_df
+            # --- Créer DataFrame des pics combinés si au moins un pic ---
+            if combined_rows:
+                combined_df = pd.DataFrame(combined_rows)
+                combined_df["source"] = input_file_list[samp_num]
+                combined_list[input_file_list[samp_num]] = combined_df
 
-            # Mettre à jour le DataFrame original pour inclure les pics combinés
-            imported_files[samp_num][0] = combined_df.drop(columns=["Bound", "source"])
+            # --- Pics isolés : ceux non combinés, inchangés ---
+            remaining_df = df.drop(index=list(used_peaks))
+            imported_files[samp_num][0] = remaining_df
 
-        # --- Concaténer tous les fichiers ---
-        if len(combined_list) > 0:
+        # --- Concaténer tous les pics combinés pour py_combined_frame.csv ---
+        if combined_list:
             combined_frame = pd.concat(combined_list.values(), ignore_index=True)
         else:
             combined_frame = pd.DataFrame()
 
-        # --- Écrire les fichiers traités si demandé ---
+        # --- Écriture des fichiers ---
         if self.output_files:
+            # Pics isolés
             for samp_num, imp in enumerate(imported_files):
                 out_name = input_file_list[samp_num][:-4] + "_Py_Processed.csv"
                 imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
 
-        return combined_frame
+            # Pics combinés
+            if not combined_frame.empty:
+                out_combined = "py_combined_frame.csv"
+                combined_frame.to_csv(out_combined, sep="\t", index=False)
 
+        return combined_frame
 
 
 if __name__ == "__main__":
@@ -439,4 +640,4 @@ if __name__ == "__main__":
 
     # precompressedFiles.plot_combined_peaks(combined_frame, "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE.txt").
     combined_frame_df = pd.DataFrame(combined_frame)
-    combined_frame_df.to_csv("py_combined_frame.csv", sep="\t", index=False)
+    combined_frame_df.to_csv("py_combined_frame_tot1.csv", sep="\t", index=False)

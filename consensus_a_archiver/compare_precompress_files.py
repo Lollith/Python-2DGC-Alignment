@@ -1,13 +1,13 @@
 # chemins des fichiers à comparer
 # file1 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Processed.txt"
-file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Processed.txt"
+# file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Processed.txt"
 # file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q_Processed.txt"
-# file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Processed.txt"
+file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Processed1.csv"
 # file1= "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split_Processed.txt"
 # file2 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Py_Processed.txt"
-file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Py_Processed.txt"
+# file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Py_Processed.txt"
 # file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q_Py_Processed.txt"
-# file2 ="/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Py_Processed.txt"
+file2 ="/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Py_Processed_tot1.csv"
 # file2= "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split_Py_Processed.txt"
 
 #comparer les fichiers processed.txt
@@ -52,7 +52,7 @@ if 'Name' in df1.columns:
     diff_df['Name'] = df1['Name']
 
 # Sauvegarde
-output_file = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/differences_full.txt"
+output_file = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/differences_full_tot1.txt"
 diff_df.to_csv(output_file, sep="\t", index=False)
 print(f"Différences enregistrées dans {output_file}")
 
@@ -62,9 +62,9 @@ print(f"Différences enregistrées dans {output_file}")
 # comparer les combined_frame
 
 # Fichiers à comparer
-csv_r = "combinedFrame.csv"
-csv_py = "py_combined_frame.csv"
-output_diff = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/differences_combined_frame.csv"
+csv_r = "combinedFrame1.csv"
+csv_py = "py_combined_frame_tot1.csv"
+output_diff = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/differences_combined_frame_tot1.csv"
 
 # Charger les CSV
 df_r = pd.read_csv(csv_r)
