@@ -254,10 +254,10 @@ PrecompressFiles<-function(inputFileList, RT1Penalty=1, RT2Penalty=10,similarity
   #If outputFiles==TRUE, write processed files out to the input file directory
   if(outputFiles==TRUE){
     for(SampNum in 1:length(importedFiles)){
-      utils::write.table(importedFiles[[SampNum]][[1]][,1:5], paste0(substr(inputFileList[[SampNum]],1,nchar(inputFileList[[SampNum]])-4),"_Processed1.csv"),sep="\t",quote=F,row.names=F)
+      utils::write.table(importedFiles[[SampNum]][[1]][,1:5], paste0(substr(inputFileList[[SampNum]],1,nchar(inputFileList[[SampNum]])-4),"_ProcessedR.csv"),sep="\t",quote=F,row.names=F)
     }
   }
-  write.csv(combinedFrame, file = "combinedFrame1.csv", row.names = TRUE)
+  write.csv(combinedFrame, file = "combinedFrameR.csv", row.names = TRUE)
   return(combinedFrame)
 }
 

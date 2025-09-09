@@ -2,12 +2,12 @@
 # file1 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Processed.txt"
 # file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Processed.txt"
 # file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q_Processed.txt"
-file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Processed1.csv"
+file1 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_ProcessedR.csv"
 # file1= "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split_Processed.txt"
 # file2 = "/home/camille/Documents/app/data/output/751304_v1_E3AM_4jui_Py_Processed.txt"
 # file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/15-04-25_817822_QC_23newE_Py_Processed.txt"
 # file2 = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/2025-04-10-854514_Q_Py_Processed.txt"
-file2 ="/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Py_Processed_tot1.csv"
+file2 ="/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751310_0048GL_M1_postPTR_split_Py_Processed_last.csv"
 # file2= "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/751315_0033CN_J7_postPTR_split_Py_Processed.txt"
 
 #comparer les fichiers processed.txt
@@ -62,8 +62,8 @@ print(f"Différences enregistrées dans {output_file}")
 # comparer les combined_frame
 
 # Fichiers à comparer
-csv_r = "combinedFrame1.csv"
-csv_py = "py_combined_frame_tot1.csv"
+csv_r = "combinedFrameR.csv"
+csv_py = "py_combined_frame_last.csv"
 output_diff = "/home/camille/Documents/app/data/cdf et h5/new/peak_detection/differences_combined_frame_tot1.csv"
 
 # Charger les CSV
