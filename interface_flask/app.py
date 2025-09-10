@@ -29,7 +29,7 @@ import nist_engine
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-nist = nist_engine.NistEngine()#DEBUG
+# nist = nist_engine.NistEngine()#DEBUG
 
 load_dotenv()
 auth = HTTPBasicAuth()
@@ -159,6 +159,123 @@ def convert_files():
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
+@app.route('/api/check_containers', methods=['POST'])
+def check_containers():
+    if compose_manager is None:
+        return jsonify({
+            'success': False,
+            'all_running': False,
+            'status': ["❌ Gestionnaire Docker Compose non initialisé"],
+            'detailed_status': {},
+            'platform_info': None
+        })
+    try:
+        platform_info = compose_manager.setup_docker_for_platform()
+        services_status = compose_manager.get_services_status()
+        all_running = all(status['running'] for status in services_status.values())
+
+        status_messages = []
+        if platform_info.get("auto_permissions"):
+            if platform_info["platform"] == "windows":
+                status_messages.append("🪟 Configuration Windows - permissions automatiques")
+            else:
+                print("platform_info", platform_info)
+                status_messages.append(f"🐧 Configuration Linux - UID:{platform_info.get('uid')}, GID:{platform_info.get('gid')}")
+
+        for container_name, status in services_status.items():
+            print("status", status)
+            if status['running']:
+                status_messages.append(f"🟢 {container_name}: En cours d'exécution")
+            else:
+                status_messages.append(f"🔴 {container_name}: Arrêté ({status['status']})")
+
+        return jsonify({
+            'success': True,
+            'all_running': all_running,
+            'status': status_messages,
+            'detailed_status': services_status,
+            'platform_info': platform_info
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'all_running': False,
+            'status': [f"❌ Erreur: {str(e)}"],
+            'detailed_status': {},
+            'platform_info': None
+        })
+
+
+# @app.route('/api/start_containers', methods=['POST'])
+# def start_containers():
+#     if compose_manager is None:
+#         return jsonify({
+#             'success': False,
+#             'all_running': False,
+#             'status': ["❌ Gestionnaire Docker Compose non initialisé"],
+#             'detailed_status': {},
+#             'platform_info': None
+#         })
+#     try:
+#         # Obtenir les infos de plateforme
+#         platform_info = compose_manager.setup_docker_for_platform()
+
+#         services_status = compose_manager.get_services_status()
+#         all_running = all(status['running'] for status in services_status.values())
+#         status_messages = []
+
+#         # Message de configuration de la plateforme
+#         if platform_info.get("auto_permissions"):
+#             print("platform_info", platform_info)
+#             if platform_info["platform"] == "windows":
+#                 status_messages.append("🪟 Configuration Windows - permissions automatiques")
+#             else:
+#                 status_messages.append(f"🐧 Configuration Linux - UID:{platform_info.get('uid')}, GID:{platform_info.get('gid')}")
+
+#         for container_name, status in services_status.items():
+#             print("status", status)
+#             if status['running']:
+#                 status_messages.append(f"🟢 {container_name}: En cours d'exécution")
+#             else:
+#                 status_messages.append(f"🔴 {container_name}: Arrêté ({status['status']})")
+#                 # start_messages = compose_manager.start_service(container_name)
+#                  # Utiliser la nouvelle méthode avec permissions
+#                 start_messages = compose_manager.start_service_with_permissions(container_name)
+#                 status_messages.extend(start_messages)
+#                 # Vérifier le statut final
+#         final_services_status = compose_manager.get_services_status()
+#         print("final_services_status", final_services_status)
+#         final_all_running = all(status['running'] for status in final_services_status.values())
+#         print("final_all_running", final_all_running)
+
+#         # return jsonify({
+#         #     'success': True,
+#         #     'all_running': final_all_running,
+#         #     'status': status_messages,
+#         #     'detailed_status': services_status
+#         # })
+#         return jsonify({
+#             'success': True,
+#             'all_running': final_all_running,
+#             'status': status_messages,
+#             'detailed_status': final_services_status,
+#             'platform_info': platform_info
+#         })
+#     # except Exception as e:
+#     #     return jsonify({
+#     #         'success': False,
+#     #         'all_running': False,
+#     #         'status': [f"❌ Erreur: {str(e)}"],
+#     #         'detailed_status': {}
+#     #     })
+#     except Exception as e:
+#         return jsonify({
+#             'success': False,
+#             'all_running': False,
+#             'status': [f"❌ Erreur: {str(e)}"],
+#             'detailed_status': {},
+#             'platform_info': None
+#         })
 
 @app.route('/api/start_containers', methods=['POST'])
 def start_containers():
@@ -167,35 +284,92 @@ def start_containers():
             'success': False,
             'all_running': False,
             'status': ["❌ Gestionnaire Docker Compose non initialisé"],
-            'detailed_status': {}
+            'detailed_status': {},
+            'platform_info': None
         })
     try:
+        print("Démarrage des conteneurs avec permissions automatiques...")
+        # platform_info = compose_manager.setup_docker_for_platform()
         services_status = compose_manager.get_services_status()
-        all_running = all(status['running'] for status in services_status.values())
         status_messages = []
-        for container_name, status in services_status.items():
-            if status['running']:
-                status_messages.append(f"🟢 {container_name}: En cours d'exécution")
-            else:
-                status_messages.append(f"🔴 {container_name}: Arrêté ({status['status']})")
-                start_messages = compose_manager.start_service(container_name)
-                status_messages.extend(start_messages)
 
+        for container_name, status in services_status.items():
+            if not status['running']:
+                start_messages = compose_manager.start_service_with_permissions(container_name)
+                status_messages.extend(start_messages)
+        
+        final_services_status = compose_manager.get_services_status()
+        final_all_running = all(status['running'] for status in final_services_status.values())
+        print("final_all_running", final_all_running)
         return jsonify({
             'success': True,
-            'all_running': all_running,
+            'all_running': final_all_running,
             'status': status_messages,
-            'detailed_status': services_status
+            'detailed_status': final_services_status,
+            # 'platform_info': platform_info
         })
     except Exception as e:
         return jsonify({
             'success': False,
             'all_running': False,
             'status': [f"❌ Erreur: {str(e)}"],
-            'detailed_status': {}
+            'detailed_status': {},
+            'platform_info': None
         })
 
 
+# Route supplémentaire pour démarrer tous les services d'un coup
+@app.route('/api/start_all_containers', methods=['POST'])
+def start_all_containers():
+    if compose_manager is None:
+        return jsonify({
+            'success': False,
+            'status': ["❌ Gestionnaire Docker Compose non initialisé"]
+        })
+    
+    try:
+        # Démarrer tous les services avec permissions automatiques
+        start_messages = compose_manager.start_all_services_with_permissions()
+        
+        # Vérifier le statut final
+        services_status = compose_manager.get_services_status()
+        all_running = all(status['running'] for status in services_status.values())
+        
+        return jsonify({
+            'success': True,
+            'all_running': all_running,
+            'status': start_messages,
+            'detailed_status': services_status
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'status': [f"❌ Erreur: {str(e)}"]
+        })
+        
+# Route pour obtenir les infos de plateforme
+@app.route('/api/platform_info', methods=['GET'])
+def get_platform_info():
+    if compose_manager is None:
+        return jsonify({
+            'success': False,
+            'platform_info': None,
+            'message': "Gestionnaire non initialisé"
+        })
+    
+    try:
+        platform_info = compose_manager.setup_docker_for_platform()
+        return jsonify({
+            'success': True,
+            'platform_info': platform_info
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'platform_info': None,
+            'message': str(e)
+        })
 
 # @app.route('/api/docker-compose/stop', methods=['POST'])
 # def stop_docker_services():
@@ -295,17 +469,17 @@ def analyze_files():
                 messages.append(f"🔴 {service_name}: Arrêté ({status['status']})")
                 services_to_start.append(service_name)
 
-        # Démarrer les conteneurs si nécessaire
-        if services_to_start:
-            messages.append("🚀 Démarrage des conteneurs Docker...")
+        # # Démarrer les conteneurs si nécessaire
+        # if services_to_start:
+        #     messages.append("🚀 Démarrage des conteneurs Docker...")
 
-            for service in services_to_start:
-                start_messages = compose_manager.start_service(service)
-                messages.extend(start_messages)
+        #     for service in services_to_start:
+        #         start_messages = compose_manager.start_service_with_permissions(service)
+        #         messages.extend(start_messages)
 
-            # Attendre que les services soient complètement démarrés
-            messages.append("⏳ Attente du démarrage complet des conteneurs...")
-            time.sleep(5)
+        #     # Attendre que les services soient complètement démarrés
+        #     messages.append("⏳ Attente du démarrage complet des conteneurs...")
+        #     time.sleep(5)
         
         # 2. Vérifier que Jupyter Lab est accessible et l'ouvrir
         jupyter_url = f"http://{ip_server}:8888/lab/tree/run_interfaces.ipynb"

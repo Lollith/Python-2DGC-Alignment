@@ -13,6 +13,14 @@ if (Test-Path $envPath) {
     exit 1
 }
 
+# Configuration automatique pour Windows
+Write-Host "=== Configuration Docker pour Windows ==="
+[System.Environment]::SetEnvironmentVariable("DOCKER_USER", "1000:1000", "Process")
+[System.Environment]::SetEnvironmentVariable("PUID", "1000", "Process")
+[System.Environment]::SetEnvironmentVariable("PGID", "1000", "Process")
+Write-Host "Permissions Docker configurées pour Windows" -ForegroundColor Green
+
+
 # Lancement de Docker Desktop
 Write-Host "=== Lancement de Docker Desktop ==="
 Start-Process "$env:DOCKER_DESKTOP_PATH"
@@ -23,8 +31,7 @@ do {
     Start-Sleep -Seconds 3
     $dockerReady = & docker info 2>$null
 } until ($dockerReady)
-
-Write-Host "=== Docker est prêt ==="
+Write-Host "=== Docker est prêt ===" -ForegroundColor Green
 
 # Activation de l'environnement Flask
 Write-Host "=== Lancement de Flask ==="

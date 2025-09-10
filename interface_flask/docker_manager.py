@@ -5,6 +5,7 @@ import docker
 import yaml
 from typing import Dict, List, Optional
 from pathlib import Path
+import platform
 
 
 class DockerComposeManager:
@@ -19,6 +20,53 @@ class DockerComposeManager:
         
         if not os.path.exists(compose_file_path):
             raise FileNotFoundError(f"Fichier docker-compose non trouvé: {compose_file_path}")
+        # self.setup_docker_for_platform()
+
+    # def auto_docker_permissions(self):
+    #     """Configuration automatique des permissions Docker"""
+    #     if platform.system().lower() != "windows":
+    #         # Linux seulement
+    #         uid, gid = os.getuid(), os.getgid()
+    #         os.environ["DOCKER_USER"] = f"{uid}:{gid}"
+    #         print(f"🐧 Linux: permissions {uid}:{gid}")
+    #     else:
+    #         print("🪟 Windows: permissions automatiques")
+
+# # Puis dans votre gestionnaire existant:
+#     def start_service_simple(self, service_name="2dgc_id"):
+#         self.auto_docker_permissions()  # Configuration auto
+        # return self.start_service(service_name)  # Votre méthode existante
+
+    def setup_docker_for_platform(self):
+        """Configuration automatique selon la plateforme"""
+        system = platform.system().lower()
+        print("setup docker for platform:", system) 
+        if system == "windows":
+            # Sur Windows, les permissions sont gérées par Docker Desktop
+            print("🪟 Windows détecté - permissions automatiques Docker Desktop")
+            # Définir des valeurs par défaut pour Windows
+            os.environ.setdefault("DOCKER_USER", "1000:1000")
+            os.environ.setdefault("PUID", "1000")
+            os.environ.setdefault("PGID", "1000")
+            return {"platform": "windows", "auto_permissions": True}
+        else:
+            # Sur Linux, configurer les UID/GID réels
+            print("🐧 Linux détecté - configuration des permissions")
+            try:
+                uid = os.getuid()
+                gid = os.getgid()
+                
+                # Définir les variables d'environnement pour Docker Compose
+                os.environ["DOCKER_USER"] = f"{uid}:{gid}"
+                os.environ["PUID"] = str(uid)
+                os.environ["PGID"] = str(gid)
+                
+                print(f"👤 Permissions configurées: UID={uid}, GID={gid}")
+                return {"platform": "linux", "uid": uid, "gid": gid, "auto_permissions": True}
+                
+            except Exception as e:
+                print(f"❌ Erreur configuration permissions: {e}")
+                return {"platform": "linux", "auto_permissions": False, "error": str(e)}
 
     def get_compose_services(self) -> List[str]:
         """Récupère la liste des services définis dans docker-compose.yml"""
@@ -33,19 +81,20 @@ class DockerComposeManager:
 
     def run_compose_command(self, command: List[str]) -> tuple:
         """
-        Exécute une commande docker-compose.
+        Exécute une commande docker-compose avec les permissions configurées.
 
         Returns:
             tuple: (success: bool, output: str, error: str)
         """
         try:
             full_command = ['docker', 'compose', '-f', self.compose_file_path] + command
-
+            print(f"🔧 Exécution de la commande: {' '.join(full_command)}")
             result = subprocess.run(
                 full_command,
                 capture_output=True,
                 text=True,
-                cwd=os.path.dirname(os.path.abspath(self.compose_file_path))
+                cwd=os.path.dirname(os.path.abspath(self.compose_file_path)),
+                env=os.environ.copy()  # Inclut toutes les variables d'environnement
             )
 
             return result.returncode == 0,  result.stdout or "", result.stderr or ""
@@ -53,25 +102,59 @@ class DockerComposeManager:
         except Exception as e:
             return False, "", str(e)
 
-    def start_all_services(self) -> List[str]:
-        """Démarre tous les services définis dans docker-compose.yml"""
-        messages = []
-        messages.append("🚀 Démarrage de tous les services Docker Compose...")
+    # def start_all_services(self) -> List[str]:
+    #     """Démarre tous les services définis dans docker-compose.yml"""
+    #     messages = []
+    #     messages.append("🚀 Démarrage de tous les services Docker Compose...")
         
-        success, output, error = self.run_compose_command(['up', '-d'])
+    #     success, output, error = self.run_compose_command(['up', '-d'])
         
-        if success:
-            messages.append("✅ Tous les services ont été démarrés avec succès")
-            if output and output.strip():
-                messages.append(f"📝 Sortie: {output.strip()}")
-        else:
-            messages.append(f"❌ Erreur lors du démarrage des services: {error}")
+    #     if success:
+    #         messages.append("✅ Tous les services ont été démarrés avec succès")
+    #         if output and output.strip():
+    #             messages.append(f"📝 Sortie: {output.strip()}")
+    #     else:
+    #         messages.append(f"❌ Erreur lors du démarrage des services: {error}")
         
-        return messages
+    #     return messages
     
-    def start_service(self, service_name: str) -> List[str]:
-        """Démarre un service spécifique"""
+    # def start_service(self, service_name: str) -> List[str]:
+    #     """Démarre un service spécifique"""
+    #     messages = []
+    #     messages.append(f"🚀 Démarrage du service '{service_name}'...")
+        
+    #     services = self.get_compose_services()
+    #     if service_name not in services:
+    #         messages.append(f"❌ Service '{service_name}' non trouvé dans docker-compose.yml")
+    #         messages.append(f"📋 Services disponibles: {', '.join(services)}")
+    #         return messages
+        
+    #     success, output, error = self.run_compose_command(['up', '-d', service_name])
+        
+    #     if success:
+    #         messages.append(f"✅ Service '{service_name}' démarré avec succès")
+    #         if output and output.strip():
+    #             messages.append(f"📝 Sortie: {output.strip()}")
+    #     else:
+    #         messages.append(f"❌ Erreur lors du démarrage du service '{service_name}': {error}")
+        
+    #     return messages
+
+    def start_service_with_permissions(self, service_name: str) -> List[str]:
+        """Démarre un service avec configuration automatique des permissions"""
         messages = []
+        
+        # Reconfigurer les permissions si nécessaire
+        # platform_info = self.setup_docker_for_platform()
+        
+        # if platform_info.get("auto_permissions"):
+        #     if platform_info["platform"] == "windows":
+        #         messages.append("🪟 Démarrage avec permissions Windows automatiques")
+        #     else:
+        #         messages.append(f"🐧 Démarrage avec UID={platform_info.get('uid')}, GID={platform_info.get('gid')}")
+        # else:
+        #     messages.append("⚠️ Permissions non configurées automatiquement")
+        
         messages.append(f"🚀 Démarrage du service '{service_name}'...")
         
         services = self.get_compose_services()
@@ -88,6 +171,29 @@ class DockerComposeManager:
                 messages.append(f"📝 Sortie: {output.strip()}")
         else:
             messages.append(f"❌ Erreur lors du démarrage du service '{service_name}': {error}")
+        
+        return messages
+
+    def start_all_services_with_permissions(self) -> List[str]:
+        """Démarre tous les services avec permissions automatiques"""
+        messages = []
+        
+        # Configuration des permissions
+        # platform_info = self.setup_docker_for_platform()
+        
+        # if platform_info.get("auto_permissions"):
+        #     messages.append(f"🔧 Configuration {platform_info['platform'].title()} appliquée")
+        
+        messages.append("🚀 Démarrage de tous les services Docker Compose...")
+        
+        success, output, error = self.run_compose_command(['up', '-d'])
+        
+        if success:
+            messages.append("✅ Tous les services ont été démarrés avec succès")
+            if output and output.strip():
+                messages.append(f"📝 Sortie: {output.strip()}")
+        else:
+            messages.append(f"❌ Erreur lors du démarrage des services: {error}")
         
         return messages
     

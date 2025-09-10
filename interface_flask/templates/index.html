@@ -533,20 +533,33 @@
         });
         
         // Vérifier l'état des conteneurs Docker
+        // Fonction avec retry
+        async function checkDockerWithRetry(retries = 5, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch('/api/start_containers', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    return await response.json(); // Si ok, on retourne les données
+                } catch (e) {
+                    if (i < retries - 1) {
+                        await new Promise(r => setTimeout(r, delay)); // attend avant de réessayer
+                    } else {
+                        throw e; // après dernier essai, on relance l'erreur
+                    }
+                }
+            }
+        }
+
+// Listener click
         checkDockerBtn.addEventListener('click', async function() {
             checkDockerBtn.disabled = true;
             checkDockerBtn.textContent = '🔄 Vérification...';
-            
+
             try {
-                const response = await fetch('/api/start_containers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const data = await response.json();
-                
+                const data = await checkDockerWithRetry(5, 1000); // retry 5 fois, 1s entre chaque
+
                 if (data.all_running) {
                     dockerStatusDiv.className = 'docker-status docker-running';
                     dockerStatusDiv.innerHTML = '🟢 Tous les conteneurs Docker sont en cours d\'exécution';
@@ -556,12 +569,10 @@
                     dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
                     displayMessage('Certains conteneurs Docker ne sont pas actifs', 'error');
                 }
-                
+
                 // Afficher les détails
-                data.status.forEach(status => {
-                    displayMessage(status, 'info');
-                });
-                
+                data.status.forEach(status => displayMessage(status, 'info'));
+
             } catch (error) {
                 displayMessage('Erreur lors de la vérification Docker: ' + error.message, 'error');
                 dockerStatusDiv.className = 'docker-status docker-stopped';
@@ -571,6 +582,44 @@
                 checkDockerBtn.textContent = '🐳 Vérifier Docker';
             }
         });
+        // checkDockerBtn.addEventListener('click', async function() {
+        //     checkDockerBtn.disabled = true;
+        //     checkDockerBtn.textContent = '🔄 Vérification...';
+            
+        //     try {
+        //         const response = await fetch('/api/start_containers', {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json',
+        //             }
+        //         });
+                
+        //         const data = await response.json();
+                
+        //         if (data.all_running) {
+        //             dockerStatusDiv.className = 'docker-status docker-running';
+        //             dockerStatusDiv.innerHTML = '🟢 Tous les conteneurs Docker sont en cours d\'exécution';
+        //             displayMessage('Conteneurs Docker: Tous en cours d\'exécution');
+        //         } else {
+        //             dockerStatusDiv.className = 'docker-status docker-stopped';
+        //             dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
+        //             displayMessage('Certains conteneurs Docker ne sont pas actifs', 'error');
+        //         }
+                
+        //         // Afficher les détails
+        //         data.status.forEach(status => {
+        //             displayMessage(status, 'info');
+        //         });
+                
+        //     } catch (error) {
+        //         displayMessage('Erreur lors de la vérification Docker: ' + error.message, 'error');
+        //         dockerStatusDiv.className = 'docker-status docker-stopped';
+        //         dockerStatusDiv.innerHTML = '❌ Erreur lors de la vérification Docker';
+        //     } finally {
+        //         checkDockerBtn.disabled = false;
+        //         checkDockerBtn.textContent = '🐳 Vérifier Docker';
+        //     }
+        // });
         
         // Lancer l'analyse
         analysisForm.addEventListener('submit', async function(e) {
@@ -631,14 +680,14 @@
         
         // Vérifier l'état Docker au chargement de la page
         window.addEventListener('load', function() {
-            // Vérification automatique discrète
-            fetch('/api/start_containers', {
+            fetch('/api/check_containers', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 }
             }).then(response => response.json())
             .then(data => {
+                const dockerStatusDiv = document.getElementById('dockerStatus');
                 if (data.all_running) {
                     dockerStatusDiv.className = 'docker-status docker-running';
                     dockerStatusDiv.innerHTML = '🟢 Tous les conteneurs Docker sont en cours d\'exécution';
@@ -647,6 +696,7 @@
                     dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
                 }
             }).catch(() => {
+                const dockerStatusDiv = document.getElementById('dockerStatus');
                 dockerStatusDiv.className = 'docker-status docker-stopped';
                 dockerStatusDiv.innerHTML = '❌ Impossible de vérifier l\'état Docker';
             });

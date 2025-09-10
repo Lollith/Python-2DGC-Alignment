@@ -18,3 +18,5 @@ services:
       - PYTHONPATH=/app/src
     env_file:
       - .env
+
+    user: "${PUID}:${PGID}"
