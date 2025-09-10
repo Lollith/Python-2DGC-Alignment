@@ -482,7 +482,7 @@ def sample_identification(path, file, output_path,
                                                 min_samples,
                                                 nist)
         print("Identification done", time.time()-start_time, 's')
-        print("output_path from identificqtion", output_path)
+        # print("output_path from identificqtion", output_path)
         cohort_identification_alignment_input_format_txt(
             file[:-4], matches_identification, output_path)
         cohort_identification_to_csv(file[:-4], matches_identification,

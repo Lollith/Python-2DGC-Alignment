@@ -10,20 +10,22 @@ class PeakPrecompressor:
     consensus align and will perform a rough combine of these peaks depending
     on the quant method as an output"""
 
-    def __init__(self, rt1_penalty=1,
+    def __init__(self,
+                 rt1_penalty=1,
                  rt2_penalty=10,
                  similarity_cutoff=95,
                  num_cores=1,
                  common_ions=None,
                  quant_method="T",
-                 output_files=False):
+                #  output_files=False
+                ):
         self.rt1_penalty = rt1_penalty
         self.rt2_penalty = rt2_penalty
         self.similarity_cutoff = similarity_cutoff
         self.num_cores = num_cores
         self.common_ions = common_ions
         self.quant_method = quant_method
-        self.output_files = output_files
+        # self.output_files = output_files
 
     def importFile(self, file):
         """Import and process chromatographic data file
@@ -139,7 +141,7 @@ class PeakPrecompressor:
             match_list.append((matches + 1).tolist() if len(matches) > 0 else [])
         
         return match_list
-    
+
     def parse_spectrum(self, spectrum_str):
         """
         Parse un spectre du format 'ion:intensité ...'
@@ -150,8 +152,9 @@ class PeakPrecompressor:
         # arr = arr[~np.isin(arr[:, 0], common_ions)]
         arr = arr[np.argsort(arr[:, 0])]
         return arr[:, 1]
-    
-    def PrecompressFiles(self, input_file_list):
+
+    def precompress_files(self, input_file_list, output_dir):
+        print(f"Precompressing {len(input_file_list)} files using {self.num_cores} cores...", flush=True)
         if self.common_ions is None:
             common_ions = []
         combined_list = {}
@@ -168,7 +171,6 @@ class PeakPrecompressor:
             if len(matches) > 0:
                 num_reps = max(len(m) for m in matches) - 1
                 if self.quant_method in ["T"]:
-                    # Find mates to combine
                     mates = [x[0] - 1 if len(x) > 0 else None for x in matches]
                     binding_areas = imported_files[samp_num][0].iloc[
                         [m for m in mates if m is not None], 2
@@ -178,17 +180,35 @@ class PeakPrecompressor:
                     to_bind = imported_files[samp_num][0].iloc[
                         [i for i, m in enumerate(mates) if m is not None], :
                     ].copy()
-            
-                    # Add peak info to combined list for output
-                    combined_list[input_file_list[samp_num]] = pd.concat([
-                        to_bind.reset_index(drop=True),
-                        imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
-                        pd.Series([input_file_list[samp_num]] * len(to_bind), name="source").reset_index(drop=True)
-                    ], axis=1)
+                    valid_mates = [m for m in mates if m is not None and not pd.isna(m)]
 
+                    # Sélectionner les lignes correspondantes
+                    mates_df = imported_files[samp_num][0].iloc[valid_mates, :].reset_index(drop=True)
+                    n_mates = len(valid_mates)
+                    if len(to_bind) == 1:
+                        to_bind_repeated = pd.concat([to_bind]*n_mates, ignore_index=True)
+                    else:
+                        # Si to_bind a plusieurs lignes, il doit correspondre exactement à n_mates
+                        to_bind_repeated = to_bind.reset_index(drop=True).iloc[:n_mates, :]
+
+                    # Ajouter la colonne source
+                    source_series = pd.Series([input_file_list[samp_num]] * len(valid_mates), name="source")
+
+                    # Concaténation finale
+                    combined_list[input_file_list[samp_num]] = pd.concat([to_bind_repeated, mates_df, source_series], axis=1)
+                    if samp_num == 0:
+                        combined_list_df = pd.DataFrame(combined_list[input_file_list[samp_num]])
+                        combined_list_df.to_csv("py_combined_list.csv", sep="\t", index=False)
+
+                    # Debug: afficher les combinaisons effectuées
+                    current_df = imported_files[samp_num][0].copy()
+                    for i, m in enumerate(mates):
+                        if m is not None:
+                            area_i = current_df.iloc[i, 2]
+                            area_m = current_df.iloc[m, 2]
+                            print(f"[COMBINE] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
                     # Sum peak areas
                     to_bind.loc[:, to_bind.columns[2]] += binding_areas
-                    # Création d’une colonne Bound
                     # Ensure only one peak combination gets included in output
                     to_bind["Bound"] = [
                         f"{min(m, i)}"
@@ -203,9 +223,10 @@ class PeakPrecompressor:
                             [i for i, m in enumerate(mates) if m is None], :
                             ], to_bind.drop(columns=["Bound"])
                             ])
-
+                    
             #If any metabolites had greater than two peaks to combine, loop through and make those combinations iteratively
             if num_reps > 0:
+                original_df = imported_files[samp_num][0].copy()
                 for rep in range(num_reps):
     
                     #Repeat similarity scores with combined peaks
@@ -226,9 +247,9 @@ class PeakPrecompressor:
             
                     #Repeat peak combination if more combinations are necessary
                     new_matches = [np.where(row >= self.similarity_cutoff)[0] for row in similarity_matrix]
-                    if len(new_matches) > 0:
+                    if any(len(arr) > 0 for arr in new_matches):
                         if self.quant_method == "T":
-                            mates = [m[0] if len(m) > 0 else None for m in new_matches]
+                            mates = [m[0]  if len(m) > 0 else None for m in new_matches]
                             binding_areas = df.iloc[
                                 [m for m in mates if m is not None], 2
                             ].values
@@ -236,29 +257,63 @@ class PeakPrecompressor:
                                 [i for i, m in enumerate(mates) if m is not None], :
                             ].copy()
 
+                            valid_mates = [m for m in mates if m is not None and not pd.isna(m)]
+                            n_mates = len(valid_mates)
+                            print("valid_mates 2", valid_mates)
+
+                            # DataFrame des mates
+                            mates_df = df.iloc[valid_mates, :].reset_index(drop=True)
+                            # print("mates_df", mates_df)
+
+                            # S'assurer que to_bind a le même nombre de lignes que mates_df
+                            if len(to_bind) == 1:
+                                # répéter to_bind pour chaque mate
+                                to_bind_repeated = pd.concat([to_bind]*n_mates, ignore_index=True)
+                            else:
+                                # Si to_bind a plusieurs lignes, on coupe ou on garde les n_mates premières lignes
+                                to_bind_repeated = to_bind.reset_index(drop=True).iloc[:n_mates, :]
+
+                            # Ajouter colonne source
+                            source_series = pd.Series([input_file_list[samp_num]] * n_mates, name="source")
+
+                            new_combined = pd.concat([to_bind_repeated, mates_df], axis=1)
+                            new_combined["source"] = input_file_list[samp_num]
+
+                            # --- Ajouter au combined_list existant ---
+                            if input_file_list[samp_num] not in combined_list:
+                                combined_list[input_file_list[samp_num]] = pd.DataFrame()  # initialisation
                             combined_list[input_file_list[samp_num]] = pd.concat(
-                                [
-                                    to_bind.reset_index(drop=True),
-                                    imported_files[samp_num][0].iloc[[m for m in mates if m is not None], :].reset_index(drop=True),
-                                    pd.Series([input_file_list[samp_num]] * len(to_bind)).reset_index(drop=True)
-                                ],
-                                axis=1
+                                [combined_list[input_file_list[samp_num]], new_combined],
+                                ignore_index=True
                             )
-
+                            #DEBUG
+                            for i, m in enumerate(mates):
+                                if m is not None:
+                                    area_i = df.iloc[i, 2]
+                                    area_m = df.iloc[m, 2]
+                                    print(f"[REP {rep}] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
+                            # --- Mettre à jour to_bind avec les aires combinées ---
+                            binding_areas = df.iloc[valid_mates, 2].values
                             to_bind.loc[:, to_bind.columns[2]] += binding_areas
-                            to_bind["Bound"] = [
-                                f"{min(m, i)}"
-                                for i, m in enumerate(mates) if m is not None
-                            ]
-                            # Sauvegarde du nombre de lignes avant, DEBUG
-                            n_before = len(to_bind)
-
+                            to_bind["Bound"] = [f"{min(m, i)}" for i, m in enumerate(mates) if m is not None]
                             to_bind = to_bind.drop_duplicates(subset=["Bound"])
 
+                            # --- Remplacer le DataFrame original avec les pics non liés + pics combinés ---
                             imported_files[samp_num][0] = pd.concat([
                                 df.iloc[[i for i, m in enumerate(mates) if m is None], :],
                                 to_bind.drop(columns=["Bound"])
                             ])
+                        else:
+                            # Pas de mates : on garde juste le DataFrame original
+                            if input_file_list[samp_num] not in combined_list:
+                                combined_list[input_file_list[samp_num]] = df.copy()
+                            combined_list[input_file_list[samp_num]]["source"] = input_file_list[samp_num]
+
+                    else:
+                        # Pas de mates : garder le DataFrame original
+                        if input_file_list[samp_num] not in combined_list:
+                            combined_list[input_file_list[samp_num]] = original_df.copy()
+                        combined_list[input_file_list[samp_num]]["source"] = input_file_list[samp_num]
 
 
         #Make data frame with all combined peak pair info
@@ -267,17 +322,18 @@ class PeakPrecompressor:
         else:
             combined_frame = pd.DataFrame()
 
-
         #If outputFiles==TRUE, write processed files out to the input file directory
-        if self.output_files:
-            for samp_num, imp in enumerate(imported_files):
-                out_name = (
-                    input_file_list[samp_num][:-4] + "_Py_Processed.txt"
-                )
-                imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
+        # if self.output_files:
+        print("OUTPUTDIR", output_dir)
+        for samp_num, imp in enumerate(imported_files):
+            out_name = (
+                # input_file_list[samp_num][:-4] + "_Py_Processed1.csv"
+                output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "_Processed.csv"
+            )
+            imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
+            print(f"Wrote processed file to {out_name}")
 
         return combined_frame
-
 
 
 if __name__ == "__main__":
@@ -306,5 +362,7 @@ if __name__ == "__main__":
 
 
 #test precompressFiles
-    precompressedFiles = PeakPrecompressor(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", output_files=True)
-    Result = precompressedFiles.PrecompressFiles(listFiles)
+    precompressedFiles = PeakPrecompressor(rt1_penalty=1, rt2_penalty=10, similarity_cutoff=95, num_cores=1, common_ions=None, quant_method="T", 
+                                           #output_files=True
+                                           )
+    Result = precompressedFiles.precompressFiles(listFiles)
