@@ -148,7 +148,7 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
         coordinates_in_chromato = projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
 
         # 2. Identifier les lignes à supprimer (bound = up_bound + low_bound)
-        mask = (coordinates_in_chromato[:, 1] > (mod_time - 0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+        mask = (coordinates_in_chromato[:, 1] > (mod_time - 0.1)) | (coordinates_in_chromato[:, 1] < 0.1)
         bound = coordinates[mask]
 
         # 3. Clustering sans pénalité RT2
@@ -417,15 +417,14 @@ def cluster_per_mass(coordinate,radius,chromato_cube,time_rn, mod_time,rt1_delta
             # merge peaks cut but the modulation
             coordinates_in_chromato=projection.matrix_to_chromato(coord_cluster, time_rn,mod_time, tmp.shape)
             # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
-            mask = (coordinates_in_chromato[:, 1] > (mod_time-0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+            mask = (coordinates_in_chromato[:, 1] > (mod_time-0.1)) | (coordinates_in_chromato[:, 1] < 0.1)
             if(any(mask)):
                 bound= coord_cluster[mask] 
                 radius_bound= rad_cluster[mask]      
                         # 2.cluster without RT2 penalty 
                 distance_matrix=compute_distance_metric(bound,chromato_cube,mod_time,time_rn,rt1_delta=mod_time, rt2_delta=100000)
                 bound_cluster, radius_bound_cluster, clusters, clusters_label = cluster_peak(distance_matrix,tmp,bound,radius_bound,thr_debscan=thr_debscan,min_sample_db_scan=1)
-                        # 3. replace cluster 
-                
+                        # 3. replace cluster  
                 coord_cluster = np.concatenate((coord_cluster[~mask], bound_cluster), axis=0)
                 rad_cluster = np.concatenate((rad_cluster[~mask], radius_bound_cluster), axis=0)
         else :

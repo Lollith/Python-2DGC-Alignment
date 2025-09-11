@@ -367,7 +367,7 @@ def identification(filename,
                                                                 max_peak_per_mass,
                                                                 rt1_delta=2, 
                                                                 rt2_delta=0.02,
-                                                                min_size_cluster_mass=2, 
+                                                                min_size_cluster_mass=3, 
                                                                 thr_debscan=0.04, 
                                                                 multi_processing=True,
                                                                 cleaning_close_peak=True)
