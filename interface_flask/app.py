@@ -41,7 +41,7 @@ app = Flask(__name__)
 hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
 username_env = os.getenv('USERNAME')
 ip_server = os.getenv("IP_SERVER")
-docker_volume_path = os.getenv("DOCKER_VOLUME_PATH")
+host_volume_path = os.getenv("HOST_VOLUME_PATH")
 
 client = docker.from_env()
 
@@ -90,43 +90,44 @@ def index():
     return render_template('index.html',
                            default_input_path=converter.default_path_input,
                            default_output_path=converter.default_path_output,
-                           docker_volume_path=docker_volume_path
+                           host_volume_path=host_volume_path
                            )
-
-
-# @app.route('/api/list_files', methods=['POST'])
-# def list_files():
-#     """API pour lister les fichiers avec extension spécifiée dans un dossier."""
-#     data = request.get_json()
-#     path = data.get('path', '')
-#     extension = data.get('extension', '.cdf')  # Extension par défaut
-
-#     if not path or not os.path.isdir(path):
-#         return jsonify({'success': False, 'message': 'Chemin invalide'})
-
-#     try:
-#         if extension == '.cdf':
-#             files = converter.get_files_from_folder(path)
-#         else:
-#             files = []
-#             for filename in os.listdir(path):
-#                 if filename.lower().endswith(extension.lower()):
-#                     files.append(filename)
-#             files.sort()
-
-#         return jsonify({'success': True, 'files': files})
-#     except Exception as e:
-#         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'})
-
 
 @app.route('/api/list_files', methods=['POST'])
 def list_files():
+    """API pour lister les fichiers avec extension spécifiée dans un dossier."""
     data = request.get_json()
     path = data.get('path', '')
-    extension = data.get('extension', '.cdf')
+    extension = data.get('extension', '.cdf')  # Extension par défaut
 
     if not path or not os.path.isdir(path):
         return jsonify({'success': False, 'message': 'Chemin invalide'})
+
+    try:
+        if extension == '.cdf':
+            files = converter.get_files_from_folder(path)
+        else:
+            files = []
+            for filename in os.listdir(path):
+                if filename.lower().endswith(extension.lower()):
+                    files.append(filename)
+            files.sort()
+
+        return jsonify({'success': True, 'files': files})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'})
+
+
+@app.route('/api/browse_files', methods=['POST'])
+def browse_files():
+    print("==== API BROWSE CALLED ====")
+    data = request.get_json()
+    path = data.get('path', '')
+    print("Requête path:", repr(path))
+
+    data = request.get_json()
+    path = data.get('path', '')
+    extension = data.get('extension', '.cdf')
 
     try:
         folders, files = [], []
@@ -134,7 +135,7 @@ def list_files():
             full_path = os.path.join(path, entry)
             if os.path.isdir(full_path):
                 folders.append({'name': entry, 'path': full_path})
-            elif entry.lower().endswith(extension.lower()):
+            elif extension == '' or entry.lower().endswith(extension.lower()):
                 files.append({'name': entry, 'path': full_path})
 
         folders.sort(key=lambda x: x['name'])
@@ -143,7 +144,7 @@ def list_files():
         return jsonify({'success': True, 'folders': folders, 'files': files})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'})
-
+    
 
 
 @app.route('/api/convert', methods=['POST'])
@@ -224,40 +225,6 @@ def check_containers():
             'detailed_status': {},
         })
 
-# @app.route('/api/start_containers', methods=['POST'])
-# def start_containers():
-#     if compose_manager is None:
-#         return jsonify({
-#             'success': False,
-#             'all_running': False,
-#             'status': ["❌ Gestionnaire Docker Compose non initialisé"],
-#             'detailed_status': {}
-#         })
-#     try:
-#         services_status = compose_manager.get_services_status()
-#         all_running = all(status['running'] for status in services_status.values())
-#         status_messages = []
-#         for container_name, status in services_status.items():
-#             if status['running']:
-#                 status_messages.append(f"🟢 {container_name}: En cours d'exécution")
-#             else:
-#                 status_messages.append(f"🔴 {container_name}: Arrêté ({status['status']})")
-#                 start_messages = compose_manager.start_service(container_name)
-#                 status_messages.extend(start_messages)
-
-#         return jsonify({
-#             'success': True,
-#             'all_running': all_running,
-#             'status': status_messages,
-#             'detailed_status': services_status
-#         })
-#     except Exception as e:
-#         return jsonify({
-#             'success': False,
-#             'all_running': False,
-#             'status': [f"❌ Erreur: {str(e)}"],
-#             'detailed_status': {}
-#         })
 
 @app.route('/api/start_containers', methods=['POST'])
 def start_containers():
@@ -282,50 +249,6 @@ def start_containers():
         "status": ["🚀 Lancement des conteneurs demandé, vérifie l’état dans quelques secondes."]
     })
 
-
-# @app.route('/api/docker-compose/stop', methods=['POST'])
-# def stop_docker_services():
-#     """API pour arrêter des services Docker Compose"""
-#     if not compose_manager:
-#         return jsonify({
-#             'success': False,
-#             'message': 'Gestionnaire Docker Compose non disponible'
-#         })
-    
-#     data = request.get_json()
-#     service_name = data.get('service_name', None)
-    
-#     if service_name:
-#         # Arrêter un service spécifique
-#         messages = compose_manager.stop_service(service_name)
-#     else:
-#         # Arrêter tous les services
-#         messages = compose_manager.stop_all_services()
-    
-#     return jsonify({
-#         'success': True,
-#         'messages': messages,
-#         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#     })
-
-
-# @app.route('/api/docker-compose/logs/<service_name>', methods=['GET'])
-# def get_service_logs(service_name):
-#     """API pour récupérer les logs d'un service"""
-#     if not compose_manager:
-#         return jsonify({
-#             'success': False,
-#             'message': 'Gestionnaire Docker Compose non disponible'
-#         })
-    
-#     lines = request.args.get('lines', 50, type=int)
-#     messages = compose_manager.get_service_logs(service_name, lines)
-    
-#     return jsonify({
-#         'success': True,
-#         'messages': messages,
-#         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#     })
 
 
 @app.route('/api/analyze', methods=['POST'])
