@@ -411,7 +411,7 @@ function initializeAnalysisTab() {
             }
         });
         
-        async function checkDockerStatus(retries = 10, delayMs = 150000) {
+        async function checkDockerStatus(retries = 10, delayMs = 100000) {
             await new Promise(r => setTimeout(r, 200000));
             for (let i = 0; i < retries; i++) {
                 try {
