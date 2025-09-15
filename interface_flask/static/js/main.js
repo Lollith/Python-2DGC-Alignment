@@ -2,6 +2,8 @@ let selectedH5Files = [];
 let currentPath = '';
 let targetInput = null;
 
+const outputDiv = document.getElementById('output');
+
 function fillDefaultPaths() {
     const form = document.getElementById('dockerPathMeta');
     if (!form) {
@@ -21,19 +23,6 @@ function fillDefaultPaths() {
     displayMessage('Chemins par défaut remplis', 'info');
 }
 
-// function clearAllFields() {
-//     const converterForm = document.getElementById('converterForm');
-//     const analysisForm = document.getElementById('analysisForm');
-//     const output = document.getElementById('output');
-//     const availableFiles = document.getElementById('availableFiles');
-    
-//     if (converterForm) converterForm.reset();
-//     if (analysisForm) analysisForm.reset();
-//     if (output) output.innerHTML = '';
-//     if (availableFiles) availableFiles.style.display = 'none';
-    
-//     displayMessage('Tous les champs ont été effacés', 'info');
-// }
 
 function showProgress(show = true) {
     const progressBar = document.getElementById('progressBar');
@@ -79,7 +68,6 @@ function showTab(tabName) {
 }
 
 function displayMessage(message, type = 'success') {
-    const outputDiv = document.getElementById('output');
     if (!outputDiv) return;
     
     const timestamp = new Date().toLocaleTimeString();
@@ -135,7 +123,6 @@ async function loadDirectoryContent(path) {
         });
         
         const data = await response.json();
-        console.log('Réponse de /api/browse_files:', data); // AJOUTE CE LOG
 
         currentPath = path;
         
@@ -192,10 +179,12 @@ function displayFileList(folders, files, currentPath) {
     });
 }
 
+
+const loadingDiv = document.getElementById('loading');
+
 // Fonction d'initialisation principale
 function initializeApp() {
     const outputDiv = document.getElementById('output');
-    const loadingDiv = document.getElementById('loading');
     
     if (!outputDiv || !loadingDiv) {
         console.error('Éléments de base manquants dans le DOM');
@@ -221,6 +210,7 @@ function initializeApp() {
 
     const listFilesBtn = document.getElementById('listFilesBtn');
     const availableFilesDiv = document.getElementById('availableFiles');
+
     // Lister les fichiers CDF
     listFilesBtn.addEventListener('click', async function() {
         const inputPath = document.getElementById('inputPath').value;
@@ -268,6 +258,24 @@ function initializeApp() {
 
     
     // Event listener pour le formulaire de conversion
+    const convertBtn = document.getElementById('convertBtn');
+    convertBtn.addEventListener('click', async function() {
+        displayMessage('Début de la conversion...', 'info');
+        // Récupération des params
+        const inputPath = document.getElementById('inputPath').value;
+        const outputPath = document.getElementById('outputPath').value;
+        const files = document.getElementById('files').value;
+        // Appel à l'API
+        const response = await fetch('/api/convert', {
+            method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input_path: inputPath, output_path: outputPath, files: files })
+            });
+            const result = await response.json();
+            // Affichage des messages
+            result.messages?.forEach(msg => displayMessage(msg, msg.toLowerCase().includes('erreur') ? 'error' : 'success'));
+        });
+
     const converterForm = document.getElementById('converterForm');
     if (converterForm) {
         converterForm.addEventListener('submit', async function(e) {
@@ -403,8 +411,8 @@ function initializeAnalysisTab() {
             }
         });
         
-         async function checkDockerStatus(retries = 10, delayMs = 100000) {
-            await new Promise(r => setTimeout(r, 100000));
+        async function checkDockerStatus(retries = 10, delayMs = 150000) {
+            await new Promise(r => setTimeout(r, 200000));
             for (let i = 0; i < retries; i++) {
                 try {
                     const res = await fetch('/api/check_containers', {
@@ -413,6 +421,7 @@ function initializeAnalysisTab() {
                     });
                     const data = await res.json();
                     if (data.all_running) {
+                        displayMessage('Docker est opérationnel', 'success');
                         return data; // Docker est up, on retourne les données
                     }
                 } catch (err) {
@@ -443,8 +452,7 @@ function initializeAnalysisTab() {
                             'Content-Type': 'application/json',
                         }
                     });
-                // const data = await response.json();
-                const data = await checkDockerStatus();
+                    data = await checkDockerStatus();
                 }
                 
                 if (data && data.all_running) {
@@ -562,23 +570,23 @@ function initializeAnalysisTab() {
 
 
 
-// Fonction pour initialiser l'onglet Monitoring
-function initializeMonitoringTab() {
-    const refreshStatusBtn = document.getElementById('refreshStatusBtn');
-    const viewLogsBtn = document.getElementById('viewLogsBtn');
+// // Fonction pour initialiser l'onglet Monitoring
+// function initializeMonitoringTab() {
+//     const refreshStatusBtn = document.getElementById('refreshStatusBtn');
+//     const viewLogsBtn = document.getElementById('viewLogsBtn');
 
-    if (refreshStatusBtn) {
-        refreshStatusBtn.addEventListener('click', async function() {
-            // Votre code existant pour refresh
-        });
-    }
+//     if (refreshStatusBtn) {
+//         refreshStatusBtn.addEventListener('click', async function() {
+//             // code pour refresh
+//         });
+//     }
 
-    if (viewLogsBtn) {
-        viewLogsBtn.addEventListener('click', function() {
-            // Votre code existant pour les logs
-        });
-    }
-}
+//     if (viewLogsBtn) {
+//         viewLogsBtn.addEventListener('click', function() {
+//             //code pour les logs
+//         });
+//     }
+// }
 
 // Initialisation automatique du statut Docker
 function initializeDockerStatus() {
