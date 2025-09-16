@@ -67,6 +67,7 @@ function showTab(tabName) {
     showProgress(false);
 }
 
+
 function displayMessage(message, type = 'success') {
     if (!outputDiv) return;
     
@@ -250,6 +251,7 @@ function initializeApp() {
         }
     });
 
+
     
     // Event listener pour le formulaire de conversion
     const convertBtn = document.getElementById('convertBtn');
@@ -340,7 +342,6 @@ function initializeApp() {
     initializeAnalysisTab();
     // initializeMonitoringTab();
     initializeDockerStatus();
-
     displayMessage('🚀 Interface DataLab 2DGC initialisée', 'success');
 }
 
@@ -532,16 +533,6 @@ function initializeAnalysisTab() {
         });
     }
 
-    // Event listeners globaux
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        console.log('🗕 Fenêtre minimisée - Flask reste actif en arrière-plan');
-    } else {
-        displayMessage('👋 Interface de retour - Service Flask toujours actif', 'success');
-    }
-});
 
 // ---------------------Onglet Monitoring--------------------
 // function initializeMonitoringTab() {
@@ -561,37 +552,47 @@ document.addEventListener('visibilitychange', function() {
 //     }
 // }
 
-// Initialisation automatique du statut Docker
-// function initializeDockerStatus() {
-//     const dockerStatusDiv = document.getElementById('dockerStatus');
-//     if (!dockerStatusDiv) return;
+function initializeDockerStatus() {
+    const dockerStatusDiv = document.getElementById('dockerStatus');
+        if (!dockerStatusDiv)
+            return;
 
-//     fetch('/api/check_containers', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' }
-//     }).then(response => response.json())
-//     .then(data => {
-//         if (data.all_running) {
-//             dockerStatusDiv.className = 'docker-status docker-running';
-//             dockerStatusDiv.innerHTML = `
-//                 <div class="status-indicator status-running"></div>
-//                 🟢 Tous les conteneurs Docker sont en cours d'exécution
-//             `;
-//         } else {
-//             dockerStatusDiv.className = 'docker-status docker-stopped';
-//             dockerStatusDiv.innerHTML = `
-//                 <div class="status-indicator status-stopped"></div>
-//                 🔴 Certains conteneurs Docker ne sont pas en cours d'exécution
-//             `;
-//         }
-//     }).catch(() => {
-//         dockerStatusDiv.className = 'docker-status docker-stopped';
-//         dockerStatusDiv.innerHTML = `
-//             <div class="status-indicator status-stopped"></div>
-//             ❌ Impossible de vérifier l'état Docker
-//         `;
-//     });
-// }
+        fetch('/api/check_containers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.all_running) {
+                dockerStatusDiv.className = 'docker-status docker-running';
+                dockerStatusDiv.innerHTML = `
+                    <div class="status-indicator status-running"></div>
+                    🟢 Tous les conteneurs Docker sont en cours d'exécution
+                `;
+            } else {
+                dockerStatusDiv.className = 'docker-status docker-stopped';
+                dockerStatusDiv.innerHTML = `
+                    <div class="status-indicator status-stopped"></div>
+                    🔴 Certains conteneurs Docker ne sont pas en cours d'exécution
+                `;
+            }
+        }).catch(() => {
+            dockerStatusDiv.className = 'docker-status docker-stopped';
+            dockerStatusDiv.innerHTML = `
+                <div class="status-indicator status-stopped"></div>
+                ❌ Impossible de vérifier l'état Docker
+            `;
+        });
+    }
+        // Event listeners globaux
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        console.log('🗕 Fenêtre minimisée - Flask reste actif en arrière-plan');
+    } else {
+        displayMessage('👋 Interface de retour - Service Flask toujours actif', 'success');
+    }
+});
 
 //------------Raccourcis clavier-------------------
 document.addEventListener('keydown', function(e) {
