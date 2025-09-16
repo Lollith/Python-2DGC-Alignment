@@ -91,10 +91,7 @@ function displayMessage(message, type = 'success') {
     outputDiv.scrollTop = outputDiv.scrollHeight;
 }
 
-
-
-
-// Fonction pour l'explorateur de fichiers
+//------------explorateur de fichiers-------------------
 function openFileExplorer(inputId) {
     targetInput = document.getElementById(inputId);
     if (!targetInput) {
@@ -179,10 +176,9 @@ function displayFileList(folders, files, currentPath) {
     });
 }
 
-
 const loadingDiv = document.getElementById('loading');
 
-// Fonction d'initialisation principale
+// Initialisation principale
 function initializeApp() {
     const outputDiv = document.getElementById('output');
     
@@ -205,8 +201,6 @@ function initializeApp() {
             }
         };
     }
-
-
 
     const listFilesBtn = document.getElementById('listFilesBtn');
     const availableFilesDiv = document.getElementById('availableFiles');
@@ -343,15 +337,14 @@ function initializeApp() {
         });
     }
 
-    // Initialisation des autres fonctionnalités...
     initializeAnalysisTab();
-    initializeMonitoringTab();
+    // initializeMonitoringTab();
     initializeDockerStatus();
 
     displayMessage('🚀 Interface DataLab 2DGC initialisée', 'success');
 }
 
-// Fonction pour initialiser l'onglet Analysis
+//----------Initialisation l'onglet Analysis-----------------
 function initializeAnalysisTab() {
     const listH5Btn = document.getElementById('listH5Btn');
     const checkDockerBtn = document.getElementById('checkDockerBtn');
@@ -412,7 +405,7 @@ function initializeAnalysisTab() {
         });
         
         async function checkDockerStatus(retries = 10, delayMs = 100000) {
-            await new Promise(r => setTimeout(r, 200000));
+            await new Promise(r => setTimeout(r, 250000));
             for (let i = 0; i < retries; i++) {
                 try {
                     const res = await fetch('/api/check_containers', {
@@ -429,7 +422,7 @@ function initializeAnalysisTab() {
                 }
                 await new Promise(r => setTimeout(r, delayMs));
             }
-            return null; // Docker n'a pas démarré après toutes les tentatives
+            return null;
         }
 
 
@@ -439,12 +432,12 @@ function initializeAnalysisTab() {
             checkDockerBtn.textContent = '🔄 Lancement Docker...';
             
             try {
-                // 1️⃣ Vérifier si Docker est déjà lancé
+                // 1 Vérifier si Docker est déjà lancé
                 let response = await fetch('/api/check_containers', { method: 'POST' });
                 let data = await response.json();
 
                  if (!data.all_running) {
-                   // 2️⃣ Lancer Docker seulement si nécessaire
+                   // 2️.Lancer Docker seulement si nécessaire
 
                     const response = await fetch('/api/start_containers', {
                         method: 'POST',
@@ -464,11 +457,6 @@ function initializeAnalysisTab() {
                     dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
                     displayMessage('Certains conteneurs Docker ne sont pas actifs', 'error');
                 }
-                
-                // Afficher les détails
-                // data.status.forEach(status => {
-                //     displayMessage(status, 'info');
-                // });
                 if (data && data.status) {
                     data.status.forEach(status => displayMessage(status, 'info'));
                 }
@@ -482,25 +470,13 @@ function initializeAnalysisTab() {
                 checkDockerBtn.textContent = '🐳 Vérifier Docker';
             }
         });
+
 // Lancer l'analyse
         analysisForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const analysisPath = document.getElementById('analysisPath').value;
             const selectedFiles = Array.from(h5FilesSelect.selectedOptions).map(option => option.value);
-            
-            // Validation
-            // if (!analysisPath.trim()) {
-            //     displayMessage('Veuillez spécifier un chemin pour les fichiers .npy', 'error');
-            //     return;
-            // }
-            
-            // if (selectedFiles.length === 0) {
-            //     displayMessage('Veuillez sélectionner au moins un fichier .npy à analyser', 'error');
-            //     return;
-            // }
-            
-            // Afficher le chargement
             loadingDiv.style.display = 'block';
             outputDiv.innerHTML = '';
             
@@ -525,13 +501,6 @@ function initializeAnalysisTab() {
                     const isError = msg.toLowerCase().includes('erreur');
                     displayMessage(msg, isError ? 'error' : 'success');
                 });
-                
-                // if (result.success) {
-                //     displayMessage(`✨ Analyse terminée avec succès!`);
-                // } else {
-                //     displayMessage('❌ L\'analyse a échoué', 'error');
-                // }
-                
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
             } finally {
@@ -561,16 +530,20 @@ function initializeAnalysisTab() {
                 dockerStatusDiv.innerHTML = '❌ Impossible de vérifier l\'état Docker';
             });
         });
-    
-    
     }
 
+    // Event listeners globaux
+document.addEventListener('DOMContentLoaded', initializeApp);
 
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        console.log('🗕 Fenêtre minimisée - Flask reste actif en arrière-plan');
+    } else {
+        displayMessage('👋 Interface de retour - Service Flask toujours actif', 'success');
+    }
+});
 
-
-
-
-// // Fonction pour initialiser l'onglet Monitoring
+// ---------------------Onglet Monitoring--------------------
 // function initializeMonitoringTab() {
 //     const refreshStatusBtn = document.getElementById('refreshStatusBtn');
 //     const viewLogsBtn = document.getElementById('viewLogsBtn');
@@ -589,48 +562,38 @@ function initializeAnalysisTab() {
 // }
 
 // Initialisation automatique du statut Docker
-function initializeDockerStatus() {
-    const dockerStatusDiv = document.getElementById('dockerStatus');
-    if (!dockerStatusDiv) return;
+// function initializeDockerStatus() {
+//     const dockerStatusDiv = document.getElementById('dockerStatus');
+//     if (!dockerStatusDiv) return;
 
-    fetch('/api/check_containers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    }).then(response => response.json())
-    .then(data => {
-        if (data.all_running) {
-            dockerStatusDiv.className = 'docker-status docker-running';
-            dockerStatusDiv.innerHTML = `
-                <div class="status-indicator status-running"></div>
-                🟢 Tous les conteneurs Docker sont en cours d'exécution
-            `;
-        } else {
-            dockerStatusDiv.className = 'docker-status docker-stopped';
-            dockerStatusDiv.innerHTML = `
-                <div class="status-indicator status-stopped"></div>
-                🔴 Certains conteneurs Docker ne sont pas en cours d'exécution
-            `;
-        }
-    }).catch(() => {
-        dockerStatusDiv.className = 'docker-status docker-stopped';
-        dockerStatusDiv.innerHTML = `
-            <div class="status-indicator status-stopped"></div>
-            ❌ Impossible de vérifier l'état Docker
-        `;
-    });
-}
+//     fetch('/api/check_containers', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' }
+//     }).then(response => response.json())
+//     .then(data => {
+//         if (data.all_running) {
+//             dockerStatusDiv.className = 'docker-status docker-running';
+//             dockerStatusDiv.innerHTML = `
+//                 <div class="status-indicator status-running"></div>
+//                 🟢 Tous les conteneurs Docker sont en cours d'exécution
+//             `;
+//         } else {
+//             dockerStatusDiv.className = 'docker-status docker-stopped';
+//             dockerStatusDiv.innerHTML = `
+//                 <div class="status-indicator status-stopped"></div>
+//                 🔴 Certains conteneurs Docker ne sont pas en cours d'exécution
+//             `;
+//         }
+//     }).catch(() => {
+//         dockerStatusDiv.className = 'docker-status docker-stopped';
+//         dockerStatusDiv.innerHTML = `
+//             <div class="status-indicator status-stopped"></div>
+//             ❌ Impossible de vérifier l'état Docker
+//         `;
+//     });
+// }
 
-// Event listeners globaux
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        console.log('🗕 Fenêtre minimisée - Flask reste actif en arrière-plan');
-    } else {
-        displayMessage('👋 Interface de retour - Service Flask toujours actif', 'success');
-    }
-});
-
+//------------Raccourcis clavier-------------------
 document.addEventListener('keydown', function(e) {
     if (e.ctrlKey || e.metaKey) {
         switch(e.key) {
@@ -644,11 +607,11 @@ document.addEventListener('keydown', function(e) {
                 const tab2 = document.querySelector('.tab[onclick*="analysis"]');
                 if (tab2) tab2.click();
                 break;
-            case '3':
-                e.preventDefault();
-                const tab3 = document.querySelector('.tab[onclick*="monitoring"]');
-                if (tab3) tab3.click();
-                break;
+        //     case '3':
+        //         e.preventDefault();
+        //         const tab3 = document.querySelector('.tab[onclick*="monitoring"]');
+        //         if (tab3) tab3.click();
+        //         break;
         }
     }
 });

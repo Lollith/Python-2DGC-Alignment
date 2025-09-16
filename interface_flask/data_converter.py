@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import netCDF4 as nc
-from datetime import datetime
+# from datetime import datetime
 import gc
 import os
 import time
@@ -18,26 +18,23 @@ class DataConverter:
         self.default_path_output = os.getenv("HOST_VOLUME_PATH")
         self.progress_lock = threading.Lock()
         self.completed = 0
-    
+
     def get_files_from_folder(self, path):
         """Get all CDF files from a folder."""
         if os.path.isdir(path):
             return [f for f in os.listdir(path) if f.endswith(".cdf")]
         else:
             return []
-    
+
     def check_path(self, path, files_list, output_path):
         """Check if the files exist and are readable."""
         messages = []
-        
         if not os.path.isdir(path):
             messages.append(f"Erreur : Le chemin '{path}' n'est pas un répertoire valide.")
             return None, messages
-            
         if not os.access(path, os.R_OK):
             messages.append(f"Erreur : Permission refusée pour accéder au répertoire '{path}'")
             return None, messages
-            
         if not os.path.exists(output_path):
             try:
                 os.makedirs(output_path)
@@ -45,19 +42,15 @@ class DataConverter:
             except PermissionError:
                 messages.append(f"Erreur : Permission refusée pour créer le répertoire '{output_path}'")
                 return None, messages
-        
         if not path:
             messages.append("Erreur : Aucun chemin sélectionné.")
             return None, messages
-        
         if files_list is None:
             files_list = self.get_files_from_folder(path)
-        
         files_list = [file.strip() for file in files_list if file.strip()]
         messages.append(f"Fichiers à analyser : {files_list}")
-        
         return files_list, messages
-    
+
     def get_free_space(self, path):
         """Get free disk space in bytes."""
         import shutil
@@ -65,8 +58,7 @@ class DataConverter:
             return shutil.disk_usage(path).free
         except Exception as e:
             print(f"Erreur lors de la récupération de l'espace disque : {str(e)}")
-            return float('inf')  # Si on ne peut pas vérifier, on continue
-    
+            return float('inf')
 
     def write_var_to_hdf5(self, nc_dataset, h5_file, var_name):
         """Écrit une variable NetCDF dans un fichier HDF5 avec conversion de type et compression."""
@@ -90,19 +82,17 @@ class DataConverter:
         """Convert a single CDF file to HDF5 with float32 optimization."""
         full_path, file_name, output_path, file_idx, total_files = file_info
         messages = []
-        
+
         try:
             # Vérifier l'espace disque disponible
             file_size = os.path.getsize(full_path)
-            free_space = self.get_free_space(output_path)
-            
+            free_space = self.get_free_space(output_path) 
             if free_space < file_size * 2:  # Besoin d'au moins 2x la taille pour la conversion
                 messages.append(f"Erreur : Espace disque insuffisant pour {file_name} (besoin: {file_size*2//1024//1024}MB, disponible: {free_space//1024//1024}MB)")
                 return False, messages, None
-            
-            
+
             start_time = time.time()
-            
+
             # Lire le fichier CDF avec gestion mémoire optimisée
             with nc.Dataset(full_path, 'r', encoding="latin-1") as dataset:
                 hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
@@ -125,12 +115,10 @@ class DataConverter:
             gc.collect()
             conversion_time = time.time() - start_time
             output_size_mb = os.path.getsize(hdf5_path) // 1024 // 1024
-            
             messages.append(f"✅ [{file_idx+1}/{total_files}] {file_name} terminé en {conversion_time:.1f}s")
             messages.append(f"   📦 Taille: {file_size // 1024 // 1024}MB → {output_size_mb}MB") # (compression {compression_ratio:.1f}x)")
-            
             return True, messages, hdf5_path
-            
+
         except MemoryError:
             messages.append(f"❌ Erreur mémoire pour {file_name}")
             gc.collect()
@@ -153,16 +141,15 @@ class DataConverter:
         messages.append(f"🚀 Conversion avec HDF5 + Float32")
         messages.append(f"📁 Dossier source: {path}")
         messages.append(f"📁 Dossier sortie: {output_path}")
-        
         files_list_checked, check_messages = self.check_path(path, files_list, output_path)
         messages.extend(check_messages)
-        
+
         if files_list_checked is None:
             return False, messages, []
-        
+
         max_workers = self.get_max_workers(files_list_checked)
         messages.append(f"👥 Workers: {max_workers}")
-        
+
         valid_files = []
         for file in files_list_checked:
             full_path = os.path.join(path, file)
@@ -172,50 +159,39 @@ class DataConverter:
                 messages.append(f"Erreur : Le fichier '{file}' est introuvable ou n'est pas accessible dans '{path}'")
         if not valid_files:
             return False, messages + ["❌ Aucun fichier CDF valide trouvé"], []
-
         total_files = len(valid_files)
-
         # Préparation des tâches
         file_infos = [
             (os.path.join(path, file), file, output_path, idx, total_files)
             for idx, file in enumerate(valid_files)
         ]
-        
         start_total = time.time()
-        
         with ThreadPoolExecutor(max_workers=max_workers,
                                 thread_name_prefix="CDFConverter") as executor:
-            
             future_to_info = {
                 executor.submit(self.convert_single_file_optimized, info): info
                 for info in file_infos
             }
-            
             for future in as_completed(future_to_info):
                 file_info = future_to_info[future]
                 file_name = file_info[1]
-                
+
                 try:
                     success, file_messages, converted_file = future.result()
-                    
                     with self.progress_lock:
                         messages.extend(file_messages)
                         self.completed += 1
-                        
                         if success and converted_file:
                             converted_files.append(converted_file)
-                
                 except Exception as e:
                     with self.progress_lock:
                         messages.append(f"❌ Erreur thread pour {file_name}: {str(e)}")
                         self.completed += 1
-        
+
         total_time = time.time() - start_total
-        
+
         messages.append(f"\n📈 RÉSULTATS:")
         messages.append(f"Fichiers convertis: {len(converted_files)}/{total_files}")
         messages.append(f"⏱️  Temps total: {total_time:.1f}s")
         messages.append(f"⚡ Temps moyen/fichier: {total_time/total_files:.1f}s")
-        
         return len(converted_files) > 0, messages, converted_files
-        

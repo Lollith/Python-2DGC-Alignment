@@ -510,24 +510,3 @@
             .tabs { flex-direction: column; }
             .tab { justify-content: flex-start; }
         }
-/* 
-        .file-item {
-            padding: 8px 12px;
-            margin: 2px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .file-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .file-item.folder {
-            background-color: #e3f2fd;
-        }
-
-        .file-item.file {
-            background-color: #fff3e0;
-        } */
