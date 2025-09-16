@@ -329,7 +329,9 @@ function initializeApp() {
                 } else {
                     displayMessage('❌ La conversion a échoué', 'error');
                 }
+
                 
+
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
             } finally {
@@ -340,8 +342,7 @@ function initializeApp() {
     }
 
     initializeAnalysisTab();
-    // initializeMonitoringTab();
-    initializeDockerStatus();
+    // initializeDockerStatus();
     displayMessage('🚀 Interface DataLab 2DGC initialisée', 'success');
 }
 
@@ -352,7 +353,21 @@ function initializeAnalysisTab() {
     const analysisForm = document.getElementById('analysisForm');
     const h5FilesSelect = document.getElementById('h5Files');
     const dockerStatusDiv = document.getElementById('dockerStatus');
-    const analyzeBtn = document.getElementById('analyzeBtn');
+    const viewLogsBtn = document.getElementById('viewLogsBtn');
+    if (viewLogsBtn) {
+        viewLogsBtn.addEventListener('click', viewLogs);
+    }
+    // const analyzeBtn = document.getElementById('analyzeBtn');
+    const refreshStatusBtn = document.getElementById('refreshStatusBtn');
+    if (refreshStatusBtn) {
+        refreshStatusBtn.addEventListener('click', refreshAllStatus);
+    }
+
+    const restartDockerBtn = document.getElementById('restartDockerBtn');
+    if (restartDockerBtn) {
+        restartDockerBtn.addEventListener('click', restartDocker);
+    }
+
 
 
     listH5Btn.addEventListener('click', async function() {
@@ -405,8 +420,8 @@ function initializeAnalysisTab() {
             }
         });
         
-        async function checkDockerStatus(retries = 10, delayMs = 100000) {
-            await new Promise(r => setTimeout(r, 250000));
+        async function checkDockerStatus(retries = 15, delayMs = 50000) {
+            await new Promise(r => setTimeout(r, 500000));
             for (let i = 0; i < retries; i++) {
                 try {
                     const res = await fetch('/api/check_containers', {
@@ -450,11 +465,11 @@ function initializeAnalysisTab() {
                 }
                 
                 if (data && data.all_running) {
-                    dockerStatusDiv.className = 'docker-status docker-running';
+                    dockerStatusDiv.className = 'system-status docker-running';
                     dockerStatusDiv.innerHTML = '🟢 Tous les conteneurs Docker sont en cours d\'exécution';
                     displayMessage('Conteneurs Docker: Tous en cours d\'exécution');
                 } else {
-                    dockerStatusDiv.className = 'docker-status docker-stopped';
+                    dockerStatusDiv.className = 'system-status docker-stopped';
                     dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
                     displayMessage('Certains conteneurs Docker ne sont pas actifs', 'error');
                 }
@@ -464,13 +479,86 @@ function initializeAnalysisTab() {
                 
             } catch (error) {
                 displayMessage('Erreur lors de la vérification Docker: ' + error.message, 'error');
-                dockerStatusDiv.className = 'docker-status docker-stopped';
+                dockerStatusDiv.className = 'system-status docker-stopped';
                 dockerStatusDiv.innerHTML = '❌ Erreur lors de la vérification Docker';
             } finally {
                 checkDockerBtn.disabled = false;
                 checkDockerBtn.textContent = '🐳 Vérifier Docker';
             }
         });
+
+        // checkNistStatus(); // Vérification initiale au chargement
+        async function checkNistStatus() {
+            try {
+                const response = await fetch('/nist/health', { method: 'GET' });
+                const data = await response.json();
+                
+                const nistStatusDiv = document.getElementById('nistStatus');
+                
+                if (data.nist_status === 'available') {
+                    nistStatusDiv.innerHTML = `
+                        <div class="status-indicator status-running"></div>
+                        🟢 Moteur NIST: Actif et prêt
+                    `;
+                    nistStatusDiv.className = 'system-status nist-running';
+                } else {
+                    nistStatusDiv.innerHTML = `
+                        <div class="status-indicator status-stopped"></div>
+                        🔴 Moteur NIST: Indisponible
+                    `;
+                    nistStatusDiv.className = 'system-status nist-stopped';
+                }
+            } catch (error) {
+                const nistStatusDiv = document.getElementById('nistStatus');
+                nistStatusDiv.innerHTML = `
+                    <div class="status-indicator status-error"></div>
+                    ❌ Moteur NIST: Erreur de connexion
+                `;
+                nistStatusDiv.className = 'system-status nist-error';
+            }
+        }
+
+// Fonction pour actualiser tous les statuts
+        async function refreshAllStatus() {
+            const refreshBtn = document.getElementById('refreshStatusBtn');
+            if (!refreshBtn) return;
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '🔄 <span>Actualisation...</span>';
+            
+            try {
+                // Vérifier Docker
+                const dockerResponse = await fetch('/api/check_containers', { method: 'POST' });
+                const dockerData = await dockerResponse.json();
+                
+                const dockerStatusDiv = document.getElementById('dockerStatus');
+                if (dockerData.all_running) {
+                    dockerStatusDiv.innerHTML = `
+                        <div class="status-indicator status-running"></div>
+                        🟢 Tous les conteneurs Docker sont en cours d'exécution
+                    `;
+                    dockerStatusDiv.className = 'system-status docker-running';
+                } else {
+                    dockerStatusDiv.innerHTML = `
+                        <div class="status-indicator status-stopped"></div>
+                        🔴 Certains conteneurs Docker sont arrêtés
+                    `;
+                    dockerStatusDiv.className = 'system-status docker-stopped';
+                }
+                
+                // Vérifier NIST
+                await checkNistStatus();
+        
+                } catch (error) {
+                    console.error('Erreur lors de l\'actualisation:', error);
+                } finally {
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = '🔄 <span>Actualiser l\'état</span>';
+                }
+            }
+
+// Event listener pour le bouton actualiser
+document.getElementById('refreshStatusBtn')?.addEventListener('click', refreshAllStatus);
+
 
 // Lancer l'analyse
         analysisForm.addEventListener('submit', async function(e) {
@@ -508,6 +596,8 @@ function initializeAnalysisTab() {
                 loadingDiv.style.display = 'none';
             }
         });
+
+
         
         // Vérifier l'état Docker au chargement de la page
         window.addEventListener('load', function() {
@@ -520,21 +610,108 @@ function initializeAnalysisTab() {
             }).then(response => response.json())
             .then(data => {
                 if (data.all_running) {
-                    dockerStatusDiv.className = 'docker-status docker-running';
+                    dockerStatusDiv.className = 'system-status docker-running';
                     dockerStatusDiv.innerHTML = '🟢 Tous les conteneurs Docker sont en cours d\'exécution';
                 } else {
-                    dockerStatusDiv.className = 'docker-status docker-stopped';
+                    dockerStatusDiv.className = 'system-status docker-stopped';
                     dockerStatusDiv.innerHTML = '🔴 Certains conteneurs Docker ne sont pas en cours d\'exécution';
                 }
             }).catch(() => {
-                dockerStatusDiv.className = 'docker-status docker-stopped';
+                dockerStatusDiv.className = 'system-status docker-stopped';
                 dockerStatusDiv.innerHTML = '❌ Impossible de vérifier l\'état Docker';
             });
         });
     }
 
 
-// ---------------------Onglet Monitoring--------------------
+// // ---------------------Onglet Monitoring--------------------
+// Fonction pour redémarrer Docker
+async function restartDocker() {
+    const restartDockerBtn = document.getElementById('restartDockerBtn');
+    if (!restartDockerBtn) return;
+    
+    restartDockerBtn.disabled = true;
+    restartDockerBtn.innerHTML = '🔄 <span>Redémarrage...</span>';
+    
+    try {
+        const response = await fetch('/api/restart_containers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            displayMessage('🔄 Redémarrage des conteneurs Docker...', 'info');
+            
+            // Afficher TOUS les messages de restart
+            data.status?.forEach(msg => {
+                const isError = msg.includes('❌');
+                const isSuccess = msg.includes('✅');
+                const type = isError ? 'error' : (isSuccess ? 'success' : 'info');
+                displayMessage(msg, type);
+            });
+            
+        } else {
+            displayMessage('❌ Erreur lors du redémarrage de Docker', 'error');
+            data.status?.forEach(msg => displayMessage(msg, 'error'));
+        }
+        
+    } catch (error) {
+        displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
+    } finally {
+        restartDockerBtn.disabled = false;
+        restartDockerBtn.innerHTML = '🔄 <span>Redémarrer Docker</span>';
+    }
+}
+
+
+// Fonction pour récupérer les logs via l'API
+async function viewLogs() {
+    const viewLogsBtn = document.getElementById('viewLogsBtn');
+    if (!viewLogsBtn) return;
+    
+    viewLogsBtn.disabled = true;
+    viewLogsBtn.innerHTML = '📜 <span>Chargement logs...</span>';
+    
+    try {
+        const response = await fetch('/api/logs', { method: 'GET' });
+        const data = await response.json();
+        
+        if (outputDiv) {
+            outputDiv.innerHTML = '';
+            displayMessage('=== LOGS SYSTÈME ===', 'info');
+            
+            if (data.success) {
+                data.logs.forEach(log => {
+                    const isError = log.includes('❌') || log.includes('Erreur');
+                    const isSuccess = log.includes('✅') || log.includes('🟢');
+                    const type = isError ? 'error' : (isSuccess ? 'success' : 'info');
+                    displayMessage(log, type);
+                });
+            } else {
+                displayMessage('Erreur lors de la récupération des logs', 'error');
+            }
+            
+            displayMessage('=== FIN DES LOGS ===', 'info');
+        }
+        
+    } catch (error) {
+        if (outputDiv) {
+            outputDiv.innerHTML = '';
+            displayMessage('❌ Erreur de connexion pour récupérer les logs', 'error');
+        }
+    } finally {
+        viewLogsBtn.disabled = false;
+        viewLogsBtn.innerHTML = '📜 <span>Voir les logs</span>';
+    }
+}
+// function initializeMonitoringTab() {
+//     // Event listener pour le bouton "Actualiser l'état"
+//     // const refreshStatusBtn = document.getElementById('refreshStatusBtn');
+//     // if (refreshStatusBtn) {
+//     //     refreshStatusBtn.addEventListener('click', refreshAllStatus);
+//     // }
+// }
 // function initializeMonitoringTab() {
 //     const refreshStatusBtn = document.getElementById('refreshStatusBtn');
 //     const viewLogsBtn = document.getElementById('viewLogsBtn');
@@ -552,37 +729,37 @@ function initializeAnalysisTab() {
 //     }
 // }
 
-function initializeDockerStatus() {
-    const dockerStatusDiv = document.getElementById('dockerStatus');
-        if (!dockerStatusDiv)
-            return;
+// function initializeDockerStatus() {
+//     const dockerStatusDiv = document.getElementById('dockerStatus');
+//         if (!dockerStatusDiv)
+//             return;
 
-        fetch('/api/check_containers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        }).then(response => response.json())
-        .then(data => {
-            if (data.all_running) {
-                dockerStatusDiv.className = 'docker-status docker-running';
-                dockerStatusDiv.innerHTML = `
-                    <div class="status-indicator status-running"></div>
-                    🟢 Tous les conteneurs Docker sont en cours d'exécution
-                `;
-            } else {
-                dockerStatusDiv.className = 'docker-status docker-stopped';
-                dockerStatusDiv.innerHTML = `
-                    <div class="status-indicator status-stopped"></div>
-                    🔴 Certains conteneurs Docker ne sont pas en cours d'exécution
-                `;
-            }
-        }).catch(() => {
-            dockerStatusDiv.className = 'docker-status docker-stopped';
-            dockerStatusDiv.innerHTML = `
-                <div class="status-indicator status-stopped"></div>
-                ❌ Impossible de vérifier l'état Docker
-            `;
-        });
-    }
+//         fetch('/api/check_containers', {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' }
+//         }).then(response => response.json())
+//         .then(data => {
+//             if (data.all_running) {
+//                 dockerStatusDiv.className = 'system-status docker-running';
+//                 dockerStatusDiv.innerHTML = `
+//                     <div class="status-indicator status-running"></div>
+//                     🟢 Tous les conteneurs Docker sont en cours d'exécution
+//                 `;
+//             } else {
+//                 dockerStatusDiv.className = 'system-status docker-stopped';
+//                 dockerStatusDiv.innerHTML = `
+//                     <div class="status-indicator status-stopped"></div>
+//                     🔴 Service Docker: Non vérifié
+//                 `;
+//             }
+//         }).catch(() => {
+//             dockerStatusDiv.className = 'system-status docker-stopped';
+//             dockerStatusDiv.innerHTML = `
+//                 <div class="status-indicator status-stopped"></div>
+//                 ❌ Impossible de vérifier l'état Docker
+//             `;
+//         });
+    // }
         // Event listeners globaux
 document.addEventListener('DOMContentLoaded', initializeApp);
 
@@ -608,11 +785,11 @@ document.addEventListener('keydown', function(e) {
                 const tab2 = document.querySelector('.tab[onclick*="analysis"]');
                 if (tab2) tab2.click();
                 break;
-        //     case '3':
-        //         e.preventDefault();
-        //         const tab3 = document.querySelector('.tab[onclick*="monitoring"]');
-        //         if (tab3) tab3.click();
-        //         break;
+            case '3':
+                e.preventDefault();
+                const tab3 = document.querySelector('.tab[onclick*="monitoring"]');
+                if (tab3) tab3.click();
+                break;
         }
     }
 });

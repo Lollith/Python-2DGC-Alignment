@@ -47,9 +47,9 @@
                 <button class="tab" onclick="showTab('analysis')">
                     🔬 <span>Analyses</span>
                 </button>
-                <!-- <button class="tab" onclick="showTab('monitoring')">
+                <button class="tab" onclick="showTab('monitoring')">
                     📊 <span>Monitoring</span>
-                </button> -->
+                </button>
             </div>
             
             <!-- Tab Conversion -->
@@ -101,11 +101,6 @@
             
             <!-- Tab Analysis -->
             <div id="analysis" class="tab-content">
-                <div id="dockerStatus" class="docker-status docker-stopped">
-                    <div class="status-indicator status-stopped"></div>
-                    🔴 État des conteneurs Docker: Non vérifié
-                </div>
-
                 <div class="form-card">
                     <form id="analysisForm">
                         <div class="form-group">
@@ -128,14 +123,11 @@
                                 Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers
                             </small>
                         </div>
-                        
                         <div class="button-group">
                             <button type="button" id="listH5Btn" class="btn btn-secondary">
                                 📋 <span>Lister fichiers HDF5</span>
                             </button>
-                            <button type="button" id="checkDockerBtn" class="btn btn-warning">
-                                🐳 <span>Lancer Docker</span>
-                            </button>
+                           
                             <button type="submit" id="analyzeBtn" class="btn btn-primary">
                                 🔬 <span>Jupyter Lab</span>
                             </button>
@@ -148,16 +140,25 @@
             <div id="monitoring" class="tab-content">
                 <div class="form-card">
                     <h3>📊 État du système</h3>
-                    <div id="systemStatus">
-                        <div class="docker-status docker-stopped">
-                            <div class="status-indicator status-stopped"></div>
-                            Chargement des informations système...
+                    <div id="dockerStatus" class="system-status status-unverified">
+                        <div class="status-indicator status-stopped"></div>
+                            🔴 État des conteneurs Docker: Non vérifié
+                    </div>
+                    <div id="nistStatus" class="system-status status-unverified">
+                        <div class="status-indicator status-stopped"></div>
+                            🔴 Moteur NIST: Non vérifié
                         </div>
                     </div>
                     
-                    <div class="button-group">
+                    <div class="button-group">      
                         <button type="button" id="refreshStatusBtn" class="btn btn-secondary">
                             🔄 <span>Actualiser l'état</span>
+                        </button>
+                         <button type="button" id="checkDockerBtn" class="btn btn-warning">
+                                🐳 <span>Lancer Docker</span>
+                        </button>
+                        <button type="button" id="restartDockerBtn" class="btn btn-warning">
+                            🔄 <span>Redémarrer Docker</span>
                         </button>
                         <button type="button" id="viewLogsBtn" class="btn btn-warning">
                             📜 <span>Voir les logs</span>

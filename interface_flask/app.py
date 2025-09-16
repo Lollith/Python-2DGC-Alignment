@@ -25,7 +25,17 @@ import nist_engine
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-# nist = nist_engine.NistEngine()#DEBUG
+
+
+# # nist = nist_engine.NistEngine()#DEBUG
+# nist = None
+try:
+    nist = nist_engine.NistEngine()
+    print("✅ Moteur NIST initialisé avec succès")
+except Exception as e:
+    print(f"❌ Erreur initialisation NIST: {e}")
+    nist = None
+
 
 load_dotenv()
 auth = HTTPBasicAuth()
@@ -194,6 +204,7 @@ def check_containers():
 
         status_messages = []
         for container_name, status in services_status.items():
+            # print(f"Service: {container_name}, Status: {status}")
             if status['running']:
                 status_messages.append(f"🟢 {container_name}: En cours d'exécution")
             else:
@@ -371,12 +382,22 @@ def open_jupyter():
         })
 
 
-######## NIST Search Endpoints ########
+######## NIST Search Endpoints #######
 @app.route('/nist/health', methods=['GET'])
 def nist_health():
     """Vérification NIST disponible"""
+    global nist
+    
+    if nist is not None:
+        status = 'available'
+        message = 'Moteur NIST opérationnel'
+    else:
+        status = 'unavailable' 
+        message = 'Moteur NIST non initialisé'
+    
     return jsonify({
-        'nist_status': 'available',
+        'nist_status': status,
+        'message': message,
         'timestamp': time.time(),
         'active_threads': len(nist_executor._threads) if hasattr(nist_executor, '_threads') else 0
     })
@@ -401,6 +422,43 @@ def nist_search():
     except Exception as e:
         logger.error(f"Erreur NIST search: {e}")
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/restart_containers', methods=['POST'])
+def restart_containers():
+    """Redémarrer tous les conteneurs Docker"""
+    if compose_manager is None:
+        return jsonify({
+            'success': False,
+            'status': ["❌ Gestionnaire Docker Compose non initialisé"]
+        })
+    messages = []
+    try:
+        for container_name in compose_manager.get_compose_services():
+            restart_messages = compose_manager.restart_service(container_name)
+            messages.extend(restart_messages)
+        
+        # Log les messages pour debug
+        # for msg in messages:
+        #     print(msg)
+        return jsonify({
+            "success": True,
+            "status": messages  # <- Retourner les vrais messages
+        })
+            
+    except Exception as e:
+        error_msg = f"❌ Erreur lors du redémarrage: {str(e)}"
+        return jsonify({
+            "success": False,
+            "status": [error_msg]
+        })
+
+    # Redémarrage en arrière-plan
+    # threading.Thread(target=restart, daemon=True).start()
+
+    # return jsonify({
+    #     "success": True,
+    #     "status": ["🔄 Redémarrage des conteneurs demandé, vérifiez l'état dans quelques secondes."]
+    # })
 
 @app.route('/routes', methods=['GET'])
 def list_routes():
@@ -412,6 +470,43 @@ def list_routes():
             'route': str(rule)
         })
     return jsonify(routes)
+
+
+@app.route('/api/logs', methods=['GET'])
+def get_logs():
+    """API pour récupérer les logs système"""
+    try:
+        logs = []
+        
+        # Logs Docker
+        if compose_manager:
+            services_status = compose_manager.get_services_status()
+            for service_name, status in services_status.items():
+                logs.append(f"🐳 Docker {service_name}: {status['status']}")
+        
+        # Logs NIST
+        global nist
+        if nist is not None:
+            logs.append("🔬 NIST: Moteur initialisé et opérationnel")
+        else:
+            logs.append("🔬 NIST: Moteur non disponible")
+        
+        # Logs Flask
+        logs.append(f"🌐 Flask: Serveur actif sur {ip_server}:8080")
+        logs.append(f"📁 Volume path: {host_volume_path}")
+        
+        return jsonify({
+            'success': True,
+            'logs': logs,
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'logs': [f"❌ Erreur lors de la récupération des logs: {str(e)}"],
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
 
 
 if __name__ == '__main__':
