@@ -75,6 +75,7 @@ interface_flask/tests/output_tmp/*h5
 notebooks/run_interfaces.ipynb
 notebooks/run_peak_alignment.ipynb
 notebooks/run_peak_detection.ipynb
+notebooks/run_peak_precompressor.ipynb
 
 # Environment variables
 .env
