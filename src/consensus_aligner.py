@@ -8,6 +8,7 @@ from datetime import datetime
 # import nist_search
 import matching
 
+
 class ChromatographicAligner:
     """
     Class for aligning chromatographic data using consensus alignment.
@@ -76,6 +77,8 @@ class ChromatographicAligner:
         self.imported_files = None
         self.alignment_results = None
         self.filtered_results = None
+
+        self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
 
     def importFile(self, file):
@@ -510,7 +513,7 @@ class ChromatographicAligner:
         non_na_count = alignment_matrix.notna().sum(axis=1)
         threshold = missing_value_threshold * alignment_matrix.shape[1]
         mask_keep = non_na_count > threshold
-
+        
         print(f"Filtering: kept {mask_keep.sum()} rows out of {alignment_matrix.shape[0]} "
             f"(threshold: {missing_value_threshold*100:.0f}% non-missing values)")
 
@@ -979,6 +982,7 @@ class ChromatographicAligner:
                 print(f"⚠ {key} n'existe pas dans filtered_results.")
 
         print(f"Results saved to directory: {output_dir}")
+
 
 if __name__ == "__main__":
     # file = [

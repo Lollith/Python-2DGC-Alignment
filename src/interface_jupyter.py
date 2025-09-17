@@ -314,7 +314,8 @@ class Interface:
     def _setup_callbacks(self):
         """Set up callbacks for interactive widgets."""
         self.run_button.on_click(self._on_button_click)
-    
+        self.stop_button.on_click(self._on_stop_click)
+
     def _bold_widget(self, label, widget):
         """Create a widget with bold label."""
         bold_label = widgets.HTML(value=f'<b>{label}:</b>')
@@ -355,7 +356,7 @@ class Interface:
                     if fc.selected_filename.endswith(self.supported_extensions):
                         full_path = selected_path / fc.selected_filename
                         all_files.append(str(full_path))
-                        print(f"📄 File added: {full_path}")
+                        # print(f"📄 File added: {full_path}")
                     else:
                         print(f"⚠️  Unsupported file ignored: {fc.selected_filename}")
 
@@ -413,6 +414,12 @@ class Interface:
             button_style='primary',
             icon='play'
         )
+        stop_button = widgets.Button(
+            description="Stop Analysis",
+            button_style='danger',
+            icon='stop'
+        )
+
         clear_button = widgets.Button(
             description="Clear Results", 
             button_style='info',
@@ -422,7 +429,7 @@ class Interface:
         
         clear_button.on_click(lambda b: output.clear_output())
         
-        return run_button, clear_button, output
+        return run_button, stop_button, clear_button, output
 
 
     def validate_selections(self):
@@ -449,3 +456,18 @@ class Interface:
     def get_file_selection_widgets(self):
         """Return the file selection widgets for display."""
         return widgets.VBox([self._vbox, self._vbox2])
+
+    def _on_stop_click(self, b):
+        """Stop the running analysis process."""
+        with self.output:
+            if hasattr(self, "current_process") and self.current_process:
+                print(f"\n{'='*60}")
+                print("⛔ Stopping analysis...")
+                try:
+                    self.current_process.terminate()  # envoie SIGTERM
+                    retcode = self.current_process.wait()  # attends la fin
+                    print(f"Process stopped, return code: {retcode}")
+                    print(f"\n{'='*60}")
+                    self.current_process = None
+                except Exception as e:
+                    print(f"⚠️ Impossible de terminer le process : {e}")

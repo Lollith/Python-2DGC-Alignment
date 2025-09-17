@@ -7,6 +7,7 @@ venv/
 ENV/
 env/
 .venv/
+.env
 
 # VSCode files
 .vscode/
@@ -72,6 +73,4 @@ interface_flask/converted_data/
 interface_flask/tests/tests_data/*cdf
 interface_flask/tests/reference_results/*h5
 interface_flask/tests/output_tmp/*h5
-
-# Environment variables
-.env
+*.csv

@@ -23,3 +23,5 @@ services:
       - PYTHONPATH=/app/src
     env_file:
       - .env
+  
+ 

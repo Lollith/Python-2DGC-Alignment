@@ -68,6 +68,8 @@ ImportFile <- function(File) {
   spectraSplit <- lapply(spectraSplit, function(d) t(matrix(unlist(d), 
                                                             nrow = 2)))
 
+  # spectraSplitFilt<-lapply(spectraSplit, function(d) d[which(!d[,1]%in%commonIons),])
+
   spectraSplit <- lapply(spectraSplit, function(d) apply(d, 
                                                          2, as.numeric))
 
