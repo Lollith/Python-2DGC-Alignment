@@ -40,7 +40,7 @@ def main():
         aligner.consensus_align_bis(args.input, args.seed_file,
                                     #args.nist,
                                     common_ions=None,
-                                    standard_library=None
+                                    # standard_library=None
                                     )
         aligner.filter_alignment_matrix()
         aligner.save_results(args.output_path)

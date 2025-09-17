@@ -306,7 +306,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
         - Height : Peak height (related to concentration)
     """
 
-    with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
+    with open(PATH + filename, 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
 
         # header
@@ -388,7 +388,7 @@ def cohort_identification_alignment_input_format_txt(
     PATH : optional
         Path to the resulting formatted peak table.
     """
-    with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
+    with open(PATH + filename, 'w', encoding='UTF8') as f:
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
         
         for identification_data_dict in matches_identification:
@@ -483,12 +483,19 @@ def sample_identification(path, file, output_path,
                                                 nist)
         print("Identification done", time.time()-start_time, 's')
         # print("output_path from identificqtion", output_path)
+        if nist:
+            name_txt = file[:-4] + '_D_N'+'.txt'
+            name_csv = file[:-4] + '_D_N'+'.csv'
+        else:
+            name_txt = file[:-4] + '_D'+'.txt'
+            name_csv = file[:-4] + '_D'+'.csv'
         cohort_identification_alignment_input_format_txt(
-            file[:-4], matches_identification, output_path)
-        cohort_identification_to_csv(file[:-4], matches_identification,
+            name_txt, matches_identification, output_path)
+        cohort_identification_to_csv(name_csv, matches_identification,
                                      output_path)
-        return (f'{output_path + file[:-4]}.txt & '
-                + f'{output_path + file[:-4]}.csv created')
+        
+        return (f'{output_path + name_txt} & '
+                + f'{output_path + name_csv} created')
 
     except Exception as e:
         traceback.print_exc()

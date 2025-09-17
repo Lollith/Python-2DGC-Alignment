@@ -34,6 +34,7 @@ def main():
             quant_method=args.quant_method,
         )
         precompressedFiles.precompress_files(args.input, args.output_dir)
+        print(f"✅ Analysis completed successfully!")
     except Exception as e:
         print(f"Error occurred: {e}")
         sys.exit(1)

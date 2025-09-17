@@ -922,7 +922,7 @@ class ChromatographicAligner:
         filtered_results : dict, optional
             Dictionary containing filtered versions of all matrices
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d")
 
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
@@ -931,7 +931,7 @@ class ChromatographicAligner:
         os.makedirs(output_dir, exist_ok=True)
         name_filter = ""
         if with_filter:
-            name_filter = f"_filter_{self.missing_value_limit}"
+            name_filter = f"_F_{self.missing_value_limit}"
         
         # self.filtered_results['Alignment_Matrix'].to_csv(
         #     os.path.join(output_dir, f"alignment_Matrix{name_filter}_{timestamp}.csv"),
