@@ -410,7 +410,7 @@ class Interface:
     def _create_action_widgets(self):
         """Create action buttons and output area."""
         run_button = widgets.Button(
-            description="Run Analysis", 
+            description="Run", 
             button_style='primary',
             icon='play'
         )
