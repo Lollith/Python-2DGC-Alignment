@@ -33,7 +33,7 @@ do {
     n'est pas compatible..."}
 } until ($dockerReady)
 
-Write-Host "=== Docker est prêt ==="
+Write-Host "=== Docker est pret ==="
 
 # Nettoyage des serveurs Flask existants (port 8080)
 Write-Host "=== Verification des serveurs Flask sur le port 8080 ==="

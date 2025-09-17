@@ -15,10 +15,12 @@ function fillDefaultPaths() {
     const inputPath = document.getElementById('inputPath');
     const outputPath = document.getElementById('outputPath');
     const analysisPath = document.getElementById('analysisPath');
+     const cleanupPath = document.getElementById('cleanupPath');
     
     if (inputPath) inputPath.value = dockerPath;
     if (outputPath) outputPath.value = dockerPath ;
     if (analysisPath) analysisPath.value = dockerPath ;
+    if (cleanupPath) cleanupPath.value = dockerPath ;
     
     displayMessage('Chemins par défaut remplis', 'info');
 }
@@ -62,7 +64,7 @@ function showTab(tabName) {
     
     if (tabContent) tabContent.classList.add('active');
     if (event && event.target) event.target.classList.add('active');
-    if (output) output.innerHTML = '';
+    // if (output) output.innerHTML = '';
     
     showProgress(false);
 }
@@ -139,6 +141,25 @@ async function loadDirectoryContent(path) {
     }
 }
 
+function getParentPath(currentPath) {
+    // Remplace backslash par slash pour compatibilité
+    const safePath = currentPath.replace(/\\/g, '/').replace(/\/$/, '');
+    if (safePath === '' || safePath === '/' || /^[A-Za-z]:[\/\\]?$/.test(safePath)) {
+        // On est à la racine ("" ou "/" ou "C:/")
+        return safePath;
+    }
+    // Gestion des chemins Windows type "C:/Users/..." ou Linux "/home/..."
+    const parts = safePath.split('/');
+    parts.pop();
+    let parent = parts.join('/');
+    if (parent === '') {
+        // Retourne racine Windows "C:/" ou Linux "/"
+        if (/^[A-Za-z]:/.test(safePath)) return safePath.substring(0, 2) + '/';
+        return '/';
+    }
+    return parent;
+}
+
 function displayFileList(folders, files, currentPath) {
     const fileList = document.getElementById('fileList');
     if (!fileList) return;
@@ -151,7 +172,7 @@ function displayFileList(folders, files, currentPath) {
         parentDiv.className = 'file-item folder';
         parentDiv.innerHTML = '📁 .. (Dossier parent)';
         parentDiv.onclick = () => {
-            const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+            const parentPath = getParentPath(currentPath);
             loadDirectoryContent(parentPath);
         };
         fileList.appendChild(parentDiv);
@@ -251,7 +272,6 @@ function initializeApp() {
         }
     });
 
-
     
     // Event listener pour le formulaire de conversion
     const convertBtn = document.getElementById('convertBtn');
@@ -295,7 +315,7 @@ function initializeApp() {
             }
             
             loadingDiv.style.display = 'block';
-            outputDiv.innerHTML = '';
+            // outputDiv.innerHTML = '';
             showProgress(true);
             
             try {
@@ -323,15 +343,11 @@ function initializeApp() {
                     filesHtml += '</div>';
                     outputDiv.innerHTML += filesHtml;
                 }
-
                 if (result.success) {
                     displayMessage(`✨ Conversion terminée avec succès! (${result.converted_files?.length || 0} fichier(s) converti(s))`);
                 } else {
                     displayMessage('❌ La conversion a échoué', 'error');
                 }
-
-                
-
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
             } finally {
@@ -340,9 +356,96 @@ function initializeApp() {
             }
         });
     }
+        // Event listeners pour le nettoyage des fichiers H5
+    const listH5FilesBtn = document.getElementById('listH5FilesBtn');
+    const deleteH5FilesBtn = document.getElementById('deleteH5FilesBtn');
+    const h5FilesList = document.getElementById('h5FilesList');
+
+    if (listH5FilesBtn) {
+        listH5FilesBtn.addEventListener('click', async function() {
+            const cleanupPath = document.getElementById('cleanupPath').value;
+            if (!cleanupPath.trim()) {
+                displayMessage('Veuillez spécifier un chemin pour le nettoyage', 'error');
+                return;
+            }
+
+            listH5FilesBtn.disabled = true;
+            listH5FilesBtn.textContent = '🔄 Recherche...';
+            
+            try {
+                const response = await fetch('/api/list_files', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: cleanupPath, extension: '.h5' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.files.length > 0) {
+                        h5FilesList.innerHTML = `<strong>Fichiers .h5 trouvés (${data.files.length}):</strong><br>${data.files.join('<br>')}`;
+                        h5FilesList.style.display = 'block';
+                        displayMessage(`${data.files.length} fichier(s) .h5 trouvé(s)`, 'info');
+                    } else {
+                        h5FilesList.innerHTML = '<strong>Aucun fichier .h5 trouvé dans ce dossier</strong>';
+                        h5FilesList.style.display = 'block';
+                        displayMessage('Aucun fichier .h5 trouvé', 'info');
+                    }
+                } else {
+                    displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
+                    h5FilesList.style.display = 'none';
+                }
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                listH5FilesBtn.disabled = false;
+                listH5FilesBtn.textContent = '📋 Lister les fichiers .h5';
+            }
+        });
+    }
+
+    if (deleteH5FilesBtn) {
+        deleteH5FilesBtn.addEventListener('click', async function() {
+            const cleanupPath = document.getElementById('cleanupPath').value;
+            if (!cleanupPath.trim()) {
+                displayMessage('Veuillez spécifier un chemin pour le nettoyage', 'error');
+                return;
+            }
+
+            // Confirmation de suppression
+            if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUS les fichiers .h5 dans ce dossier ?\nCette action est irréversible !')) {
+                return;
+            }
+
+            deleteH5FilesBtn.disabled = true;
+            deleteH5FilesBtn.textContent = '🗑️ Suppression...';
+            
+            try {
+                const response = await fetch('/api/delete_h5_files', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: cleanupPath })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayMessage(`✅ ${data.deleted_count} fichier(s) .h5 supprimé(s)`, 'success');
+                    h5FilesList.style.display = 'none';
+                } else {
+                    displayMessage(data.message || 'Erreur lors de la suppression', 'error');
+                }
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                deleteH5FilesBtn.disabled = false;
+                deleteH5FilesBtn.textContent = '🗑️ Supprimer tous les .h5';
+            }
+        });
+    }
+
 
     initializeAnalysisTab();
-    // initializeDockerStatus();
     displayMessage('🚀 Interface DataLab 2DGC initialisée', 'success');
 }
 
@@ -357,7 +460,6 @@ function initializeAnalysisTab() {
     if (viewLogsBtn) {
         viewLogsBtn.addEventListener('click', viewLogs);
     }
-    // const analyzeBtn = document.getElementById('analyzeBtn');
     const refreshStatusBtn = document.getElementById('refreshStatusBtn');
     if (refreshStatusBtn) {
         refreshStatusBtn.addEventListener('click', refreshAllStatus);
@@ -367,8 +469,6 @@ function initializeAnalysisTab() {
     if (restartDockerBtn) {
         restartDockerBtn.addEventListener('click', restartDocker);
     }
-
-
 
     listH5Btn.addEventListener('click', async function() {
             const analysisPath = document.getElementById('analysisPath').value;
@@ -440,7 +540,6 @@ function initializeAnalysisTab() {
             }
             return null;
         }
-
 
         // Vérifier l'état des conteneurs Docker
         checkDockerBtn.addEventListener('click', async function() {
@@ -518,7 +617,7 @@ function initializeAnalysisTab() {
             }
         }
 
-// Fonction pour actualiser tous les statuts
+// actualiser tous les statuts
         async function refreshAllStatus() {
             const refreshBtn = document.getElementById('refreshStatusBtn');
             if (!refreshBtn) return;
@@ -567,7 +666,7 @@ document.getElementById('refreshStatusBtn')?.addEventListener('click', refreshAl
             const analysisPath = document.getElementById('analysisPath').value;
             const selectedFiles = Array.from(h5FilesSelect.selectedOptions).map(option => option.value);
             loadingDiv.style.display = 'block';
-            outputDiv.innerHTML = '';
+            // outputDiv.innerHTML = '';
             
             const data = {
                 analysis_path: analysisPath,
@@ -598,7 +697,6 @@ document.getElementById('refreshStatusBtn')?.addEventListener('click', refreshAl
         });
 
 
-        
         // Vérifier l'état Docker au chargement de la page
         window.addEventListener('load', function() {
             // Vérification automatique discrète
@@ -625,7 +723,7 @@ document.getElementById('refreshStatusBtn')?.addEventListener('click', refreshAl
 
 
 // // ---------------------Onglet Monitoring--------------------
-// Fonction pour redémarrer Docker
+// redémarrer Docker
 async function restartDocker() {
     const restartDockerBtn = document.getElementById('restartDockerBtn');
     if (!restartDockerBtn) return;
@@ -665,7 +763,7 @@ async function restartDocker() {
 }
 
 
-// Fonction pour récupérer les logs via l'API
+// récupérer les logs via l'API
 async function viewLogs() {
     const viewLogsBtn = document.getElementById('viewLogsBtn');
     if (!viewLogsBtn) return;
@@ -678,7 +776,7 @@ async function viewLogs() {
         const data = await response.json();
         
         if (outputDiv) {
-            outputDiv.innerHTML = '';
+            // outputDiv.innerHTML = '';
             displayMessage('=== LOGS SYSTÈME ===', 'info');
             
             if (data.success) {
@@ -697,7 +795,7 @@ async function viewLogs() {
         
     } catch (error) {
         if (outputDiv) {
-            outputDiv.innerHTML = '';
+            // outputDiv.innerHTML = '';
             displayMessage('❌ Erreur de connexion pour récupérer les logs', 'error');
         }
     } finally {
@@ -705,62 +803,7 @@ async function viewLogs() {
         viewLogsBtn.innerHTML = '📜 <span>Voir les logs</span>';
     }
 }
-// function initializeMonitoringTab() {
-//     // Event listener pour le bouton "Actualiser l'état"
-//     // const refreshStatusBtn = document.getElementById('refreshStatusBtn');
-//     // if (refreshStatusBtn) {
-//     //     refreshStatusBtn.addEventListener('click', refreshAllStatus);
-//     // }
-// }
-// function initializeMonitoringTab() {
-//     const refreshStatusBtn = document.getElementById('refreshStatusBtn');
-//     const viewLogsBtn = document.getElementById('viewLogsBtn');
 
-//     if (refreshStatusBtn) {
-//         refreshStatusBtn.addEventListener('click', async function() {
-//             // code pour refresh
-//         });
-//     }
-
-//     if (viewLogsBtn) {
-//         viewLogsBtn.addEventListener('click', function() {
-//             //code pour les logs
-//         });
-//     }
-// }
-
-// function initializeDockerStatus() {
-//     const dockerStatusDiv = document.getElementById('dockerStatus');
-//         if (!dockerStatusDiv)
-//             return;
-
-//         fetch('/api/check_containers', {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' }
-//         }).then(response => response.json())
-//         .then(data => {
-//             if (data.all_running) {
-//                 dockerStatusDiv.className = 'system-status docker-running';
-//                 dockerStatusDiv.innerHTML = `
-//                     <div class="status-indicator status-running"></div>
-//                     🟢 Tous les conteneurs Docker sont en cours d'exécution
-//                 `;
-//             } else {
-//                 dockerStatusDiv.className = 'system-status docker-stopped';
-//                 dockerStatusDiv.innerHTML = `
-//                     <div class="status-indicator status-stopped"></div>
-//                     🔴 Service Docker: Non vérifié
-//                 `;
-//             }
-//         }).catch(() => {
-//             dockerStatusDiv.className = 'system-status docker-stopped';
-//             dockerStatusDiv.innerHTML = `
-//                 <div class="status-indicator status-stopped"></div>
-//                 ❌ Impossible de vérifier l'état Docker
-//             `;
-//         });
-    // }
-        // Event listeners globaux
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 document.addEventListener('visibilitychange', function() {

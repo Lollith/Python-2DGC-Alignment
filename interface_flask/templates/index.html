@@ -54,46 +54,89 @@
             
             <!-- Tab Conversion -->
             <div id="conversion" class="tab-content active">
-                <div class="form-card">
-                    <form id="converterForm">
-                        <div class="form-group">
-                            <label for="inputPath">📁 Chemin d'entrée</label>
-                            <div class="input-group">
-                                <span class="input-icon">📂</span>
-                                <input type="text" id="inputPath" name="inputPath" class="form-control" placeholder="Exemple: /mon/chemin">
-                                <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('inputPath')">
-                                    📁 Parcourir
+                <div class="form-card" >
+                    <div class="form-card" style="margin-top: 20px; border-color: #757575;">
+                        <!-- Icône & titre -->
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 2.2rem; color: #10b981;">🔄</span>
+                            <h4 style="color: #f59e0b; margin-bottom: 0;">
+                                Convertir les fichiers .CDF en .h5
+                            </h4>
+                        </div>
+                        <div style="margin: 6px 0 24px 38px; font-size: 1rem; color: #757575;">
+                            La conversion permet d’obtenir des fichiers <b>.h5</b> plus compacts et adaptés à l’analyse haut débit.<br>
+                        </div>
+                        <form id="converterForm">
+                            <div class="form-group">
+                                <label for="inputPath">📁 Chemin d'entrée</label>
+                                <div class="input-group">
+                                    <span class="input-icon">📂</span>
+                                    <input type="text" id="inputPath" name="inputPath" class="form-control" placeholder="Exemple: /mon/chemin">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('inputPath')">
+                                        📁 Parcourir
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="files">📄 Fichiers spécifiques (optionnel)</label>
+                                    <div class="input-group">
+                                        <span class="input-icon">📋</span>
+                                        <input type="text" id="files" name="files" 
+                                            placeholder="file1.cdf, file2.cdf (vide = tous les fichiers)">
+                                    </div>
+                                <div id="availableFiles" class="files-list" style="display: none;"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="outputPath">💾 Chemin de sortie</label>
+                                <div class="input-group">
+                                    <span class="input-icon">💾</span>
+                                    <input type="text" id="outputPath" name="outputPath" class="form-control" placeholder="Sélectionnez un dossier…">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('outputPath')">
+                                        📁 Parcourir
+                                    </button>
+                                </div>
+                            </div> 
+                            
+                            <div class="button-group">
+                                <button type="button" id="listFilesBtn" class="btn btn-secondary">
+                                    📋 <span>Lister les fichiers CDF</span>
+                                </button>
+                                <button type="submit" id="convertBtn" class="btn btn-primary">
+                                    ▶️ <span>Convertir en HDF5</span>
                                 </button>
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="files">📄 Fichiers spécifiques (optionnel)</label>
-                            <div class="input-group">
-                                <span class="input-icon">📋</span>
-                                <input type="text" id="files" name="files" 
-                                       placeholder="file1.cdf, file2.cdf (vide = tous les fichiers)">
+                            <!-- Nettoyage des fichiers HDF5 -->
+                            <div class="form-card" style="margin-top: 20px; border-color: #757575;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <span style="font-size: 2.2rem; color: #10b981;">🧹</span>
+                                    <h4 style="color: #f59e0b; margin-bottom: 0;">
+                                        Nettoyage des fichiers HDF5
+                                    </h4>
                             </div>
-                        <div id="availableFiles" class="files-list" style="display: none;"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="outputPath">💾 Chemin de sortie</label>
-                            <div class="input-group">
-                                <span class="input-icon">💾</span>
-                                <input type="text" id="outputPath" name="outputPath" class="form-control" placeholder="Sélectionnez un dossier…">
-                                <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('outputPath')">
-                                    📁 Parcourir
-                                </button>
-                            </div>
-                        </div> 
-                        
-                        <div class="button-group">
-                            <button type="button" id="listFilesBtn" class="btn btn-secondary">
-                                📋 <span>Lister les fichiers CDF</span>
-                            </button>
-                            <button type="submit" id="convertBtn" class="btn btn-primary">
-                                ▶️ <span>Convertir en HDF5</span>
-                            </button>
+                                <div class="form-group">
+                                    <label for="cleanupPath">📁 Dossier à nettoyer</label>
+                                    <div class="input-group">
+                                        <span class="input-icon">🗂️</span>
+                                        <input type="text" id="cleanupPath" name="cleanupPath" class="form-control" 
+                                            placeholder="Sélectionnez le dossier contenant les .h5 à supprimer">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('cleanupPath')">
+                                            📁 Parcourir
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="button-group">
+                                    <button type="button" id="listH5FilesBtn" class="btn btn-warning">
+                                        📋 <span>Lister les fichiers .h5</span>
+                                    </button>
+                                    <button type="button" id="deleteH5FilesBtn" class="btn btn-danger">
+                                        🗑️ <span>Supprimer tous les .h5</span>
+                                    </button>
+                                </div>
+                            
+                            <div id="h5FilesList" class="files-list" style="display: none; margin-top: 15px;"></div>
                         </div>
                     </form>
                 </div>
@@ -125,7 +168,7 @@
                         </div>
                         <div class="button-group">
                             <button type="button" id="listH5Btn" class="btn btn-secondary">
-                                📋 <span>Lister fichiers HDF5</span>
+                                📋 <span>Lister fichiers H5</span>
                             </button>
                            
                             <button type="submit" id="analyzeBtn" class="btn btn-primary">

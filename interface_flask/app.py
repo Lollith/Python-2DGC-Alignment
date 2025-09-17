@@ -26,9 +26,6 @@ import nist_engine
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-
-# # nist = nist_engine.NistEngine()#DEBUG
-# nist = None
 try:
     nist = nist_engine.NistEngine()
     print("✅ Moteur NIST initialisé avec succès")
@@ -189,6 +186,39 @@ def convert_files():
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
+
+@app.route('/api/delete_h5_files', methods=['POST'])
+def delete_h5_files():
+    """API pour supprimer tous les fichiers .h5 dans un dossier."""
+    data = request.get_json()
+    path = data.get('path', '')
+    if not path or not os.path.isdir(path):
+        return jsonify({'success': False, 'message': 'Chemin invalide'})
+    try:
+        deleted_count = 0
+        deleted_files = []
+        for filename in os.listdir(path):
+            if filename.lower().endswith('.h5'):
+                file_path = os.path.join(path, filename)
+                try:
+                    os.remove(file_path)
+                    deleted_files.append(filename)
+                    deleted_count += 1
+                    logger.info(f"Fichier supprimé: {filename}")
+                except Exception as e:
+                    logger.error(f"Erreur lors de la suppression de {filename}: {e}")
+        message = f"Suppression terminée: {deleted_count} fichier(s) .h5 supprimé(s)"
+        if deleted_count > 0:
+            message += f"\nFichiers supprimés: {', '.join(deleted_files)}"
+        return jsonify({
+            'success': True, 
+            'deleted_count': deleted_count,
+            'deleted_files': deleted_files,
+            'message': message
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'})
+
 @app.route('/api/check_containers', methods=['POST'])
 def check_containers():
     if compose_manager is None:
@@ -205,6 +235,7 @@ def check_containers():
         status_messages = []
         for container_name, status in services_status.items():
             # print(f"Service: {container_name}, Status: {status}")
+            # logger.info(f"Service: {container_name}, Status: {status}")
             if status['running']:
                 status_messages.append(f"🟢 {container_name}: En cours d'exécution")
             else:
@@ -422,7 +453,7 @@ def nist_search():
     except Exception as e:
         logger.error(f"Erreur NIST search: {e}")
         return jsonify({"error": str(e)}), 500
-    
+
 @app.route('/api/restart_containers', methods=['POST'])
 def restart_containers():
     """Redémarrer tous les conteneurs Docker"""
@@ -436,15 +467,10 @@ def restart_containers():
         for container_name in compose_manager.get_compose_services():
             restart_messages = compose_manager.restart_service(container_name)
             messages.extend(restart_messages)
-        
-        # Log les messages pour debug
-        # for msg in messages:
-        #     print(msg)
         return jsonify({
             "success": True,
-            "status": messages  # <- Retourner les vrais messages
+            "status": messages
         })
-            
     except Exception as e:
         error_msg = f"❌ Erreur lors du redémarrage: {str(e)}"
         return jsonify({
@@ -452,13 +478,6 @@ def restart_containers():
             "status": [error_msg]
         })
 
-    # Redémarrage en arrière-plan
-    # threading.Thread(target=restart, daemon=True).start()
-
-    # return jsonify({
-    #     "success": True,
-    #     "status": ["🔄 Redémarrage des conteneurs demandé, vérifiez l'état dans quelques secondes."]
-    # })
 
 @app.route('/routes', methods=['GET'])
 def list_routes():
@@ -530,3 +549,4 @@ if __name__ == '__main__':
         print(f"📍 Serveur accessible sur: http://{ip_server}:8080")
         logging.getLogger('waitress').setLevel(logging.WARNING)
         serve(app, host='0.0.0.0', port=8080)
+    
