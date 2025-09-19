@@ -7,6 +7,7 @@ import platform
 from datetime import datetime
 # import nist_search
 import matching
+import nist_search
 
 
 class ChromatographicAligner:
@@ -17,10 +18,10 @@ class ChromatographicAligner:
     --------
     importFile(file):
         Import and process chromatographic data file.
-    
+
     generate_sim_frames(sample, seed_sample, RT2Penalty=5, RT1Penalty=1):
         Generate similarity frames between sample and seed.
-    
+
     consensus_align_bis(input_file_list, ...):
         Main function to perform consensus alignment.
     """
@@ -527,7 +528,7 @@ class ChromatographicAligner:
 
 
     def nist_identification(self,
-                            #nist=False, 
+                            nist=False, 
                             match_factor_min=650):
         """
         Inject NIST identifications into Alignment_Matrix, Peak_Info, RT_group, and spectra_group.
@@ -536,6 +537,12 @@ class ChromatographicAligner:
         - Cas 2: fichiers CSV sauvegardés sans identifications.
         - Cas 3: fichiers CSV sauvegardés avec identifications (re-lancement si nist=True).
         """
+        self.nist_api = nist_search.NISTSearchWrapper() if nist else None
+        if nist:
+            print("NIST API is enabled for matching.")
+        else:
+            print("NIST API is disabled for matching.")
+            
         if not self.nist_api.check_nist_health():
             print("⚠️ Service NIST indisponible, identifications sautées.")
             return self.filtered_results
@@ -545,20 +552,18 @@ class ChromatographicAligner:
             print("👉 Cas 1 : résultats en mémoire")
             spectra_group = self.filtered_results["spectra_group"]
             identifications = self._run_nist_on_spectra(spectra_group, 
-                                                        #nist, 
                                                         match_factor_min)
             # Mettre à jour résultats en mémoire
-            self._update_results_with_identifications(identifications)
-            return self.filtered_results
+            self._update_peak_info(identifications)
+            self._update_rt_group(identifications)
+
 
         # --- CAS 2 ou 3 : résultats déjà sauvegardés ---
         elif self._csv_results_exist():
             print("👉 Cas 2/3 : résultats chargés depuis CSV")
 
             alignment_matrix, peak_info, rt_group, spectra_group = self._load_csv_results()
-
             identifications_exist = "Compounds" in peak_info.columns
-
             if identifications_exist: # and not nist:
                 print("✅ Identifications déjà présentes, rien à faire.")
                 return {
@@ -610,168 +615,91 @@ class ChromatographicAligner:
         # print(int_list)
         return mz_list, int_list
 
-    # d
     def _run_nist_on_spectra(self, spectra_group, match_factor_min=700):
         """
         Applique la recherche NIST sur chaque spectre du DataFrame spectra_group.
-        Retourne un DataFrame avec les mêmes lignes/colonnes contenant 'Compounds | Scores'.
+        Retourne un DataFrame indexé par l'AnalyteID d'origine, avec colonnes 'Compounds', 'Scores'.
         """
-        results_dict = {}
+        print("Running NIST search on spectra...")
 
-        for analyte, row in spectra_group.iterrows():
-            results_dict[analyte] = {}
-            for col_name, spec in row.items():
-                if spec and isinstance(spec, str):  
+        mapping = []
+
+        for analyte_id, row in spectra_group.iterrows():
+            compound_name = "NA"
+            best_score = -1
+            for spec in row:
+                mz_list, int_list = self._parse_spectrum_string(spec) if (spec and isinstance(spec, str)) else ([], [])
+                if mz_list and int_list:
                     try:
-                        mz_list, int_list = self._parse_spectrum_string(spec)
-                    except Exception as e:
-                        results_dict[analyte][col_name] = f"ParseError | {e}"
-                        continue
-
-                    if mz_list and int_list:
                         serialized_spectrum = {"mass": mz_list, "intensity": int_list}
-                        try:
-                            results = self.nist_api.nist_single_search(serialized_spectrum)
-                            list_hits = self.nist_api.hit_list_from_nist_api(results)
-                            top_hits = matching.filter_best_hits(list_hits, match_factor_min)
-
-                            if top_hits:
-                                compounds = "/".join([hit[0].name for hit in top_hits])
-                                scores = "/".join([str(hit[0].match_factor) for hit in top_hits])
-                                results_dict[analyte][col_name] = f"{compounds} | {scores}"
-                            else:
-                                results_dict[analyte][col_name] = "NA"
-
-                        except Exception as e:
-                            results_dict[analyte][col_name] = f"Error | {e}"
-
-                    else:
-                        results_dict[analyte][col_name] = "NA"
-                else:
-                    results_dict[analyte][col_name] = "NA"
-
-        return pd.DataFrame(results_dict).T
-
-
-#     def _update_results_with_identifications(self, identifications):
-#         """
-#         Met à jour Alignment_Matrix, Peak_Info, RT_group et spectra_group en mémoire.
-#         """
-#         # Sauvegarde dans filtered_results
-#         self.filtered_results["Identification"] = identifications
-#         print("NIST identifications ajoutées aux résultats filtrés.")
-
-#         # identifications est maintenant un DataFrame (comme spectra_group mais avec "compounds | scores")
-#         compounds = []
-#         scores = []
-
-#         for val in identifications.stack():  # parcours de toutes les cellules
-#             if isinstance(val, str) and " | " in val:
-#                 comp, sc = val.split(" | ")
-#                 compounds.append(comp)
-#                 scores.append(sc)
-#             else:
-#                 compounds.append("NA")
-#                 scores.append("NA")
-
-# # Ajout dans Peak_Info
-#         self.alignment_results["Peak_Info"]["Compounds"] = compounds[:len(self.alignment_results["Peak_Info"])]
-#         self.alignment_results["Peak_Info"]["Scores"] = scores[:len(self.alignment_results["Peak_Info"])]
-
-#         print("NIST identifications ajoutées à Peak_Info.")
-#         # compounds = [i["Compounds"] for i in identifications]
-#         # scores = [i["Scores"] for i in identifications]
-
-#         # # Ajout dans les DataFrames en mémoire
-#         # self.alignment_results["Peak_Info"]["Compounds"] = compounds
-#         # self.alignment_results["Peak_Info"]["Scores"] = scores
-#         # print("NIST identifications ajoutées à Peak_Info.")
-
-#         # RT_group et spectra_group enrichis si besoin
-#         self.filtered_results["RT_group"]["Compounds"] = compounds
-#         print("NIST identifications ajoutées à RT_group.")
-#         self.filtered_results["spectra_group"] = [
-#             {**spec, "Compounds": i["Compounds"], "Scores": i["Scores"]}
-#             if isinstance(spec, dict) else spec
-#             for spec, i in zip(self.filtered_results["spectra_group"], identifications)
-#         ]
-#         print("NIST identifications ajoutées à RT_group et spectra_group.")
-
-    # def _update_results_with_identifications(self, identifications):
-    #     """
-    #     Met à jour les résultats de l'alignement avec les identifications NIST.
+                        results = self.nist_api.nist_single_search(serialized_spectrum)
+                        list_hits = self.nist_api.hit_list_from_nist_api(results)
+                        top_hits = matching.filter_best_hits(list_hits, match_factor_min)
+                        if top_hits and top_hits[0][0].match_factor > best_score:
+                            compound_name = top_hits[0][0].name
+                            best_score = top_hits[0][0].match_factor
+                    except Exception:
+                        continue
+            mapping.append({
+                "AnalyteID": analyte_id,
+                "Compounds": compound_name,
+                "Scores": str(best_score) if compound_name != "NA" else "NA"
+            })
         
-    #     identifications : pd.DataFrame
-    #         DataFrame renvoyé par _run_nist_on_spectra. Chaque cellule contient
-    #         la chaîne "compound1/compound2 | score1/score2" ou "NA".
-    #     """
-    #     # Transformation en listes pour correspondre aux DataFrames existants
-    #     compounds_list = []
-    #     scores_list = []
+        # Retourne un DataFrame pour le mapping
+        df_ident = pd.DataFrame(mapping).set_index("AnalyteID")
+        spectra_group = self.filtered_results["spectra_group"].copy()
+        new_index = [
+            nist if (nist is not None and nist != "NA" and str(nist).strip() != "") else analyte
+            for analyte, nist in zip(spectra_group.index, df_ident.loc[spectra_group.index, "Compounds"])
+        ]
+        spectra_group.index = new_index
 
-    #     for row_idx, row in identifications.iterrows():
-    #         for col in identifications.columns:
-    #             val = row[col]
-    #             if isinstance(val, str) and "|" in val:
-    #                 comp_part, score_part = val.split("|", 1)
-    #                 compounds_list.append(comp_part.strip())
-    #                 scores_list.append(score_part.strip())
-    #             else:
-    #                 compounds_list.append(val)
-    #                 scores_list.append("NA")
-
-    #     # Ajustement de la longueur pour correspondre à Peak_Info
-    #     n_peaks = len(self.alignment_results["Peak_Info"])
-    #     self.alignment_results["Peak_Info"]["Compounds"] = compounds_list[:n_peaks]
-    #     self.alignment_results["Peak_Info"]["Scores"] = scores_list[:n_peaks]
-
-    #     # Mise à jour des RT_group si nécessaire
-    #     n_rt = len(self.filtered_results["RT_group"])
-    #     self.filtered_results["RT_group"]["Compounds"] = compounds_list[:n_rt]
-
-    #     print("✅ NIST identifications mises à jour dans Peak_Info et RT_group.")
+        self.filtered_results["spectra_group"] = spectra_group
+        print("✅ NIST search completed on all spectra.")
+        return df_ident
 
 
-    #TODO a tester
-    def _update_results_with_identifications(self, identifications):
+    def _update_peak_info(self, identifications):
         """
-        Met à jour les DataFrames Peak_Info et RT_group avec les résultats NIST.
-        identifications : DataFrame ou liste de dict avec les clés 'Compounds' et 'Scores'.
+        Met à jour Peak_Info et RT_group :
+        - L’index devient le nom NIST si trouvé, sinon l’identifiant original pour chaque ligne.
         """
-
-        # Vérifier que Peak_Info existe
         if "Peak_Info" not in self.alignment_results:
             raise ValueError("Peak_Info non trouvé dans alignment_results")
-
-        peak_info = self.alignment_results["Peak_Info"]
-        n_rows = len(peak_info)
-
-        # Si identifications est un DataFrame (comme retourné par _run_nist_on_spectra)
-        if isinstance(identifications, pd.DataFrame):
-            compounds = identifications.apply(lambda row: " | ".join(row.dropna().astype(str)), axis=1)
-            scores = identifications.apply(lambda row: " | ".join(row.dropna().astype(str)), axis=1)
-        # Si identifications est une liste de dict
-        elif isinstance(identifications, list):
-            compounds = [i.get("Compounds", "NA") for i in identifications]
-            scores = [i.get("Scores", "NA") for i in identifications]
+        peak_info = self.alignment_results["Peak_Info"].copy()
+        if "Name" in peak_info.columns:
+            analyte_ids = peak_info["Name"]
         else:
-            raise TypeError("identifications doit être un DataFrame ou une liste de dict")
+            analyte_ids = peak_info.index
+        compound_map = identifications["Compounds"].to_dict()
 
-        # Ajuster la longueur pour correspondre à Peak_Info
-        compounds = compounds[:n_rows] if len(compounds) >= n_rows else list(compounds) + ["NA"]*(n_rows - len(compounds))
-        scores = scores[:n_rows] if len(scores) >= n_rows else list(scores) + ["NA"]*(n_rows - len(scores))
+        new_index = [
+            compound_map.get(analyte_id, analyte_id) if compound_map.get(analyte_id, "NA") not in [None, "NA", ""] else analyte_id
+            for analyte_id in analyte_ids
+        ]
+        peak_info.index = new_index
 
-        # Mise à jour de Peak_Info
-        peak_info["Compounds"] = compounds
-        peak_info["Scores"] = scores
+        for col in ["Name"]:
+            if col in peak_info.columns:
+                peak_info = peak_info.drop(columns=[col])
 
-        # Mise à jour de RT_group si existant
+        self.filtered_results["Peak_Info"] = peak_info
+
+    def _update_rt_group(self, identifications):
         if "RT_group" in self.filtered_results:
-            rt_group = self.filtered_results["RT_group"]
-            rt_group["Compounds"] = compounds
-            rt_group["Scores"] = scores
+            rt_group = self.filtered_results["RT_group"].copy()
+            new_index_rt = [
+                nist if (nist is not None and nist != "NA" and str(nist).strip() != "") else analyte
+                for analyte, nist in zip(rt_group.index, identifications.loc[rt_group.index, "Compounds"])
+            ]
+            rt_group.index = new_index_rt
+            for col in ["Compounds", "Scores"]:
+                if col in rt_group.columns:
+                    rt_group = rt_group.drop(columns=[col])
+            self.filtered_results["RT_group"] = rt_group
 
-        print("✅ NIST identifications ajoutées à Peak_Info et RT_group.")
+        print("✅ Index de Peak_Info et RT_group mis à jour avec nom NIST ou AnalyteID par fallback.") 
 
 
     def _csv_results_exist(self):
@@ -822,94 +750,6 @@ class ChromatographicAligner:
         rt_group.to_csv(self.output_dir / "rt_group.csv")
         spectra_group.to_csv(self.output_dir / "spectra_group.csv")
 
-    # def nist_identification(self, match_factor_min=650):
-    # # TODO corriger langlais
-    #     """
-    #     Identify the aligned spectra with NIST.
-    #     # - nist = True : identifie uniquement ceux qui n ont pas encore ete identifies
-    #     - nist= relance l'identification pour tous
-
-    #     """
-    #     print("NIST identification started...       ")
-    #     print("nist", self.nist_api)
-
-    #     if self.nist_api is None: #TODO a remettre
-    #         raise RuntimeError("api nist is missing")
-    #         # return self.filtered_results
-    #     if self.alignment_results is None:
-    #         raise ValueError("No alignment results available. Run the alignment first.")  
-
-    #     if not self.nist_api.check_nist_health():#TODO a remettre
-    #         print("⚠️ Service NIST indisponible, identifications sautées.")
-    #         return self.filtered_results
-
-    #     spectra_group = self.filtered_results["spectra_group"]
-    #     identifications = []
-        
-        
-    #     def parse_spectrum(spectrum):
-    #         """Convertit un spectre en dict {mass, intensity}, que ce soit un objet ou une chaîne."""
-    #         if spectrum is None or spectrum == "NA":
-    #             return {"mass": [], "intensity": []}
-
-    #         # Cas 1 : objet MassSpectrum, alignement en cours, avant sauvegarde ds un fichier, spectra group 
-    #         if hasattr(spectrum, "mass_values"
-    #             return {
-    #                 "mass": [float(m) for m in spectrum.mass_values],
-    #                 "intensity": [float(i) for i in spectrum.intensity_values],
-    #             }
-
-    #         # Cas 2 : dict déjà identifié
-    #         if isinstance(spectrum, dict) and "Compounds" in spectrum:
-    #             return spectrum  # on renvoie tel quel
-
-    #         # Cas 3 : chaîne "mz:intensité ...", lecture a partir dun fichier .txt/.csv
-    #         if isinstance(spectrum, str):
-    #             try:
-    #                 pairs = spectrum.strip().split()
-    #                 mz, intensity = zip(*(p.split(":") for p in pairs))
-    #                 return {
-    #                     "mass": [float(m) for m in mz],
-    #                     "intensity": [float(i) for i in intensity],
-    #                 }
-    #             except Exception:
-    #                 return {"mass": [], "intensity": []}
-
-    #         return {"mass": [], "intensity": []}
-
-    #     # Parcours des spectres
-    #     for spectrum in spectra_group.values.flatten():  # parcourt toutes les cellules du DataFrame
-    #         already_identified = isinstance(spectrum, dict) and "Compounds" in spectrum
-
-    #         if not already_identified: #or nist: forcer nist
-    #             print("pas deja identifier , parse spectrum")
-    #             serialized_spectrum = parse_spectrum(spectrum)
-
-    #             if serialized_spectrum["mass"]:  # spectre valide
-    #                 results = self.nist_api.nist_single_search(serialized_spectrum)
-    #                 list_hits = self.nist_api.hit_list_from_nist_api(results)
-    #                 top_hits = matching.filter_best_hits(list_hits, match_factor_min)
-
-    #                 if top_hits:
-    #                     compounds = [hit[0].name for hit in top_hits]
-    #                     scores = [str(hit[0].match_factor) for hit in top_hits]
-    #                     identifications.append({
-    #                         "Compounds": "/".join(compounds),
-    #                         "Scores": "/".join(scores)
-    #                     })
-    #                     print(f"Identified: {compounds} with scores {scores}")
-    #                 else:
-    #                     identifications.append({"Compounds": "NA", "Scores": "NA"})
-    #             else:
-    #                 identifications.append({"Compounds": "NA", "Scores": "NA"})
-    #         else:
-    #             identifications.append({
-    #                 "Compounds": spectrum.get("Compounds", "NA"),
-    #                 "Scores": spectrum.get("Scores", "NA")
-    #             })
-
-    #     self.filtered_results["Identification"] = identifications
-    #     return self.filtered_results
 
     def save_results(self, output_dir, with_filter=False):
         """
@@ -932,38 +772,9 @@ class ChromatographicAligner:
         name_filter = ""
         if with_filter:
             name_filter = f"_filter_{self.missing_value_limit}"
-        
-        # self.filtered_results['Alignment_Matrix'].to_csv(
-        #     os.path.join(output_dir, f"alignment_Matrix{name_filter}_{timestamp}.csv"),
-        #     sep="\t", index=True, na_rep="NA"
-        # )
-        # self.filtered_results['Peak_Info'].to_csv(
-        #     os.path.join(output_dir, f"peak_Info{name_filter}_{timestamp}.csv"),
-        #     sep="\t", index=False
-        # )
-        # self.filtered_results['RT_group'].to_csv(
-        #     os.path.join(output_dir, f"RT_Group{name_filter}_{timestamp}.csv"),
-        #     sep="\t", index=True
-        # )
-        # self.filtered_results['spectra_group'].to_csv(
-        #     os.path.join(output_dir, f"spectra_group{name_filter}_{timestamp}.csv"),
-        #     sep="\t", index=True
-        # )
-        # if isinstance(self.filtered_results['spectra_group'], list):
-        #     try:
-        #         spectra_df = pd.DataFrame(self.filtered_results['spectra_group'])
-        #         spectra_df.to_csv(
-        #             os.path.join(output_dir, f"spectra_group{name_filter}_{timestamp}.csv"),
-        #             sep="\t", index=False
-        #         )
-        #     except Exception as e:
-        #         print(f"❌ Impossible de sauvegarder spectra_group en CSV: {e}")
-        # else:
-        #     print("❌ spectra_group n'est pas une liste, impossible de créer un CSV.")
 
-        # print(f"✅ Filter {self.missing_value_limit} applied.")
-        # print(f"Results saved to directory: {output_dir}")
-          # Sauvegarde des DataFrames
+        print("save result filtered:", self.filtered_results["Peak_Info"])
+        
         for key in ['Alignment_Matrix', 'Peak_Info', 'RT_group', 'spectra_group']:
             obj = self.filtered_results.get(key)
             if obj is not None:
@@ -973,7 +784,7 @@ class ChromatographicAligner:
                         obj = pd.DataFrame(obj)
                     obj.to_csv(
                         os.path.join(output_dir, f"{key}{name_filter}_{timestamp}.csv"),
-                        sep="\t", index=(key != 'Peak_Info'), na_rep="NA"
+                        # sep="\t", index=(key != 'Peak_Info'), na_rep="NA"
                     )
                     print(f"✅ {key} saved.")
                 except Exception as e:
@@ -1004,12 +815,12 @@ if __name__ == "__main__":
         # folder + "854517_v3_E2AM_5jui.txt", 
         # folder + "802107_v1_E1PM_3jui.txt"
         # ]
-    folder = "C:/Users/adeli/Documents/programmation/uvsq/app/output/aout_without_nist_before_align/"
-    file = [folder + "A-F-028-817822-droite-ReCIV.txt",
-        folder + "J-A-034-751325-Tedla.txt",
-        folder + "P-L-007-801838-Tedla.txt"
+    # folder = "C:/Users/adeli/Documents/programmation/uvsq/app/output/aout_without_nist_before_align/"
+    file = ["c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\A-F-028-817822-droite-ReCIV.txt",
+        "c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\J-A-034-751325-Tedla.txt",
+        "c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\P-L-007-801838-Tedla.txt"
         ]
-
+    
     print("Importing files...", file)
     aligner = ChromatographicAligner(
         rt1_penalty=1,
@@ -1029,7 +840,7 @@ if __name__ == "__main__":
     )
     aligner.filter_alignment_matrix()
     aligner.nist_identification(nist=True, match_factor_min=650)
-    output_dir = "C:/Users/adeli/Documents/programmation/uvsq/app/output/te1234"
+    output_dir = "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\data\\test\\after_align"
     aligner.save_results(output_dir)
 
     # filtered_results = aligner.filter_alignment_matrix(missing_value_threshold=0.5)
