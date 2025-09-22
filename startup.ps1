@@ -6,6 +6,7 @@ if (Test-Path $envPath) {
             $name = $matches[1].Trim()
             $value = $matches[2].Trim()
             [System.Environment]::SetEnvironmentVariable($name, $value, "Process")
+            Write-Host "Chargé: $name = $value" -ForegroundColor Green  # DEBUG
         }
     }
 } else {
@@ -75,16 +76,17 @@ if ($flaskPids) {
 
 # Activation de l'environnement Flask
 Write-Host "=== Lancement de Flask ==="
+Write-Host "VENV_PATH = $env:VENV_PATH" -ForegroundColor Cyan  # DEBUG
 Set-Location "$env:PROJECT_PATH\interface_flask"
 
-# Active le venv s'il existe
-if (Test-Path "$env:VENV_PATH") {
-    & $env:VENV_PATH\Scripts\Activate.ps1
+# ✅ CORRECTION: Tester le fichier Activate.ps1, pas le dossier
+if (Test-Path "$env:VENV_PATH\Scripts\Activate.ps1") {
+    & "$env:VENV_PATH\Scripts\Activate.ps1"
     pip install -r requirements.txt
     python app.py
-    # deactivate
 } else {
-    Write-Host "Environnement virtuel non trouvé." -ForegroundColor Yellow
+    Write-Host "Environnement virtuel non trouve a: $env:VENV_PATH" -ForegroundColor Yellow
+    # Utiliser le Python système
     pip install -r requirements.txt
     python app.py
 }
