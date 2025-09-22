@@ -537,15 +537,19 @@ class ChromatographicAligner:
         - Cas 2: fichiers CSV sauvegardés sans identifications.
         - Cas 3: fichiers CSV sauvegardés avec identifications (re-lancement si nist=True).
         """
-        self.nist_api = nist_search.NISTSearchWrapper() if nist else None
-        if nist:
-            print("NIST API is enabled for matching.")
-        else:
-            print("NIST API is disabled for matching.")
-            
-        if not self.nist_api.check_nist_health():
-            print("⚠️ Service NIST indisponible, identifications sautées.")
+        if not nist:
+            print("⏭️ NIST désactivé, pas d'identification")
             return self.filtered_results
+
+        print("🔍 NIST activé, initialisation...")
+        self.nist_api = nist_search.NISTSearchWrapper()
+
+        if not self.nist_api.check_nist_health():
+            print("⚠️ Service NIST indisponible")
+            return self.filtered_results
+
+        print("✅ Service NIST OK, identification en cours...")
+
         
         # --- CAS 1 : résultats en mémoire ---
         if self.alignment_results is not None:
@@ -657,7 +661,7 @@ class ChromatographicAligner:
         spectra_group.index = new_index
 
         self.filtered_results["spectra_group"] = spectra_group
-        print("✅ NIST search completed on all spectra.")
+        # print("✅ NIST search completed on all spectra.")
         return df_ident
 
 
@@ -700,7 +704,6 @@ class ChromatographicAligner:
                     rt_group = rt_group.drop(columns=[col])
             self.filtered_results["RT_group"] = rt_group
 
-        print("✅ Index de Peak_Info et RT_group mis à jour avec nom NIST ou AnalyteID par fallback.") 
 
     def _update_alignment_matrix(self, identifications):
         """
@@ -724,8 +727,6 @@ class ChromatographicAligner:
         
         alignment_matrix.index = new_index
         self.filtered_results["Alignment_Matrix"] = alignment_matrix
-        print("✅ Index de Alignment_Matrix mis à jour avec noms NIST")
-
 
     def _csv_results_exist(self):
         """
@@ -787,6 +788,7 @@ class ChromatographicAligner:
         filtered_results : dict, optional
             Dictionary containing filtered versions of all matrices
         """
+        print("Saving results...")
         timestamp = datetime.now().strftime("%Y%m%d")
 
         if self.alignment_results is None:
@@ -809,7 +811,7 @@ class ChromatographicAligner:
                         os.path.join(output_dir, f"{key}{name_filter}_{timestamp}.csv"),
                         # sep="\t", index=(key != 'Peak_Info'), na_rep="NA"
                     )
-                    print(f"✅ {key} saved.")
+                    # print(f"✅ {key} saved.")
                 except Exception as e:
                     print(f"❌ Impossible de sauvegarder {key} en CSV: {e}")
             else:
