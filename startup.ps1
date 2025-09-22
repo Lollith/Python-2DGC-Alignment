@@ -6,7 +6,6 @@ if (Test-Path $envPath) {
             $name = $matches[1].Trim()
             $value = $matches[2].Trim()
             [System.Environment]::SetEnvironmentVariable($name, $value, "Process")
-            Write-Host "Chargé: $name = $value" -ForegroundColor Green  # DEBUG
         }
     }
 } else {
