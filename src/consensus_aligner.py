@@ -556,6 +556,7 @@ class ChromatographicAligner:
             # Mettre à jour résultats en mémoire
             self._update_peak_info(identifications)
             self._update_rt_group(identifications)
+            self._update_alignment_matrix(identifications)
 
 
         # --- CAS 2 ou 3 : résultats déjà sauvegardés ---
@@ -701,6 +702,30 @@ class ChromatographicAligner:
 
         print("✅ Index de Peak_Info et RT_group mis à jour avec nom NIST ou AnalyteID par fallback.") 
 
+    def _update_alignment_matrix(self, identifications):
+        """
+        Met à jour l'index de Alignment_Matrix avec les identifications NIST
+        """
+        if "Alignment_Matrix" not in self.filtered_results:
+            return
+        
+        alignment_matrix = self.filtered_results["Alignment_Matrix"].copy()
+        
+        # Créer le mapping analyte_id -> compound_name
+        compound_map = identifications["Compounds"].to_dict()
+        
+        # Générer le nouvel index (même logique que pour les autres)
+        new_index = [
+            compound_map.get(analyte_id, analyte_id) 
+            if compound_map.get(analyte_id, "NA") not in [None, "NA", ""] 
+            else analyte_id
+            for analyte_id in alignment_matrix.index
+        ]
+        
+        alignment_matrix.index = new_index
+        self.filtered_results["Alignment_Matrix"] = alignment_matrix
+        print("✅ Index de Alignment_Matrix mis à jour avec noms NIST")
+
 
     def _csv_results_exist(self):
         """
@@ -806,18 +831,18 @@ if __name__ == "__main__":
     #     folder + "2025-05-14_817827-QC_23EI_prep22-0.txt",
     # ]
 
-    # folder = "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
-    # file = [folder + "751303_v3_E3AM_5jui.txt" , 
-        # folder + "751309_v3_E3PM_6jui.txt", 
-        # folder + "854512_v3_E2AM_4jui.txt", 
-        # folder + "854517_v3_E2AM_5jui.txt", 
-        # folder + "802107_v1_E1PM_3jui.txt"
-        # ]
-    # folder = "C:/Users/adeli/Documents/programmation/uvsq/app/output/aout_without_nist_before_align/"
-    file = ["c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\A-F-028-817822-droite-ReCIV.txt",
-        "c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\J-A-034-751325-Tedla.txt",
-        "c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\P-L-007-801838-Tedla.txt"
+    folder = "D:/GCxGC_MS/DATA/h5/2025-07-09_EtuVOCs_BMI_batch1bis_postPTR/result_PersistenceHomology_tic/"
+    file = [folder + "751303_v3_E3AM_5jui.txt" , 
+        folder + "751309_v3_E3PM_6jui.txt", 
+        folder + "854512_v3_E2AM_4jui.txt", 
+        folder + "854517_v3_E2AM_5jui.txt", 
+        folder + "802107_v1_E1PM_3jui.txt"
         ]
+    # folder = "C:/Users/adeli/Documents/programmation/uvsq/app/output/aout_without_nist_before_align/"
+    # # file = ["c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\A-F-028-817822-droite-ReCIV.txt",
+    # #     "c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\J-A-034-751325-Tedla.txt",
+    # #     "c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\P-L-007-801838-Tedla.txt"
+    #     ]
     
     print("Importing files...", file)
     aligner = ChromatographicAligner(
@@ -838,7 +863,7 @@ if __name__ == "__main__":
     )
     aligner.filter_alignment_matrix()
     aligner.nist_identification(nist=True, match_factor_min=650)
-    output_dir = "C:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\data\\test\\after_align"
+    output_dir = "D:/GCxGC_MS/DATA/h5/test2209_after_align"
     aligner.save_results(output_dir)
 
     # filtered_results = aligner.filter_alignment_matrix(missing_value_threshold=0.5)
