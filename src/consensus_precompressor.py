@@ -36,7 +36,7 @@ class PeakPrecompressor:
             
         Returns:
         --------
-        list : [dataframe, spectra_list, missing_standards, ion_names, spectra_split]
+        list : [dataframe, spectra_list, missing_standards, fion_names, spectra_split]
         """
 
         #read the file    
@@ -198,7 +198,6 @@ class PeakPrecompressor:
                     combined_list[input_file_list[samp_num]] = pd.concat([to_bind_repeated, mates_df, source_series], axis=1)
                     if samp_num == 0:
                         combined_list_df = pd.DataFrame(combined_list[input_file_list[samp_num]])
-                        combined_list_df.to_csv("py_combined_list.csv", sep="\t", index=False)
 
                     # Debug: afficher les combinaisons effectuées
                     current_df = imported_files[samp_num][0].copy()
@@ -324,14 +323,13 @@ class PeakPrecompressor:
 
         #If outputFiles==TRUE, write processed files out to the input file directory
         # if self.output_files:
-        print("OUTPUTDIR", output_dir)
         for samp_num, imp in enumerate(imported_files):
             out_name = (
                 # input_file_list[samp_num][:-4] + "_Py_Processed1.csv"
-                output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "_Processed.csv"
+                output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "_P.txt"
             )
             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
-            print(f"Wrote processed file to {out_name}")
+            print(f"✅ Fichier {input_file_list[samp_num]} traité, résultat: {out_name}")
 
         return combined_frame
 
