@@ -75,7 +75,6 @@ if ($flaskPids) {
 
 # Activation de l'environnement Flask
 Write-Host "=== Lancement de Flask ==="
-Write-Host "VENV_PATH = $env:VENV_PATH" -ForegroundColor Cyan  # DEBUG
 Set-Location "$env:PROJECT_PATH\interface_flask"
 
 # ✅ CORRECTION: Tester le fichier Activate.ps1, pas le dossier
