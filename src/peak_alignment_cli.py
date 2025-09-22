@@ -43,6 +43,8 @@ def main():
                                     # standard_library=None
                                     )
         aligner.filter_alignment_matrix()
+        # if nist:
+        #     aligner.nist_identification()
         aligner.save_results(args.output_path)
     except Exception as e:
         print(f"Error during alignment: {e}")

@@ -74,3 +74,4 @@ interface_flask/tests/tests_data/*cdf
 interface_flask/tests/reference_results/*h5
 interface_flask/tests/output_tmp/*h5
 *.csv
+.ipynb_checkpoints/
