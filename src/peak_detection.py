@@ -13,6 +13,7 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 from sklearn.preprocessing import StandardScaler
 from functools import partial
+from dbscan_peak import detection_mass_par_mass_Dog
 # from multiprocessing import Pool
 
 
@@ -387,7 +388,7 @@ def LoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
         Duplicates (blobs with same t1/t2 but different masses or radii) are not removed.
     """
 
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     coordinates_all_mass = []
 
     with multiprocessing.Pool(processes=cpu_count) as pool:
@@ -562,7 +563,7 @@ def DoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
                                       rel_threshold, noise_factor, sigma,
                                       min_sigma, max_sigma, sigma_ratio,
                                       overlap):
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     #pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
@@ -674,10 +675,11 @@ def DoG(
     if (mode == "3D"):
         intensity_threshold = intensity_threshold_decision_rule(
             abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
+        
         blobs_dog = skimage.feature.blob_dog(
             chromato_cube, min_sigma=min_sigma,
             max_sigma=max_sigma, overlap=overlap,
-            threshold_abs=intensity_threshold,
+            threshold=intensity_threshold,
             sigma_ratio=sigma_ratio)
         
         blobs_dog = np.delete(blobs_dog, 0, -1)
@@ -687,21 +689,32 @@ def DoG(
             blobs_dog = clustering(blobs_dog, eps, min_samples)
         return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
     if (mode == "mass_per_mass"):
-        # Coordinates of all mass peaks with their radius
+        # # Coordinates of all mass peaks with their radius
 
-        coordinates_all_mass = DoG_mass_per_mass_multiprocessing(
-            chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
-            min_sigma, max_sigma, sigma_ratio, overlap)
+        # coordinates_all_mass = DoG_mass_per_mass_multiprocessing(
+        #     chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
+        #     min_sigma, max_sigma, sigma_ratio, overlap)
 
-        if (len(coordinates_all_mass) == 0):
-            return np.array([]),  np.array([])
-        # coordinates_all_mass = DoG_mass_per_mass(chromato_cube, seuil, sigma_ratio=sigma_ratio, min_sigma=min_sigma, max_sigma=max_sigma, threshold_abs=threshold_abs * np.max(chromato))
-        coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+        # if (len(coordinates_all_mass) == 0):
+        #     return np.array([]),  np.array([])
+        # # coordinates_all_mass = DoG_mass_per_mass(chromato_cube, seuil, sigma_ratio=sigma_ratio, min_sigma=min_sigma, max_sigma=max_sigma, threshold_abs=threshold_abs * np.max(chromato))
+        # coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
 
-        if cluster is True:
-            coordinates_all_mass = clustering(coordinates_all_mass, eps,
-                                              min_samples)
-        return np.delete(coordinates_all_mass, 2, -1), coordinates_all_mass[:,2]
+        # if cluster is True:
+        #     coordinates_all_mass = clustering(coordinates_all_mass, eps,
+        #                                       min_samples)
+        # return np.delete(coordinates_all_mass, 2, -1), coordinates_all_mass[:,2]
+
+        coordinates= detection_mass_par_mass_Dog(chromato_cube,chromato_obj,
+                                                abs_threshold,
+                                                rel_threshold,
+                                                noise_factor,
+                                                sigma,
+                                                min_sigma,
+                                                max_sigma,
+                                                sigma_ratio,
+                                                overlap)
+        return coordinates
     # TIC
     else:
         intensity_threshold = intensity_threshold_decision_rule(
@@ -710,15 +723,25 @@ def DoG(
         blobs_dog = skimage.feature.blob_dog(chromato_tic, min_sigma=min_sigma,
                                              max_sigma=max_sigma, 
                                              overlap=overlap,
-                                             threshold_abs=intensity_threshold,
+                                             threshold=intensity_threshold,
                                              sigma_ratio=sigma_ratio)
 
-        # Compute radii in the 3rd column.
-        blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
-        blobs_dog = blobs_dog.astype(int)
-        blobs_dog = np.array(blobs_dog)
-        return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
 
+
+        # blobs_dog shape: (N, 3), where columns are (y, x, sigma)
+        # Adjust radii: radius = sigma * sqrt(2)
+        radii = blobs_dog[:, 2] * math.sqrt(2)
+
+        # Keep coordinates as float (y,x)
+        centers = blobs_dog[:, :2]
+        
+        # Compute radii in the 3rd column.
+        # blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
+        # blobs_dog = blobs_dog.astype(int)
+        # blobs_dog = np.array(blobs_dog)
+        # return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
+ 
+        return centers,radii
 
 def blob_doh_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
                     sigma, num_sigma, min_sigma, max_sigma, overlap):
@@ -737,7 +760,7 @@ def DoH_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
                                       rel_threshold, noise_factor, sigma,
                                       num_sigma, min_sigma, max_sigma,
                                       overlap):
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     # pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
@@ -1114,7 +1137,7 @@ def plm_mass_per_mass_multiprocessing(
         [mass index, retention time, intensity].
     """
     
-    cpu_count = multiprocessing.cpu_count()
+    cpu_count = min(multiprocessing.cpu_count(),32)
     # pool = multiprocessing.Pool(processes = cpu_count)
     coordinates_all_mass = []
     with multiprocessing.Pool(processes=cpu_count) as pool:
@@ -1224,6 +1247,8 @@ def peak_local_max(chromato_obj,
         if cluster is False:
             return coordinates_all_mass
         return clustering(coordinates_all_mass, eps, min_samples)
+
+        #coordinates= detection_mass_par_mass()
     # Use TIC
     else:
         intensity_threshold = intensity_threshold_decision_rule(
