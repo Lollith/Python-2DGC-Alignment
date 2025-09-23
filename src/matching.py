@@ -167,6 +167,8 @@ def matching_nist_lib_from_chromato_cube(
     --------
     """
     global cache
+    # print("matching nist, chromatocube shape", chromato_cube.shape)
+
     start = time.time()
     chromato, time_rn, spectra_obj = chromato_obj
     coordinates_in_chromato = projection.matrix_to_chromato(
@@ -185,6 +187,10 @@ def matching_nist_lib_from_chromato_cube(
     # top_hits = []
     # serialized_spectra = []
     nist_api = nist_search.NISTSearchWrapper() if nist else None
+    if nist:
+        print("NIST API is enabled for matching.")
+    else:
+        print("NIST API is disabled for matching.") 
 
     # cache = {}
     for i, coord in enumerate(coordinates):
@@ -203,7 +209,7 @@ def matching_nist_lib_from_chromato_cube(
                 top_hits = cache[spectrum_hash]
                 print(f"Cache hit for peak {i + 1}")
             else:
-                print("Matching with NIST library...")
+                # print("Matching with NIST library...")
                 serialized_spectrum = {
                     "mass": [float(m) for m in mass_values],
                     "intensity": [float(i) for i in int_values]
@@ -214,15 +220,14 @@ def matching_nist_lib_from_chromato_cube(
                 cache[spectrum_hash] = top_hits
                 print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
         else:
-            #print(f"[Peak {i + 1}] NIST API unavailable or skipped.")
             top_hits = []
 
         match_results = []
         if top_hits:
             for j, hit in enumerate(top_hits):
                 search_result, ref_data = hit
-                print(f"hit {j}: {search_result.name}: {search_result.cas}, "
-                      f"with match_factor:{search_result.match_factor}.")
+                # print(f"hit {j}: {search_result.name}: {search_result.cas}, "
+                #       f"with match_factor:{search_result.match_factor}.")
 
                 match_data = {
                     'number': j,

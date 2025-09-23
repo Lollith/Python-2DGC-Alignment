@@ -7,6 +7,7 @@ venv/
 ENV/
 env/
 .venv/
+.env
 
 # VSCode files
 .vscode/
@@ -69,6 +70,8 @@ src/cython_debug/
 src/*.spec
 figs/
 interface_flask/converted_data/
-
-# Environment variables
-.env
+interface_flask/tests/tests_data/*cdf
+interface_flask/tests/reference_results/*h5
+interface_flask/tests/output_tmp/*h5
+*.csv
+.ipynb_checkpoints/

@@ -61,8 +61,7 @@ def mass_spectra_format(mass_range, int_values):
     """
 
     range_min, range_max = mass_range
-    mass_values = np.linspace(
-        range_min, range_max, range_max - range_min + 1).astype(int)
+    mass_values = np.linspace(range_min, range_max, len(int_values)).astype(int)
     spectrum = np.column_stack((mass_values, int_values))
     sorted_by_int_spectrum = spectrum[(-spectrum[:, 1]).argsort()]
     formatted_spectrum = ""
@@ -137,7 +136,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
         chromato_cube, mass_range)
     >>> print(result)
     """
-
+    # print("compute matches , chromatocube shape:", chromato_cube.shape)
     matches_identification = []
     sample_metadata_list =[]
     max_len = max(len(match) for match in matches)
@@ -203,11 +202,10 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
         }
 
         if formated_spectra:
-            identification_data_dict['spectra'] = '/'.join(
-                mass_spectra_format(mass_range, m['spectra'])
-                for m in match_data_list
-                if isinstance(m.get('spectra'), (list, np.ndarray)) and len(m['spectra']) > 0
-            )
+            # print("match =", match)
+            # print("match[1] =", match[1], type(match[1]))
+            sample_spectra = match[1][0].get('spectra', None) 
+            identification_data_dict['spectra'] = mass_spectra_format(mass_range, sample_spectra)
 
             identification_data_dict['spectra_deconvo'] = mass_spectra_format(mass_range, spec_deconvo)
 
@@ -404,7 +402,7 @@ def identification(filename,
             (chromato_tic, time_rn, mass_range), baseline_cube, coordinates,
             mod_time,
             match_factor_min, nist)
-    
+  
     print("nb match", len(matches))
     base_name = os.path.basename(filename)
 
@@ -447,7 +445,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
         - Height : Peak height (related to concentration)
     """
 
-    with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
+    with open(PATH + filename, 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
 
         # header
@@ -534,6 +532,7 @@ def cohort_identification_alignment_input_format_txt(
     else:
         name_file=PATH + filename + '.txt'
     with open(name_file, 'w', encoding='UTF8') as f:
+
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
         
         for identification_data_dict in matches_identification:
@@ -605,6 +604,7 @@ def sample_identification(path, file, output_path,
     >>> sample_identification("/path/to/data/", "sample.cdf",
         OUTPUT_PATH="/path/to/results/")
     """
+
     #if os.path.exists(output_hdf5_file):
     #    raise FileExistsError(f"The file '{output_hdf5_file}' already exists.")
     if output_hdf5_file is None:
@@ -637,16 +637,31 @@ def sample_identification(path, file, output_path,
 
 
         print("Identification done", time.time()-start_time, 's')
+
+        # print("output_path from identificqtion", output_path)
+        if nist:
+            name_txt =  os.path.splitext(file)[0] + '_D_N'
+            name_csv =  os.path.splitext(file)[0] + '_D_N'
+        else:
+            name_txt =  os.path.splitext(file)[0] + '_D'
+            name_csv =  os.path.splitext(file)[0] + '_D'
+#         cohort_identification_alignment_input_format_txt(
+#             name_txt, matches_identification, output_path)
+#         cohort_identification_to_csv(name_csv, matches_identification,
+#                                      output_path)
+        
+#         return (f'{output_path + name_txt} & '
+#                 + f'{output_path + name_csv} created')
         print("output_path from identification", output_path, file)
         cohort_identification_alignment_input_format_txt(
-            os.path.splitext(file)[0], matches_identification, output_path)
+            name_txt, matches_identification, output_path)
         cohort_identification_alignment_input_format_txt(
-            os.path.splitext(file)[0], matches_identification, output_path, deconvo=True)
+           name_txt, matches_identification, output_path, deconvo=True)
         if(extract_patch):
-            cohort_identification_sample_metadata(os.path.splitext(file)[0], sample_metadata_list,
+            cohort_identification_sample_metadata(name_csv, sample_metadata_list,
                                      output_path)
         else:
-            cohort_identification_to_csv(os.path.splitext(file)[0], matches_identification,
+            cohort_identification_to_csv(name_csv, matches_identification,
                                      output_path)
         print(f'{output_path + os.path.splitext(file)[0]}.txt created')
         return (f'{output_path + os.path.splitext(file)[0]}.txt created')

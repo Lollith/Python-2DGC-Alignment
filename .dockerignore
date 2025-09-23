@@ -33,3 +33,5 @@ docker-compose*.yml
 *~
 *.bak
 *.swp
+
+.pytest_cache

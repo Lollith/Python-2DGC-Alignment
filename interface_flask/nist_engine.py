@@ -4,6 +4,9 @@ import pyms_nist_search
 import numpy as np
 import os
 import pyms.Spectrum
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class NistEngine:
     """
@@ -17,6 +20,7 @@ class NistEngine:
         logging.info("Initialisation du moteur NIST...")
         mainlib_path = os.getenv("MAINLIB_PATH", "C:/NIST20/MSSEARCH/mainlib")
         temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
+
         self.engine = pyms_nist_search.Engine(
             mainlib_path,
             pyms_nist_search.NISTMS_MAIN_LIB,
