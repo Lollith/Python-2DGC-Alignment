@@ -7,3 +7,4 @@ python-dotenv
 h5py
 Flask-HTTPAuth
 pyms-nist-search==0.7.2
+pyyaml

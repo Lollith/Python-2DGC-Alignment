@@ -3,7 +3,7 @@ import logging
 import pyms
 import pyms_nist_search
 
-match_factor_min = 650
+
 
 def serialize_hit_tuple(hit_tuple):
         search_result, ref_data = hit_tuple
@@ -25,19 +25,12 @@ def filter_best_hits(list_hits, match_factor_min):
     ]
     return filtered_hits
 
-# def matching_nist():
-def matching_nist(df, match_factor_min): #TODO modif ici
-    """
-    This function performs a search in the NIST database using the pyms_nist_search library.
-    It reads a CSV file containing mass spectra, performs a search for each spectrum,
-    and writes the results to a new CSV file.
-    """
-    # Uncomment and adjust the paths if needed
-  #   search = pyms_nist_search.Engine(
-#                     "C:/Users/camil/Documents/NIST/mainlib/",
-#                     pyms_nist_search.NISTMS_MAIN_LIB,
-#                     "C:/Users/camil/Documents/Python-2DGC",
-#       
+def matching_nist(df,match_factor_min):  
+    # search = pyms_nist_search.Engine(
+    #     "C:/Users/camil/Documents/NIST/mainlib/",
+    #     pyms_nist_search.NISTMS_MAIN_LIB,
+    #     "C:/Users/camil/Documents/NIST/mainlib/",
+    #     )
     search = pyms_nist_search.Engine(
         r"D:\Dossiers Persos\Adeline\app\nist\mainlib\\",
         pyms_nist_search.NISTMS_MAIN_LIB,
@@ -49,8 +42,6 @@ def matching_nist(df, match_factor_min): #TODO modif ici
     logger=logging.getLogger('pyms')
     logger.setLevel('ERROR')
 
-    # df = pd.read_csv("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic/Align_table_info.csv",sep=";",  )
-    # df = pd.read_csv("annotate/Align_table_info.csv", sep=";") #TODO supprime ici
     df['compound_name'] = ""
     df['casno'] = ""
     df['compound_formula'] = ""
@@ -87,20 +78,15 @@ def matching_nist(df, match_factor_min): #TODO modif ici
             'compound_formula': join_field('formula'),
             'match_factor': join_field('match_factor'),
         }
-        else:
-            identification_data_dict = {
-            'compound_name': f"Analyte_{row+1}",
-            'casno': '',
-            'compound_formula': '',
-            'match_factor': '',
-            }
-   
-        for key in identification_data_dict:
-            df.at[row, key] = identification_data_dict[key]
+            for key in identification_data_dict:
+                df.at[row, key] = identification_data_dict[key]
 
-    # df.to_csv("C:/Users/camil/data/td-ptr/gcxgc/resultPersistantHomology_tic/Align_table_info_annotated.csv", index=False,sep=";")
-    df.to_csv("Annotate/align_table_info_annotated_hits.csv", sep=";", index=False, encoding="utf-8-sig") #compatibilite avec excel
-
+    return df
 
 if __name__ == "__main__":
-    matching_nist()
+    match_factor_min = 650
+    df = pd.read_csv("annotate/Align_table_info.csv", sep=";")
+    
+    df = matching_nist(df,match_factor_min)
+    
+    df.to_csv("Annotate/align_table_info_annotated_hits.csv", sep=";", index=False, encoding="utf-8-sig") #compatibilite avec excel

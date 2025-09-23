@@ -18,8 +18,9 @@ def main():
     parser.add_argument('--num_cores', type=int, default=1, help="Number of cores to use")
     parser.add_argument('--missing_value_limit', type=float, default=0.05, help="Missing value limit")
     parser.add_argument('--quant_method', type=str, default="T", help="Quantification method")
-    parser.add_argument('--auto_tune_match_stringency', type=bool, default=False, help="Auto-tune match stringency")
     parser.add_argument('--missing_peak_finder_similarity_lax', type=float, default=0.85, help="Missing peak finder similarity lax")
+    parser.add_argument('--auto_tune_match_stringency', action='store_true', help="Auto-tune match stringency")
+    parser.add_argument('--nist', action='store_true', help="Enable NIST database matching")
     args = parser.parse_args()
 
     if not args.input:
@@ -38,11 +39,10 @@ def main():
             missing_peak_finder_similarity_lax=args.missing_peak_finder_similarity_lax
         )
         aligner.consensus_align_bis(args.input, args.seed_file,
-                                    #args.nist,
                                     common_ions=None,
-                                    standard_library=None
                                     )
         aligner.filter_alignment_matrix()
+        aligner.nist_identification(args.nist, match_factor_min=650 )
         aligner.save_results(args.output_path)
     except Exception as e:
         print(f"Error during alignment: {e}")

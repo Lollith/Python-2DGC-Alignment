@@ -98,6 +98,10 @@ The NIST MS search engine is fully functional and significantly faster on Window
 git clone https://github.com/Lollith/Python-2DGC-Alignment.git
 ```
  - Install Docker Desktop
+ - Find the path of the docker executable with PowerShell:
+```Powershell : 
+    Get-Command docker
+```
 
 ##### Volumes
 
@@ -118,11 +122,7 @@ To avoid having to click on the address with the token each time you launch Jupy
 For the api Flask you need a password too.
 
 To create a hashed password:
-In a Python interpreter:
-```bash
-from werkzeug.security import generate_password_hash
-
-print(generate_password_hash("my_password"))
+```python -c "from jupyter_server.auth import passwd; print(passwd('my_password'))"
 ```
 
 ##### .env
@@ -142,15 +142,15 @@ HOST_VOLUME_PATH=C:/path/to/app/data/
 # Absolute path to the folder on your host machine which contains the Nist library (mainlib) and an empty tmp folder
 #HOST_VOLUME_PATH_NIST=...
 
-MAINLIB_PATH=C:/path/to/MSSEARCH/mainlib
-TEMP_DIR=C:/path/to/MSSEARCH/tmp
+MAINLIB_PATH=C:/path/to/NIST20/MSSEARCH/mainlib
+TEMP_DIR=C:/path/to/NIST20/MSSEARCH/tmp
 
 #Path inside the container where the data will be available.
 # Make sure the end of this path matches the end of HOST_VOLUME_PATH to simplify path translation.
 DOCKER_VOLUME_PATH=/app/data/
 
 #Only for windows: Path to the project folder
-FLASK_DIR=C:/path/to/Python-2DGC-Alignment/interface_flask
+PROJECT_PATH=C:/path/to/Python-2DGC-Alignment
 
 #Only for windows: Path to the Docker Desktop.exe
 DOCKER_DESKTOP_PATH=...

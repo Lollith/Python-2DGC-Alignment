@@ -1,14 +1,28 @@
 # Configuration file for notebook.
 import os
 from traitlets.config import get_config
+from dotenv import load_dotenv
+import logging
+import sys
+logging.basicConfig(level=logging.INFO)
+
+load_dotenv()
+# base_dir = os.path.dirname(os.path.abspath(__file__))
+# dotenv_path = os.path.join(base_dir, ".env")
+# load_dotenv(dotenv_path)
 
 c = get_config()  #noqa
 
-c.NotebookApp.password = os.getenv("JUPYTER_PASSWORD_HASH", "")
-c.NotebookApp.token = ''
-c.NotebookApp.ip = '0.0.0.0'
-c.NotebookApp.open_browser = False
-c.NotebookApp.port = 8888
+# c.NotebookApp.password = os.getenv("JUPYTER_PASSWORD_HASH")
+# c.NotebookApp.token = ''
+# c.NotebookApp.ip = '0.0.0.0'
+# c.NotebookApp.open_browser = False
+# c.NotebookApp.port = 8888
+c.ServerApp.password = os.getenv("JUPYTER_PASSWORD_HASH")
+c.ServerApp.token = ''  # désactive le token
+c.ServerApp.ip = '0.0.0.0'
+c.ServerApp.open_browser = False
+c.ServerApp.port = 8888
 
 #------------------------------------------------------------------------------
 # Application(SingletonConfigurable) configuration

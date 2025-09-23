@@ -1,8 +1,14 @@
 import argparse
 from consensus_aligner import ChromatographicAligner
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 def main():
+    print("Starting Peak Alignment Filter CLI...")
     parser = argparse.ArgumentParser(description="GC×GC-MS Peak Alignment with filter CLI")
+    parser.add_argument("--input", required=True, nargs='+', help="Input files .cdf or .h5")
     parser.add_argument("----new_missing_value_limit", required=True)
     parser.add_argument("--output_path", required=True)
     parser.add_argument('--rt1_penalty', type=int, default=1, help="RT1 penalty")
@@ -28,7 +34,10 @@ def main():
             auto_tune_match_stringency=args.auto_tune_match_stringency,
             missing_peak_finder_similarity_lax=args.missing_peak_finder_similarity_lax
         )
-
+        aligner.consensus_align_bis(
+            input_file_list=args.input,
+            seed_file=1,
+        )
         threshold = float(args.new_missing_value_limit)
         aligner.filter_alignment_matrix(threshold)
         aligner.save_results(args.output_path, with_filter=True)
