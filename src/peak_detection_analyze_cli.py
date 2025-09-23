@@ -13,7 +13,7 @@ docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
 def save_parameters(selected_files, output_path, method, mode, noise_factor, min_persistence, abs_threshold, rel_threshold,
                         cluster, min_distance, min_sigma, max_sigma, sigma_ratio, num_sigma,
-                        formated_spectra, match_factor_min, overlap, eps, min_samples, nist):
+                        formated_spectra, match_factor_min, overlap, eps, min_samples, nist, mod_time):
         """Save the analysis parameters to a file."""
         params = {
             "selected_files": selected_files,
@@ -34,7 +34,10 @@ def save_parameters(selected_files, output_path, method, mode, noise_factor, min
             "overlap": overlap,
             "eps": eps,
             "min_samples": min_samples,
-            "nist": nist
+            "nist": nist,
+            "mod_time": mod_time
+
+
         }
         with open(os.path.join(output_path, 'analysis_parameters.params'), 'w') as f:
             for key, value in params.items():
@@ -102,6 +105,7 @@ def main():
     parser.add_argument("--eps", type=float, required=True)
     parser.add_argument("--min_samples", type=int, required=True)
     parser.add_argument("--nist", action="store_true")
+    parser.add_argument("--mod_time", type=float, help="Manual modulation time in seconds (0 to auto-detect)", default=0)
     args = parser.parse_args()
     
     if not args.input:
@@ -111,7 +115,7 @@ def main():
             args.input, args.output, args.method, args.mode, args.noise_factor, args.min_persistence,
             args.abs_threshold, args.rel_threshold, args.cluster, args.min_distance, args.min_sigma,
             args.max_sigma, args.sigma_ratio, args.num_sigma, args.formated_spectra, args.match_factor_min,
-            args.overlap, args.eps, args.min_samples, args.nist
+            args.overlap, args.eps, args.min_samples, args.nist, args.mod_time
         )
     successful_analyses = 0
     failed_analyses = 0
@@ -128,11 +132,15 @@ def main():
             path = os.path.dirname(f)
             file = os.path.basename(f)
 
-            mod_time = get_mod_time(f)
-            if mod_time is None:
-                print("   ⚠️ Modulation time not specified, using default value of 1.25 seconds")
-                mod_time = 1.25
-            print(f"⏱️  Modulation time: {mod_time} seconds")
+            if args.mod_time and args.mod_time > 0:
+                mod_time = args.mod_time
+                print(f"⏱️  Using manual modulation time: {mod_time} seconds")
+            else:
+                mod_time = get_mod_time(f)
+                if mod_time is None:
+                    print("   ⚠️ Modulation time not specified, using default value of 1.25 seconds")
+                    mod_time = 1.25
+                print(f"⏱️  Modulation time: {mod_time} seconds")
                     
             result = sample_identification(
                 path,
