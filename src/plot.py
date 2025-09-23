@@ -247,9 +247,13 @@ def plot_mass(mass_values, int_values, title="", top_n_mass=10, figsize=(32, 18)
 
 def point_is_visible(point, indexes):
     x,y = point[0], point[1]
-    if (x <= indexes[0][0] or x >= indexes[1][0] or y <= indexes[0][1] or y >= indexes[1][1]):
+    if(x >= indexes[0][0] & x <= indexes[1][0] & y >= indexes[0][1] & y <= indexes[1][1]):
+        return True
+    else :
         return False
-    return True
+    # if (x < indexes[0][0] or x > indexes[1][0] or y < indexes[0][1] or y > indexes[1][1]):
+    #     return False
+    # return True
 
 def plot(chromato_obj):
     """USELESS"""
@@ -329,7 +333,8 @@ def visualizer(
     """
     chromato, time_rn = chromato_obj
     shape = chromato.shape
-    X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    #X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
     Y = np.linspace(0, mod_time, shape[1])
     if (rt1 is not None and rt2 is not None):
         rt1minusrt1window = rt1 - rt1_window
@@ -361,11 +366,8 @@ def visualizer(
             indexes[0][0]:indexes[1][0],
             indexes[0][1]:indexes[1][1]
             ]
-        X = np.linspace(
-            rt1minusrt1window, rt1plusrt1window, indexes[1][0] - indexes[0][0]
-            )
-        Y = np.linspace(rt2minusrt2window, rt2plusrt2window,
-                        indexes[1][1] - indexes[0][1])
+        X=X[indexes[0][0]:indexes[1][0]]
+        Y=Y[indexes[0][1]:indexes[1][1]]
     elif (center_pt_window_1 and center_pt_window_2):
         center_pt1_minusrt1window = center_pt[0] - center_pt_window_1
         center_pt1_plusrt1window = center_pt[0] + center_pt_window_1
@@ -396,8 +398,8 @@ def visualizer(
         #indexes_in_chromato = matrix_to_chromato(indexes,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
         indexes_in_chromato = indexes
 
-        X = np.linspace(indexes[0][0], indexes[1][0], chromato.shape[0])
-        Y = np.linspace(indexes[0][1], indexes[1][1], chromato.shape[1])
+        X=X[center_pt1_minusrt1window:center_pt1_plusrt1window + 1]
+        Y=Y[center_pt2_minusrt2window:center_pt2_plusrt2window + 1]
 
         indexes = np.array([
             [center_pt1_minusrt1window, center_pt2_minusrt2window],
@@ -484,7 +486,7 @@ def visualizer(
     if (save):
         plt.savefig("figs/chromato_" + title + ".png")
 
-    plt.show()
+    plt.show(block=False)
     if (plotly):
         fig = go.Figure(data=go.Contour(
             z=np.transpose(chromato),
@@ -524,4 +526,101 @@ def plot_scores_array(scores_array, similarity_measure):
     plt.ylabel("Spectrum #ID")
     plt.show()
 
-    
+def visualizer2(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_window = 5, rt2_window = 0.1, plotly = False, title = "", points = None, radius=None, pt_shape = ".", log_chromato=True, casnos_dict=None, contour=[], center_pt=None, center_pt_window_1 = None, center_pt_window_2 = None, save=False):
+    r"""Plot mass spectrum
+
+    Parameters
+    ----------
+    chromato_obj :
+        chromato_obj=(chromato, time_rn)
+    rt1: optional
+        Center the plot in the first dimension around rt1
+    rt2: optional
+        Center the plot in the second dimension around rt2
+    rt1_window: optional
+        If rt1, window size in the first dimension around rt1
+    rt2_window: optional
+        If rt2, window size in the second dimension around rt2
+    points: optional
+        Coordinates to displayed on the chromatogram
+    radius: optional
+        If points, dislay their radius (blobs detection)
+    pt_shape: optional
+        Shape of the points to be displayed.
+    log_chromato: optional
+        Apply logarithm function to the chromato before visualization
+    contour: optional
+        Displays stitch outlines
+    center_pt: optional
+        Center the plot around center_pt coordinates
+    center_pt_window_1: optional
+        If center_pt, window size in the first dimension around center_pt first coordinate
+    center_pt_window_2: optional
+        If center_pt, window size in the second dimension around center_pt second coordinate
+    casnos_dict: optional
+        If center_pt, window size in the second dimension around center_pt second coordinate
+    title: optional
+        Title of the plot
+    Returns
+    -------
+    Examples
+    --------
+    >>> import plot
+    >>> import read chroma
+    >>> import utils
+    >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
+    >>> chromato,time_rn,spectra_obj = chromato_obj
+    >>> matches = matching.matching_nist_lib(chromato_obj, spectra, some_pixel_coordinates)
+    >>> casnos_dict = utils.get_name_dict(matches)
+    >>> coordinates_in_time = projection.matrix_to_chromato(u,time_rn, mod_time,chromato.shape)
+    >>> plot.visualizer(chromato_obj=(chromato, time_rn), mod_time=mod_time, points=coordinates_in_time, casnos_dict=casnos_dict)
+    """
+    chromato, time_rn = chromato_obj
+    shape = chromato.shape
+    #X = np.linspace(time_rn[0], time_rn[1], shape[0])
+    X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
+    Y = np.linspace(0, mod_time, shape[1])
+    if (rt1 is not None and rt2 is not None):
+        rt1minusrt1window = rt1 - rt1_window
+        rt1plusrt1window = rt1 + rt1_window
+        rt2minusrt2window = rt2 - rt2_window
+        rt2plusrt2window = rt2 + rt2_window
+        if (rt1minusrt1window < time_rn[0]):
+            rt1minusrt1window = time_rn[0]
+            rt1plusrt1window = rt1 + rt1_window
+        if (rt1plusrt1window > time_rn[1]):
+            rt1plusrt1window = time_rn[1]
+            rt1minusrt1window = rt1 - rt1_window
+        if (rt2minusrt2window < 0):
+            rt2minusrt2window = 0
+            rt2plusrt2window = rt2 + rt2_window
+        if (rt2plusrt2window > mod_time):
+            rt2plusrt2window = mod_time
+            rt2minusrt2window = rt2 - rt2_window
+        position_in_chromato = np.array([[rt1minusrt1window, rt2minusrt2window], [rt1plusrt1window, rt2plusrt2window]])
+        indexrt1= [ i for i ,(rt) in enumerate(X) if  rt1minusrt1window <= rt <= rt1plusrt1window]
+        indexrt2= [ i for i ,(rt) in enumerate(Y) if  rt2minusrt2window <= rt <= rt2plusrt2window]
+        indexes = np.array(([min(indexrt1),min(indexrt2)],[max(indexrt1),max(indexrt2)]))
+        chromato = chromato[np.ix_(indexrt1, indexrt2)]
+        X=X[indexrt1]
+        Y=Y[indexrt2]
+    if (log_chromato):
+        chromato = np.log(chromato)
+    chromato = np.transpose(chromato)
+    fig, ax = plt.subplots()
+
+    #tmp = ax.pcolormesh(X, Y, chromato)
+    tmp = ax.contourf(X, Y, chromato)
+    plt.colorbar(tmp)
+    if (title != ""):
+        plt.title(title)
+    if (points is not None):
+        if ((rt1 is not None and rt2 is not None)):
+            point_indexes = chromato_to_matrix(points,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
+            index = [idx for idx, (i, j) in enumerate(point_indexes) if indexes[0][0] <= i < indexes[1][0] and indexes[0][1] <= j < indexes[1][1]]
+            points=points[index]
+        if (len(points) > 0):
+                ax.plot(points[:,0], points[:,1], "r" + pt_shape)
+    if (save):
+        plt.savefig("figs/chromato_" + title + ".png")
+    plt

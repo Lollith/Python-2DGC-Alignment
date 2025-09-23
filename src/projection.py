@@ -27,10 +27,10 @@ def matrix_to_chromato(points, time_rn, mod_time, chromato_dim):
     """
     if (points is None):
         return None
-    #return np.column_stack((points[:,0] * (time_rn[1] - time_rn[0]) / (chromato_dim[0]) + time_rn[0], points[:,1] * mod_time / chromato_dim[1]))
-    return np.column_stack((points[:, 0] * (time_rn[1] - time_rn[0]) /
-                            (chromato_dim[0] - 1) + time_rn[0],
-                            points[:, 1] * mod_time / (chromato_dim[1] - 1)))
+    #return np.column_stack((points[:,0] * (time_rn[1] - time_rn[0]) / (chromato_dim[0]) + time_rn[0], points[:,1] * mod_time / (chromato_dim[1]-1)))
+    scan_duration= mod_time / (chromato_dim[1])
+    return np.column_stack(((points[:, 0]) * mod_time/ 60 + time_rn[0] ,
+                            points[:, 1] *scan_duration))
 
 def chromato_to_matrix(points, time_rn, mod_time, chromato_dim):
     r"""Project points from chromatogram (in time) into matrix chromatogram (ndarray).
@@ -60,15 +60,9 @@ def chromato_to_matrix(points, time_rn, mod_time, chromato_dim):
     if (points is None):
         return None
     #return np.rint(np.column_stack(((points[:,0] -  time_rn[0]) * chromato_dim[0] / (time_rn[1] - time_rn[0]), points[:,1] / mod_time * chromato_dim[1]))).astype(int)
-    return np.rint(np.column_stack(((points[:,0] -  time_rn[0]) * (chromato_dim[0] - 1) / (time_rn[1] - time_rn[0]), points[:,1] / mod_time * (chromato_dim[1] - 1)))).astype(int)
 
-    # coords = np.rint(np.column_stack((
-    #     (points[:, 0] - time_rn[0]) * (chromato_dim[0] - 1) / (time_rn[1] - time_rn[0]),
-    #     points[:, 1] / mod_time * (chromato_dim[1] - 1)
-    # ))).astype(int)
+    #return np.rint(np.column_stack(((points[:,0] -  time_rn[0]) * (chromato_dim[0] - 1) / (time_rn[1] - time_rn[0]), points[:,1] / mod_time * (chromato_dim[1] - 1)))).astype(int)
+    scan_duration= mod_time / (chromato_dim[1])
+    return (np.column_stack(((points[:,0] -  time_rn[0]) * 60 / mod_time, 
+                             points[:,1] / scan_duration))).round().astype(int)
 
-    # # Clamp pour rester dans les bornes
-    # coords[:, 0] = np.clip(coords[:, 0], 0, chromato_dim[0] - 1)
-    # coords[:, 1] = np.clip(coords[:, 1], 0, chromato_dim[1] - 1)
-
-    # return coords
