@@ -6,7 +6,6 @@ from sklearn.cluster import DBSCAN
 import projection 
 import multiprocessing
 import numpy as np
-from scipy.interpolate import griddata
 import numpy as np
 from scipy.interpolate import griddata
 from whittaker_eilers import WhittakerSmoother
