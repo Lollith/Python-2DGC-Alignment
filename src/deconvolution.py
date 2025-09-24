@@ -414,12 +414,10 @@ def construct_spectrum(quanti_all_mass, label, nmass):
     return spec_list, area_list
 
 
-
-
 def deconvolution(chromato_cube, time_rn, mod_time, coordinate, radius, multi_processing=True, plot_deconvo=False) :
     inputs = range(chromato_cube.shape[0])
-    results=[]
-    if(multi_processing):
+    results =[]
+    if (multi_processing):
         num_workers = min(multiprocessing.cpu_count(),32)
         with multiprocessing.Pool(processes = num_workers) as pool:
                     for i, result in enumerate(pool.starmap(deconvolution_per_mass, [(coordinate[m], 
@@ -428,9 +426,7 @@ def deconvolution(chromato_cube, time_rn, mod_time, coordinate, radius, multi_pr
                                                                                 results.append(result)
     else:
         for m in inputs:
-            results.append(deconvolution_per_mass(coordinate[m], radius[m], chromato_cube[m,:,:],time_rn,mod_time, plot_deconvo))  
-    
-                                                                                          
+            results.append(deconvolution_per_mass(coordinate[m], radius[m], chromato_cube[m,:,:],time_rn,mod_time, plot_deconvo))
     return results
 
 

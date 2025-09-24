@@ -209,9 +209,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
 
             identification_data_dict['spectra_deconvo'] = mass_spectra_format(mass_range, spec_deconvo)
 
-
         if extract_patch:
-            
             # Adjust spectrum length to match the canonical length for this sample
             if spectrum_data is not None:
                 current_length = len(spectrum_data)
@@ -246,7 +244,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             # --- Calculate mass_index using range_min ---
             mass=majority_mass+ mass_range[0]
             mass_index = majority_mass # Index relative to the start of cube's axis
-   
+ 
             if mass_index < 0 or mass_index >= chromato_cube.shape[0]:
                 raise ValueError(f"Mass index {mass_index} (mass {mass}, min_mz {mass_range[0]}) out of cube bounds[0]={chromato_cube.shape[0]}.")
             if x_min >= x_max or y_min >= y_max:
@@ -262,13 +260,12 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             clipped_patch_data = clip_patch_by_rt(
                       context_patch_data, full_rt_bounds, center_rt_corr,
                       0.1, 0.1175 )
-            
 
             unique_id_data = str(uuid.uuid4())
             clip_patch_id = f"clip_patch_{unique_id_data}" if clipped_patch_data.size > 0 else None
             context_patch_id = f"context_patch_{unique_id_data}" if context_patch_data.size > 0 else None
             spectrum_id = f"spectrum_{unique_id_data}" if spectrum_data is not None and spectrum_data.size > 0 else None
-            
+ 
             with h5py.File(output_hdf5_file, "r+") as h5_file:
                 sample_group_h5 = h5_file[sample_name_group]
                 if clip_patch_id: sample_group_h5.create_dataset(clip_patch_id, data=clipped_patch_data, compression="gzip")
