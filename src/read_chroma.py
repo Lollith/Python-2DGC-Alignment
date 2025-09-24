@@ -114,11 +114,7 @@ def read_chroma(filename, mod_time, max_val=None):
 
             # FIXME 
             print(f"Loaded {len(mv)} mass values")
-            print(f"Non-finite mass values: {np.sum(~np.isfinite(mv))}")
     
-            print(mv[~np.isfinite(mv)][:10])  # pour voir les premières masses invalides
-            print(iv[~np.isfinite(iv)][:10])  # idem pour les intensités
-
             range_min = math.ceil(get_var("mass_range_min").min())
             range_max = math.floor(get_var("mass_range_max").max())
             start_time = get_var("scan_acquisition_time")[0] / 60
