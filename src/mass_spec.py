@@ -192,9 +192,6 @@ def read_full_spectra_centroid(spectra_obj, max_val=None):
             [(mass_v, np.zeros_like(mass_v))]
             * (required_length - len(spectra_full_nom)))
 
-    print("--- %s seconds --- to compute full spectra centroid"
-          % (time.time() - start_time))
-
     spectra_full_nom = np.array(spectra_full_nom)
     return spectra_full_nom, debuts, fins
 

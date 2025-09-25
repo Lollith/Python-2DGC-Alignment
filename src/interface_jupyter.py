@@ -15,23 +15,22 @@ class Interface:
     Provides a widget-based interface for configuring and running GCGCMS analysis.
     Users can select individual files, folders, or subfolders - all compatible files will be processed.
     """
-    
+
     def __init__(self, supported_extensions):
         """Initialize the base UI with supported file extensions."""
         self.supported_extensions = supported_extensions
         self._setup_style()
         self._initialize_widgets()
-        
-    
+
     def _setup_environment(self):
         """Set up environment variables and paths."""
         self.docker_volume_path = os.getenv('DOCKER_VOLUME_PATH')
         self.host_volume_path = os.getenv('HOST_VOLUME_PATH')
-    
+
     def _setup_style(self):
         """Set up widget styling."""
         self.style = {'description_width': 'initial'}
-    
+
     def _initialize_widgets(self):
         """Initialize widget containers."""
         self._choosers = [] # input
@@ -50,27 +49,23 @@ class Interface:
             <b>Input files</b><br>
             <i>Select files ({", ".join(self.supported_extensions)}) or folders</i><br>
         ''')
-        
+
         self.add_path_button = widgets.Button(
-            description="Add Path", 
+            description="Add Path",
             button_style='success',
             icon='plus'
         )
-        
         self.remove_button = widgets.Button(
             description="Remove last Path", 
             button_style='warning',
             icon='trash'
         )
-        
         self.add_path_button.on_click(self.add_path_chooser)
         self.remove_button.on_click(self.remove_last_chooser)
-        
         self.button_box = widgets.HBox([
-            self.add_path_button, 
+            self.add_path_button,
             self.remove_button
         ])
-        
         self._vbox.children = (self.path_label, self.button_box)
 
     def _create_output_widgets(self):
@@ -112,7 +107,6 @@ class Interface:
             sandbox_path=self.docker_volume_path,
             title=f"Select a file ({', '.join(self.supported_extensions)}) or a folder"
         )
-        
         self._choosers.append(fc)
         self._update_chooser_display()
 
@@ -151,11 +145,10 @@ class Interface:
         if self._choosers:
             self._choosers.pop()
             self._update_chooser_display()
-    
+
     def _update_chooser_display(self):
         """Update the display of path choosers."""
         chooser_widgets = []
-        
         for i, fc in enumerate(self._choosers):
             # Add a separator and index for each chooser
             separator = widgets.HTML(f'<hr><b>Path {i+1}:</b>')
@@ -163,9 +156,7 @@ class Interface:
             selection_info = widgets.HTML(
                 value=f'<small style="color: #666;">Cliquez sur un fichier ou double-cliquez sur un dossier pour le sélectionner</small>'
             )
-            
             chooser_widgets.extend([separator, selection_info, fc])
-        
         self._vbox.children = (self.path_label, self.button_box, *chooser_widgets)
 
     def create_output_folder(self, b):
@@ -177,11 +168,9 @@ class Interface:
             show_only_dirs=True,
             title="Choisir l'emplacement pour le nouveau dossier"
         )
-    
     # Si un output_chooser existe déjà, utiliser son chemin comme point de départ
         if hasattr(self, 'output_chooser') and self.output_chooser.selected_path:
             location_chooser.reset(path=self.output_chooser.selected_path)
-
             # Créer un widget pour saisir le nom du dossier
         folder_name_widget = widgets.Text(
                 placeholder="Nom du nouveau dossier",
@@ -189,19 +178,16 @@ class Interface:
                 style={'description_width': 'initial'},
                 layout=widgets.Layout(width='300px')
         )
-        
         create_button = widgets.Button(
             description="Créer",
             button_style='success',
             icon='folder'
         )
-        
         cancel_button = widgets.Button(
             description="Annuler",
             button_style='info',
             icon='times'
         )
-        
         status_label = widgets.HTML(value="")
         # Label d'information sur l'emplacement actuel
         location_info = widgets.HTML(value="")
@@ -320,7 +306,7 @@ class Interface:
         """Create a widget with bold label."""
         bold_label = widgets.HTML(value=f'<b>{label}:</b>')
         return widgets.HBox([bold_label, widget])
-    
+
     def get_output_path(self):
         """Get the output path from the output chooser."""
         if hasattr(self, 'output_chooser') and self.output_chooser.selected:
@@ -328,7 +314,6 @@ class Interface:
             # print(f"📁 Output path selected: {selected}")
             return selected
         return None
-    
 
     def get_all_files_from_selections(self):
         """
@@ -341,21 +326,21 @@ class Interface:
 
         for i, fc in enumerate(self._choosers):
             selected = fc.selected_path
+            print(f"Processing selection {i+1}: {selected}")
             if not selected:
                 continue
 
             try:
                 selected_path = Path(selected)
-
                 if str(selected_path) in processed_paths:
                     continue
                 processed_paths.add(str(selected_path))
 
                 if fc.selected_filename:
-
                     if fc.selected_filename.endswith(self.supported_extensions):
                         full_path = selected_path / fc.selected_filename
                         all_files.append(str(full_path))
+                        print(f"📄 File added: {full_path}")
                         # print(f"📄 File added: {full_path}")
                     else:
                         print(f"⚠️  Unsupported file ignored: {fc.selected_filename}")

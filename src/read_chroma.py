@@ -221,7 +221,7 @@ def read_chromato_and_chromato_cube(filename,
     start_time = time.time()
     full_spectra = mass_spec.read_full_spectra_centroid(
         spectra_obj=spectra_obj)
-    print("full spectra computed", time.time()-start_time, 's')
+    print("Full spectra computed:", time.time()-start_time, 's')
 
     # spectra, debuts, fins = full_spectra
     chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra,
