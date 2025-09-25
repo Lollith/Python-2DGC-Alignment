@@ -371,11 +371,14 @@ def identification(filename,
 
         print("Peaks number: ", len(coordinates))
         if (plot_):
+            print("Plotting detected peaks...")
+            dir_save = "/app/data/figs/"
+            os.makedirs(dir_save, exist_ok=True)
             coordinates_in_chromato = projection.matrix_to_chromato(
                     coordinates, time_rn, mod_time, chromato_tic.shape)
             plot.visualizer((chromato_tic, time_rn), mod_time,
-                                title = f"peak detection with mode {mode} and method {method}",
-                                log_chromato = True, points=coordinates_in_chromato)
+                                title=f"peak_detection_with_mode_{mode}_and_method_{method}",
+                                log_chromato=True, points=coordinates_in_chromato, save=True, dir_save=dir_save)
 
         matches = matching.matching_nist_lib_from_chromato_cube(
                 (chromato_tic, time_rn, mass_range), baseline_cube, coordinates,
@@ -570,11 +573,15 @@ def sample_identification(path, file, output_path,
                           noise_factor=5, abs_thresholds=1000,
                           rel_thresholds=0.001,
                           cluster=0.5,
-                          min_distance=1, min_sigma=1, max_sigma=3, sigma_ratio=1.5,
+                          min_distance=1, min_sigma=1, max_sigma=3,
+                          sigma_ratio=1.5,
                           num_sigma=10,
-                          formated_spectra=True, match_factor_min=600, min_persistence=0.0002,
-                          overlap=0.5, eps=0.001, min_samples=1, nist=False, method_baseline="als",
-                          quant_method="mass", extract_patch=False, output_hdf5_file=None, plot_=True):
+                          formated_spectra=True, match_factor_min=600,
+                          min_persistence=0.0002,
+                          overlap=0.5, eps=0.001, min_samples=1, nist=False,
+                          method_baseline="als",
+                          quant_method="mass", extract_patch=False,
+                          output_hdf5_file=None, plot_=True):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 

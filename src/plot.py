@@ -281,7 +281,8 @@ def visualizer(
         center_pt=None,
         center_pt_window_1=None,
         center_pt_window_2=None,
-        save=False
+        save=False,
+        dir_save="figs/"
                ):
     r"""Plot mass spectrum
 
@@ -484,7 +485,7 @@ def visualizer(
         else:
             ax.plot(contour[:, 0], contour[:, 1], "b.")
     if (save):
-        plt.savefig("figs/chromato_" + title + ".png")
+        plt.savefig(f"{dir_save}chromato_" + title + ".png")
 
     plt.show(block=False)
     if (plotly):
