@@ -13,7 +13,7 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 from sklearn.preprocessing import StandardScaler
 from functools import partial
-from dbscan_peak import detection_mass_par_mass_Dog
+import dbscan_peak
 # from multiprocessing import Pool
 
 
@@ -341,79 +341,79 @@ def clustering(coordinates_all_mass, eps, min_samples):
     return np.array(coordinates)
 
 
-def blob_log_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
-                    sigma, num_sigma, min_sigma, max_sigma, overlap):
+# def blob_log_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
+#                     sigma, num_sigma, min_sigma, max_sigma, overlap):
 
-    intensity_threshold = intensity_threshold_decision_rule(
-        abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
-    blobs_log = skimage.feature.blob_log(m_chromato, min_sigma=min_sigma,
-                                         max_sigma=max_sigma,
-                                         num_sigma=num_sigma,
-                                         overlap=overlap,
-                                         threshold_abs=intensity_threshold)
+#     intensity_threshold = intensity_threshold_decision_rule(
+#         abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
+#     blobs_log = skimage.feature.blob_log(m_chromato, min_sigma=min_sigma,
+#                                          max_sigma=max_sigma,
+#                                          num_sigma=num_sigma,
+#                                          overlap=overlap,
+#                                          threshold_abs=intensity_threshold)
 
-    blobs_log[:, 2] = blobs_log[:, 2] * math.sqrt(2)
-    blobs_log = blobs_log.astype(int)
-    return blobs_log
+#     blobs_log[:, 2] = blobs_log[:, 2] * math.sqrt(2)
+#     blobs_log = blobs_log.astype(int)
+#     return blobs_log
 
 
-def LoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
-                                      rel_threshold, noise_factor, sigma,
-                                      num_sigma, min_sigma,
-                                      max_sigma, overlap):
-    """
-    Applies Laplacian of Gaussian (LoG) blob detection to each mass slice of a chromatographic data cube
-    using multiprocessing. All detected blobs are preserved, including duplicates at the same time coordinates
-    but from different masses.
+# def LoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
+#                                       rel_threshold, noise_factor, sigma,
+#                                       num_sigma, min_sigma,
+#                                       max_sigma, overlap):
+#     """
+#     Applies Laplacian of Gaussian (LoG) blob detection to each mass slice of a chromatographic data cube
+#     using multiprocessing. All detected blobs are preserved, including duplicates at the same time coordinates
+#     but from different masses.
 
-    Parameters:
-    -----------
-    chromato_cube : np.ndarray
-        3D chromatographic cube of shape (n_masses, t1, t2), where each slice represents a chromatogram for a specific mass.
-    seuil : float
-        Relative threshold used for blob detection (passed to threshold_rel).
-    num_sigma : int, optional (default=10)
-        Number of standard deviation values used for multi-scale LoG detection.
-    min_sigma : float, optional (default=10)
-        Minimum standard deviation for LoG kernel.
-    max_sigma : float, optional (default=30)
-        Maximum standard deviation for LoG kernel.
-    threshold_abs : float, optional (default=0)
-        Absolute threshold for LoG detection. Values below this are ignored.
+#     Parameters:
+#     -----------
+#     chromato_cube : np.ndarray
+#         3D chromatographic cube of shape (n_masses, t1, t2), where each slice represents a chromatogram for a specific mass.
+#     seuil : float
+#         Relative threshold used for blob detection (passed to threshold_rel).
+#     num_sigma : int, optional (default=10)
+#         Number of standard deviation values used for multi-scale LoG detection.
+#     min_sigma : float, optional (default=10)
+#         Minimum standard deviation for LoG kernel.
+#     max_sigma : float, optional (default=30)
+#         Maximum standard deviation for LoG kernel.
+#     threshold_abs : float, optional (default=0)
+#         Absolute threshold for LoG detection. Values below this are ignored.
 
-    Returns:
-    --------
-    np.ndarray
-        Array of shape (N, 4), where each row contains [mass_index, t1, t2, radius] for a detected blob.
-        Duplicates (blobs with same t1/t2 but different masses or radii) are not removed.
-    """
+#     Returns:
+#     --------
+#     np.ndarray
+#         Array of shape (N, 4), where each row contains [mass_index, t1, t2, radius] for a detected blob.
+#         Duplicates (blobs with same t1/t2 but different masses or radii) are not removed.
+#     """
 
-    cpu_count = min(multiprocessing.cpu_count(),32)
-    coordinates_all_mass = []
+#     cpu_count = min(multiprocessing.cpu_count(),32)
+#     coordinates_all_mass = []
 
-    with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(blob_log_kernel, [(i, chromato_cube[i], abs_threshold, rel_threshold, noise_factor, sigma, num_sigma, min_sigma, max_sigma, overlap) for i in range(len(chromato_cube))])):
-            for coord in result:
-                t1, t2, r = coord
+#     with multiprocessing.Pool(processes=cpu_count) as pool:
+#         for i, result in enumerate(pool.starmap(blob_log_kernel, [(i, chromato_cube[i], abs_threshold, rel_threshold, noise_factor, sigma, num_sigma, min_sigma, max_sigma, overlap) for i in range(len(chromato_cube))])):
+#             for coord in result:
+#                 t1, t2, r = coord
 
-                # TODO supprime les doublons : peut etre prefrer les garder
-                # is_in = False
-                # for j in range(len(coordinates_all_mass)):
-                #     m, cam_t1, cam_t2, cam_r = coordinates_all_mass[j]
-                #     if ([t1, t2] == [cam_t1, cam_t2]):
-                #         # Keep the element with the biggest radius
-                #         if (r > cam_r):
-                #             coordinates_all_mass[j][3] = r
-                #         is_in = True
-                #         break
-                # if (not is_in):
-                    # coordinates_all_mass.append([i, t1, t2, r])
-                #a supprimer jusquici
+#                 # TODO supprime les doublons : peut etre prefrer les garder
+#                 # is_in = False
+#                 # for j in range(len(coordinates_all_mass)):
+#                 #     m, cam_t1, cam_t2, cam_r = coordinates_all_mass[j]
+#                 #     if ([t1, t2] == [cam_t1, cam_t2]):
+#                 #         # Keep the element with the biggest radius
+#                 #         if (r > cam_r):
+#                 #             coordinates_all_mass[j][3] = r
+#                 #         is_in = True
+#                 #         break
+#                 # if (not is_in):
+#                     # coordinates_all_mass.append([i, t1, t2, r])
+#                 #a supprimer jusquici
                 
-                #a rajouter a la place:
-                coordinates_all_mass.append([i, t1, t2, r])
+#                 #a rajouter a la place:
+#                 coordinates_all_mass.append([i, t1, t2, r])
 
-    return np.array(coordinates_all_mass)
+#     return np.array(coordinates_all_mass)
 
 # def LoG_mass_per_mass(chromato_cube, seuil, num_sigma=10, min_sigma=10, max_sigma=30, threshold_abs=0):
 #     coordinates_all_mass = []
@@ -440,451 +440,451 @@ def LoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
 
 #     return np.array(coordinates_all_mass)
 
-def LoG(chromato_obj,
-        abs_threshold,
-        rel_threshold,
-        noise_factor,
-        sigma,
-        min_sigma,
-        max_sigma,
-        num_sigma,
-        mode,
-        chromato_cube,
-        cluster,
-        overlap,
-        eps,
-        min_samples,):
-    """
-    Detects blobs in a chromatogram using the Laplacian of Gaussian (LoG) method.
-    The function compute their radius, using a multi-scale approach to capture structures at different resolutions.
+# def LoG(chromato_obj,
+#         abs_threshold,
+#         rel_threshold,
+#         noise_factor,
+#         sigma,
+#         min_sigma,
+#         max_sigma,
+#         num_sigma,
+#         mode,
+#         chromato_cube,
+#         cluster,
+#         overlap,
+#         eps,
+#         min_samples,):
+#     """
+#     Detects blobs in a chromatogram using the Laplacian of Gaussian (LoG) method.
+#     The function compute their radius, using a multi-scale approach to capture structures at different resolutions.
     
-    Parameters:
-    ------------
-    chromato_obj : tuple
-        A tuple containing the chromatographic matrix and the corresponding time values.
-    seuil : float
-        Relative threshold used for blob detection.
-    num_sigma : int, optional (default=10)
-        Number of scales used for blob detection.
-    threshold_abs : float, optional (default=0)
-        Absolute threshold for blob detection.
-    mode : str, optional (default="tic")
-        Analysis mode. Can be "tic" (total ion current) or "mass_per_mass".
-        - If "mass_per_mass" is selected, blobs are detected separately for each mass spectrum in `chromato_cube` using multiprocessing for efficiency.
-    chromato_cube : ndarray, optional (default=None)
-        Chromatographic cube containing individual masses if "mass_per_mass" mode is used.
-    cluster : bool, optional (default=False)
-        Indicates whether clustering should be applied to the detected blobs to group nearby detections.
-    min_sigma : int, optional (default=1)
-        Minimum sigma value used for blob detection.
-    max_sigma : int, optional (default=30)
-        Maximum sigma value used for blob detection.
-    unique : bool, optional (default=True)
-        Indicates whether duplicate blobs should be removed.
+#     Parameters:
+#     ------------
+#     chromato_obj : tuple
+#         A tuple containing the chromatographic matrix and the corresponding time values.
+#     seuil : float
+#         Relative threshold used for blob detection.
+#     num_sigma : int, optional (default=10)
+#         Number of scales used for blob detection.
+#     threshold_abs : float, optional (default=0)
+#         Absolute threshold for blob detection.
+#     mode : str, optional (default="tic")
+#         Analysis mode. Can be "tic" (total ion current) or "mass_per_mass".
+#         - If "mass_per_mass" is selected, blobs are detected separately for each mass spectrum in `chromato_cube` using multiprocessing for efficiency.
+#     chromato_cube : ndarray, optional (default=None)
+#         Chromatographic cube containing individual masses if "mass_per_mass" mode is used.
+#     cluster : bool, optional (default=False)
+#         Indicates whether clustering should be applied to the detected blobs to group nearby detections.
+#     min_sigma : int, optional (default=1)
+#         Minimum sigma value used for blob detection.
+#     max_sigma : int, optional (default=30)
+#         Maximum sigma value used for blob detection.
+#     unique : bool, optional (default=True)
+#         Indicates whether duplicate blobs should be removed.
     
-    Returns: 
-    ---------
-    tuple (ndarray, ndarray)
-        - An array containing the coordinates of the detected blobs (without the radius).
-        - An array containing the radius values of the detected blobs.
-          * In "tic" mode, these radii correspond to detected blobs in the total ion current.
-          * In "mass_per_mass" mode, the radii correspond to blobs detected separately for each mass spectrum in `chromato_cube`.
-        - If "mass_per_mass" mode is used, multiprocessing is applied to improve performance when processing multiple mass spectra simultaneously.
+#     Returns: 
+#     ---------
+#     tuple (ndarray, ndarray)
+#         - An array containing the coordinates of the detected blobs (without the radius).
+#         - An array containing the radius values of the detected blobs.
+#           * In "tic" mode, these radii correspond to detected blobs in the total ion current.
+#           * In "mass_per_mass" mode, the radii correspond to blobs detected separately for each mass spectrum in `chromato_cube`.
+#         - If "mass_per_mass" mode is used, multiprocessing is applied to improve performance when processing multiple mass spectra simultaneously.
     
-    Notes:
-    ------
-        - In "3D" mode, the function processes a 3D chromatographic cube, with the blobs being detected across the entire 3D data set.
-        - In "mass_per_mass" mode, the function processes each individual mass spectrum separately in the chromatographic cube, which is useful for analyzing mass spectral data over time.
-        - If `cluster=True`, the function applies clustering to group nearby blobs together, which can be useful for merging multiple detections of the same feature.
-    """
+#     Notes:
+#     ------
+#         - In "3D" mode, the function processes a 3D chromatographic cube, with the blobs being detected across the entire 3D data set.
+#         - In "mass_per_mass" mode, the function processes each individual mass spectrum separately in the chromatographic cube, which is useful for analyzing mass spectral data over time.
+#         - If `cluster=True`, the function applies clustering to group nearby blobs together, which can be useful for merging multiple detections of the same feature.
+#     """
 
-    chromato_tic, time_rn = chromato_obj
-    if (mode == "3D"):
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
-        blobs_log = skimage.feature.blob_log(
-            chromato_cube,
-            min_sigma=min_sigma,
-            max_sigma=max_sigma,
-            num_sigma=num_sigma,
-            overlap=overlap,
-            threshold_abs=intensity_threshold
-            )
+#     chromato_tic, time_rn = chromato_obj
+#     if (mode == "3D"):
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
+#         blobs_log = skimage.feature.blob_log(
+#             chromato_cube,
+#             min_sigma=min_sigma,
+#             max_sigma=max_sigma,
+#             num_sigma=num_sigma,
+#             overlap=overlap,
+#             threshold_abs=intensity_threshold
+#             )
 
-        blobs_log = np.delete(blobs_log, 0, -1)
-        blobs_log[:, 2] = blobs_log[:, 2] * math.sqrt(2)
-        blobs_log = blobs_log.astype(int)
-        if (cluster is True):
-            blobs_log = clustering(blobs_log, eps, min_samples)
-        return np.delete(blobs_log, 2, -1), blobs_log[:, 2]
+#         blobs_log = np.delete(blobs_log, 0, -1)
+#         blobs_log[:, 2] = blobs_log[:, 2] * math.sqrt(2)
+#         blobs_log = blobs_log.astype(int)
+#         if (cluster is True):
+#             blobs_log = clustering(blobs_log, eps, min_samples)
+#         return np.delete(blobs_log, 2, -1), blobs_log[:, 2]
 
-    if (mode == "mass_per_mass"):
-        # Coordinates of all mass peaks with their radius
-        coordinates_all_mass = LoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma, num_sigma=num_sigma, min_sigma=min_sigma, max_sigma=max_sigma)
-        if (len(coordinates_all_mass) == 0):
-            return np.array([]),  np.array([])
-        coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+#     if (mode == "mass_per_mass"):
+#         # Coordinates of all mass peaks with their radius
+#         coordinates_all_mass = LoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma, num_sigma=num_sigma, min_sigma=min_sigma, max_sigma=max_sigma)
+#         if (len(coordinates_all_mass) == 0):
+#             return np.array([]),  np.array([])
+#         coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
          
-        if (cluster is True):
-            coordinates_all_mass = clustering(coordinates_all_mass, eps, 
-                                              min_samples)
-        return np.delete(coordinates_all_mass, 2, -1), coordinates_all_mass[: ,2]
-    else:
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
-        blobs_log = skimage.feature.blob_log(chromato_tic, min_sigma=min_sigma,
-                                             max_sigma=max_sigma,
-                                             num_sigma=num_sigma,
-                                             overlap=overlap,
-                                             threshold_abs=intensity_threshold)
+#         if (cluster is True):
+#             coordinates_all_mass = clustering(coordinates_all_mass, eps, 
+#                                               min_samples)
+#         return np.delete(coordinates_all_mass, 2, -1), coordinates_all_mass[: ,2]
+#     else:
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
+#         blobs_log = skimage.feature.blob_log(chromato_tic, min_sigma=min_sigma,
+#                                              max_sigma=max_sigma,
+#                                              num_sigma=num_sigma,
+#                                              overlap=overlap,
+#                                              threshold_abs=intensity_threshold)
 
-        # Compute radii in the 3rd column.
-        blobs_log[:, 2] = blobs_log[:, 2] * math.sqrt(2)
-        blobs_log = blobs_log.astype(int)
-        blobs_log = np.array(blobs_log)
-        return np.delete(blobs_log, 2, -1), blobs_log[:, 2]
-
-
-def blob_dog_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
-                    sigma, min_sigma, max_sigma, sigma_ratio, overlap):
-    intensity_threshold = intensity_threshold_decision_rule(
-        abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
-    blobs_dog = skimage.feature.blob_dog(m_chromato, min_sigma=min_sigma,
-                                         max_sigma=max_sigma, overlap=overlap,
-                                         threshold_abs=intensity_threshold,
-                                         sigma_ratio=sigma_ratio)
-
-    blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
-    blobs_dog = blobs_dog.astype(int)
-    return blobs_dog
+#         # Compute radii in the 3rd column.
+#         blobs_log[:, 2] = blobs_log[:, 2] * math.sqrt(2)
+#         blobs_log = blobs_log.astype(int)
+#         blobs_log = np.array(blobs_log)
+#         return np.delete(blobs_log, 2, -1), blobs_log[:, 2]
 
 
-def DoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
-                                      rel_threshold, noise_factor, sigma,
-                                      min_sigma, max_sigma, sigma_ratio,
-                                      overlap):
-    cpu_count = min(multiprocessing.cpu_count(),32)
-    #pool = multiprocessing.Pool(processes = cpu_count)
-    coordinates_all_mass = []
-    with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(blob_dog_kernel, [(i, chromato_cube[i], abs_threshold, rel_threshold, noise_factor, sigma, min_sigma, max_sigma, sigma_ratio, overlap) for i in range(len(chromato_cube))])):
-            for coord in result:
-                t1, t2, r = coord
-                #TODO supprime les doublons : peut etre prefrer les garder
-                # # Check if there is already this coord and keep the one with the biggest radius
-                # is_in = False
-                # for j in range(len(coordinates_all_mass)):
-                #     m, cam_t1, cam_t2, cam_r = coordinates_all_mass[j]
-                #     if ([t1, t2] == [cam_t1, cam_t2]):
-                #         # Keep the element with the biggest radius
-                #         if (r > cam_r):
-                #             coordinates_all_mass[j][3] = r
-                #         is_in = True
-                #         break
-                # if (not is_in):
-                #     coordinates_all_mass.append([i, t1, t2, r])
-                coordinates_all_mass.append([i, t1, t2, r])
+# def blob_dog_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
+#                     sigma, min_sigma, max_sigma, sigma_ratio, overlap):
+#     intensity_threshold = intensity_threshold_decision_rule(
+#         abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
+#     blobs_dog = skimage.feature.blob_dog(m_chromato, min_sigma=min_sigma,
+#                                          max_sigma=max_sigma, overlap=overlap,
+#                                          threshold_abs=intensity_threshold,
+#                                          sigma_ratio=sigma_ratio)
 
-    return np.array(coordinates_all_mass)
+#     blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
+#     blobs_dog = blobs_dog.astype(int)
+#     return blobs_dog
 
-# def DoG_mass_per_mass(chromato_cube, seuil, sigma_ratio=1.6, min_sigma=1, max_sigma=30, threshold_abs=0):
+
+# def DoG_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
+#                                       rel_threshold, noise_factor, sigma,
+#                                       min_sigma, max_sigma, sigma_ratio,
+#                                       overlap):
+#     cpu_count = min(multiprocessing.cpu_count(),32)
+#     #pool = multiprocessing.Pool(processes = cpu_count)
 #     coordinates_all_mass = []
-#     for i in range(chromato_cube.shape[0]):
-#         m_chromato = chromato_cube[i]
+#     with multiprocessing.Pool(processes=cpu_count) as pool:
+#         for i, result in enumerate(pool.starmap(blob_dog_kernel, [(i, chromato_cube[i], abs_threshold, rel_threshold, noise_factor, sigma, min_sigma, max_sigma, sigma_ratio, overlap) for i in range(len(chromato_cube))])):
+#             for coord in result:
+#                 t1, t2, r = coord
+#                 #TODO supprime les doublons : peut etre prefrer les garder
+#                 # # Check if there is already this coord and keep the one with the biggest radius
+#                 # is_in = False
+#                 # for j in range(len(coordinates_all_mass)):
+#                 #     m, cam_t1, cam_t2, cam_r = coordinates_all_mass[j]
+#                 #     if ([t1, t2] == [cam_t1, cam_t2]):
+#                 #         # Keep the element with the biggest radius
+#                 #         if (r > cam_r):
+#                 #             coordinates_all_mass[j][3] = r
+#                 #         is_in = True
+#                 #         break
+#                 # if (not is_in):
+#                 #     coordinates_all_mass.append([i, t1, t2, r])
+#                 coordinates_all_mass.append([i, t1, t2, r])
 
-#         blobs_dog = blob_dog(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=seuil, threshold= threshold_abs, sigma_ratio=sigma_ratio)
-#         blobs_dog[:, 2] = blobs_dog[:, 2] *  math.sqrt(2)
+#     return np.array(coordinates_all_mass)
 
-#         blobs_dog = blobs_dog.astype(int)
-#         for coord in blobs_dog:
-#             t1, t2, r = coord
-#             # Check if there is already this coord and keep the one with the biggest radius
-#             is_in = False
-#             for i in range(len(coordinates_all_mass)):
-#                 m, cam_t1, cam_t2, cam_r = coordinates_all_mass[i]
-#                 if ([t1, t2] == [cam_t1, cam_t2]):
-#                     # Keep the element with the biggest radius
-#                     if (r > cam_r):
-#                         coordinates_all_mass[i][3] = r
-#                     is_in = True
-#                     break
-#             if (not is_in):
+# # def DoG_mass_per_mass(chromato_cube, seuil, sigma_ratio=1.6, min_sigma=1, max_sigma=30, threshold_abs=0):
+# #     coordinates_all_mass = []
+# #     for i in range(chromato_cube.shape[0]):
+# #         m_chromato = chromato_cube[i]
+
+# #         blobs_dog = blob_dog(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, threshold_rel=seuil, threshold= threshold_abs, sigma_ratio=sigma_ratio)
+# #         blobs_dog[:, 2] = blobs_dog[:, 2] *  math.sqrt(2)
+
+# #         blobs_dog = blobs_dog.astype(int)
+# #         for coord in blobs_dog:
+# #             t1, t2, r = coord
+# #             # Check if there is already this coord and keep the one with the biggest radius
+# #             is_in = False
+# #             for i in range(len(coordinates_all_mass)):
+# #                 m, cam_t1, cam_t2, cam_r = coordinates_all_mass[i]
+# #                 if ([t1, t2] == [cam_t1, cam_t2]):
+# #                     # Keep the element with the biggest radius
+# #                     if (r > cam_r):
+# #                         coordinates_all_mass[i][3] = r
+# #                     is_in = True
+# #                     break
+# #             if (not is_in):
 #                 coordinates_all_mass.append([i, t1, t2, r])
                     
 #     return np.array(coordinates_all_mass)
 
 
-def DoG(
-        chromato_obj,
-        abs_threshold,
-        rel_threshold,
-        noise_factor,
-        sigma,
-        min_sigma,
-        max_sigma,
-        sigma_ratio,
-        mode,
-        chromato_cube,
-        cluster,
-        overlap,
-        eps,
-        min_samples,
-        ):
-    """
-    Detects blobs in a 2D or 3D chromatogram using the Difference of Gaussians (DoG) method.
+# def DoG(
+#         chromato_obj,
+#         abs_threshold,
+#         rel_threshold,
+#         noise_factor,
+#         sigma,
+#         min_sigma,
+#         max_sigma,
+#         sigma_ratio,
+#         mode,
+#         chromato_cube,
+#         cluster,
+#         overlap,
+#         eps,
+#         min_samples,
+#         ):
+#     """
+#     Detects blobs in a 2D or 3D chromatogram using the Difference of Gaussians (DoG) method.
     
-    Parameters:
-    ------------
-    chromato_obj : tuple
-        A tuple containing the chromatographic matrix and the corresponding time values.
-    seuil : float
-        Relative threshold used for blob detection.
-    sigma_ratio : float, optional (default=1.6)
-        The ratio between the standard deviations of the two Gaussian functions used in the DoG filter.
-    threshold_abs : float, optional (default=0)
-        Absolute threshold for blob detection.
-    mode : str, optional (default="tic")
-        Analysis mode. Can be:
-        - "tic" (total ion current): Process the entire chromatogram for blob detection.
-        - "mass_per_mass": Process each mass spectrum separately.
-        - "3D": Process a 3D chromatographic cube for blob detection.
-    chromato_cube : ndarray, optional (default=None)
-        Chromatographic cube containing individual masses if "mass_per_mass" or "3D" mode is used.
-    cluster : bool, optional (default=False)
-        Indicates whether clustering should be applied to the detected blobs to group nearby detections.
-    min_sigma : int, optional (default=1)
-        Minimum sigma value used for blob detection.
-    max_sigma : int, optional (default=30)
-        Maximum sigma value used for blob detection.
-    unique : bool, optional (default=True)
-        Indicates whether duplicate blobs should be removed.
+#     Parameters:
+#     ------------
+#     chromato_obj : tuple
+#         A tuple containing the chromatographic matrix and the corresponding time values.
+#     seuil : float
+#         Relative threshold used for blob detection.
+#     sigma_ratio : float, optional (default=1.6)
+#         The ratio between the standard deviations of the two Gaussian functions used in the DoG filter.
+#     threshold_abs : float, optional (default=0)
+#         Absolute threshold for blob detection.
+#     mode : str, optional (default="tic")
+#         Analysis mode. Can be:
+#         - "tic" (total ion current): Process the entire chromatogram for blob detection.
+#         - "mass_per_mass": Process each mass spectrum separately.
+#         - "3D": Process a 3D chromatographic cube for blob detection.
+#     chromato_cube : ndarray, optional (default=None)
+#         Chromatographic cube containing individual masses if "mass_per_mass" or "3D" mode is used.
+#     cluster : bool, optional (default=False)
+#         Indicates whether clustering should be applied to the detected blobs to group nearby detections.
+#     min_sigma : int, optional (default=1)
+#         Minimum sigma value used for blob detection.
+#     max_sigma : int, optional (default=30)
+#         Maximum sigma value used for blob detection.
+#     unique : bool, optional (default=True)
+#         Indicates whether duplicate blobs should be removed.
     
-    Returns: 
-    ---------
-    tuple (ndarray, ndarray)
-        - An array containing the coordinates of the detected blobs (without the radius).
-        - An array containing the radius values of the detected blobs.
-          * In "tic" mode, these radii correspond to blobs detected in the total ion current.
-          * In "mass_per_mass" mode, the radii correspond to blobs detected separately for each mass spectrum in `chromato_cube`.
-          * In "3D" mode, blobs are detected in a 3D chromatographic cube and the radii are adjusted accordingly.
-        - If "mass_per_mass" or "3D" mode is used, multiprocessing is applied to improve performance when processing multiple mass spectra or cube slices simultaneously.
-    """
+#     Returns: 
+#     ---------
+#     tuple (ndarray, ndarray)
+#         - An array containing the coordinates of the detected blobs (without the radius).
+#         - An array containing the radius values of the detected blobs.
+#           * In "tic" mode, these radii correspond to blobs detected in the total ion current.
+#           * In "mass_per_mass" mode, the radii correspond to blobs detected separately for each mass spectrum in `chromato_cube`.
+#           * In "3D" mode, blobs are detected in a 3D chromatographic cube and the radii are adjusted accordingly.
+#         - If "mass_per_mass" or "3D" mode is used, multiprocessing is applied to improve performance when processing multiple mass spectra or cube slices simultaneously.
+#     """
 
-    chromato_tic, time_rn = chromato_obj
-    # Compute DoG on the entire chromato cube
-    if (mode == "3D"):
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
+#     chromato_tic, time_rn = chromato_obj
+#     # Compute DoG on the entire chromato cube
+#     if (mode == "3D"):
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
         
-        blobs_dog = skimage.feature.blob_dog(
-            chromato_cube, min_sigma=min_sigma,
-            max_sigma=max_sigma, overlap=overlap,
-            threshold=intensity_threshold,
-            sigma_ratio=sigma_ratio)
+#         blobs_dog = skimage.feature.blob_dog(
+#             chromato_cube, min_sigma=min_sigma,
+#             max_sigma=max_sigma, overlap=overlap,
+#             threshold=intensity_threshold,
+#             sigma_ratio=sigma_ratio)
         
-        blobs_dog = np.delete(blobs_dog, 0, -1)
-        blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
-        blobs_dog = blobs_dog.astype(int)
-        if cluster is True:
-            blobs_dog = clustering(blobs_dog, eps, min_samples)
-        return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
-    if (mode == "mass_per_mass"):
-        # # Coordinates of all mass peaks with their radius
+#         blobs_dog = np.delete(blobs_dog, 0, -1)
+#         blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
+#         blobs_dog = blobs_dog.astype(int)
+#         if cluster is True:
+#             blobs_dog = clustering(blobs_dog, eps, min_samples)
+#         return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
+#     if (mode == "mass_per_mass"):
+#         # # Coordinates of all mass peaks with their radius
 
-        # coordinates_all_mass = DoG_mass_per_mass_multiprocessing(
-        #     chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
-        #     min_sigma, max_sigma, sigma_ratio, overlap)
+#         # coordinates_all_mass = DoG_mass_per_mass_multiprocessing(
+#         #     chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
+#         #     min_sigma, max_sigma, sigma_ratio, overlap)
 
-        # if (len(coordinates_all_mass) == 0):
-        #     return np.array([]),  np.array([])
-        # # coordinates_all_mass = DoG_mass_per_mass(chromato_cube, seuil, sigma_ratio=sigma_ratio, min_sigma=min_sigma, max_sigma=max_sigma, threshold_abs=threshold_abs * np.max(chromato))
-        # coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+#         # if (len(coordinates_all_mass) == 0):
+#         #     return np.array([]),  np.array([])
+#         # # coordinates_all_mass = DoG_mass_per_mass(chromato_cube, seuil, sigma_ratio=sigma_ratio, min_sigma=min_sigma, max_sigma=max_sigma, threshold_abs=threshold_abs * np.max(chromato))
+#         # coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
 
-        # if cluster is True:
-        #     coordinates_all_mass = clustering(coordinates_all_mass, eps,
-        #                                       min_samples)
-        # return np.delete(coordinates_all_mass, 2, -1), coordinates_all_mass[:,2]
+#         # if cluster is True:
+#         #     coordinates_all_mass = clustering(coordinates_all_mass, eps,
+#         #                                       min_samples)
+#         # return np.delete(coordinates_all_mass, 2, -1), coordinates_all_mass[:,2]
 
-        coordinates= detection_mass_par_mass_Dog(chromato_cube,chromato_obj,
-                                                abs_threshold,
-                                                rel_threshold,
-                                                noise_factor,
-                                                sigma,
-                                                min_sigma,
-                                                max_sigma,
-                                                sigma_ratio,
-                                                overlap)
-        return coordinates
-    # TIC
-    else:
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
+#         coordinates = dbscan_peak.detection_mass_par_mass_Dog(chromato_cube,chromato_obj,
+#                                                 abs_threshold,
+#                                                 rel_threshold,
+#                                                 noise_factor,
+#                                                 sigma,
+#                                                 min_sigma,
+#                                                 max_sigma,
+#                                                 sigma_ratio,
+#                                                 overlap)
+#         return coordinates
+#     # TIC
+#     else:
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
 
-        blobs_dog = skimage.feature.blob_dog(chromato_tic, min_sigma=min_sigma,
-                                             max_sigma=max_sigma, 
-                                             overlap=overlap,
-                                             threshold=intensity_threshold,
-                                             sigma_ratio=sigma_ratio)
+#         blobs_dog = skimage.feature.blob_dog(chromato_tic, min_sigma=min_sigma,
+#                                              max_sigma=max_sigma, 
+#                                              overlap=overlap,
+#                                              threshold=intensity_threshold,
+#                                              sigma_ratio=sigma_ratio)
 
 
 
-        # blobs_dog shape: (N, 3), where columns are (y, x, sigma)
-        # Adjust radii: radius = sigma * sqrt(2)
-        radii = blobs_dog[:, 2] * math.sqrt(2)
+#         # blobs_dog shape: (N, 3), where columns are (y, x, sigma)
+#         # Adjust radii: radius = sigma * sqrt(2)
+#         radii = blobs_dog[:, 2] * math.sqrt(2)
 
-        # Keep coordinates as float (y,x)
-        centers = blobs_dog[:, :2]
+#         # Keep coordinates as float (y,x)
+#         centers = blobs_dog[:, :2]
         
-        # Compute radii in the 3rd column.
-        # blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
-        # blobs_dog = blobs_dog.astype(int)
-        # blobs_dog = np.array(blobs_dog)
-        # return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
+#         # Compute radii in the 3rd column.
+#         # blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
+#         # blobs_dog = blobs_dog.astype(int)
+#         # blobs_dog = np.array(blobs_dog)
+#         # return np.delete(blobs_dog, 2, -1), blobs_dog[:, 2]
  
-        return centers,radii
+#         return centers,radii
 
-def blob_doh_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
-                    sigma, num_sigma, min_sigma, max_sigma, overlap):
+# def blob_doh_kernel(i, m_chromato, abs_threshold, rel_threshold, noise_factor,
+#                     sigma, num_sigma, min_sigma, max_sigma, overlap):
 
-    intensity_threshold = intensity_threshold_decision_rule(
-        abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
-    blobs_doh = blob_doh(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma,
-                         num_sigma=num_sigma, overlap=overlap,
-                         threshold_abs=intensity_threshold)
+#     intensity_threshold = intensity_threshold_decision_rule(
+#         abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
+#     blobs_doh = blob_doh(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma,
+#                          num_sigma=num_sigma, overlap=overlap,
+#                          threshold_abs=intensity_threshold)
 
-    blobs_doh = blobs_doh.astype(int)
-    return blobs_doh
+#     blobs_doh = blobs_doh.astype(int)
+#     return blobs_doh
 
 
-def DoH_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
-                                      rel_threshold, noise_factor, sigma,
-                                      num_sigma, min_sigma, max_sigma,
-                                      overlap):
-    cpu_count = min(multiprocessing.cpu_count(),32)
-    # pool = multiprocessing.Pool(processes = cpu_count)
-    coordinates_all_mass = []
-    with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(blob_doh_kernel, [(i, chromato_cube[i], abs_threshold, rel_threshold, noise_factor, sigma, num_sigma, min_sigma, max_sigma, overlap) for i in range(len(chromato_cube))])):
-            for coord in result:
-                t1, t2, r = coord
-                # is_in = False
-                # for j in range(len(coordinates_all_mass)):
-                #     m, cam_t1, cam_t2, cam_r = coordinates_all_mass[j]
-                #     if ([t1, t2] == [cam_t1, cam_t2]):
-                #         # Keep the element with the biggest radius
-                #         if (r > cam_r):
-                #             coordinates_all_mass[j][3] = r
-                #         is_in = True
-                #         break
-                # if (not is_in):
-                #     coordinates_all_mass.append([i, t1, t2, r])
-                coordinates_all_mass.append([i, t1, t2, r])
-    return np.array(coordinates_all_mass)
-
-# def DoH_mass_per_mass(chromato_cube, seuil, num_sigma=10, min_sigma=10, max_sigma=30, threshold_abs=0):
+# def DoH_mass_per_mass_multiprocessing(chromato_cube, abs_threshold,
+#                                       rel_threshold, noise_factor, sigma,
+#                                       num_sigma, min_sigma, max_sigma,
+#                                       overlap):
+#     cpu_count = min(multiprocessing.cpu_count(),32)
+#     # pool = multiprocessing.Pool(processes = cpu_count)
 #     coordinates_all_mass = []
-#     for i in range(chromato_cube.shape[0]):
-#         m_chromato = chromato_cube[i]
-
-#         blobs_doh = blob_doh(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=seuil, threshold = threshold_abs)
-#         blobs_doh = blobs_doh.astype(int)
-#         for coord in blobs_doh:
-#             t1, t2, r = coord
-#             is_in = False
-#             for i in range(len(coordinates_all_mass)):
-#                 m, cam_t1, cam_t2, cam_r = coordinates_all_mass[i]
-#                 if ([t1, t2] == [cam_t1, cam_t2]):
-#                     # Keep the element with the biggest radius
-#                     if (r > cam_r):
-#                         coordinates_all_mass[i][3] = r
-#                     is_in = True
-#                     break
-#             if (not is_in):
+#     with multiprocessing.Pool(processes=cpu_count) as pool:
+#         for i, result in enumerate(pool.starmap(blob_doh_kernel, [(i, chromato_cube[i], abs_threshold, rel_threshold, noise_factor, sigma, num_sigma, min_sigma, max_sigma, overlap) for i in range(len(chromato_cube))])):
+#             for coord in result:
+#                 t1, t2, r = coord
+#                 # is_in = False
+#                 # for j in range(len(coordinates_all_mass)):
+#                 #     m, cam_t1, cam_t2, cam_r = coordinates_all_mass[j]
+#                 #     if ([t1, t2] == [cam_t1, cam_t2]):
+#                 #         # Keep the element with the biggest radius
+#                 #         if (r > cam_r):
+#                 #             coordinates_all_mass[j][3] = r
+#                 #         is_in = True
+#                 #         break
+#                 # if (not is_in):
+#                 #     coordinates_all_mass.append([i, t1, t2, r])
 #                 coordinates_all_mass.append([i, t1, t2, r])
-
 #     return np.array(coordinates_all_mass)
 
-def DoH(chromato_obj,
-        abs_threshold,
-        rel_threshold,
-        noise_factor,
-        sigma,
-        min_sigma,
-        max_sigma,
-        num_sigma,
-        mode,
-        chromato_cube,
-        cluster,
-        overlap,
-        eps,
-        min_samples):
-    """
-    Detects blobs in a 2D chromatogram using the Determinant of Hessian (DoH) method.
+# # def DoH_mass_per_mass(chromato_cube, seuil, num_sigma=10, min_sigma=10, max_sigma=30, threshold_abs=0):
+# #     coordinates_all_mass = []
+# #     for i in range(chromato_cube.shape[0]):
+# #         m_chromato = chromato_cube[i]
+
+# #         blobs_doh = blob_doh(m_chromato, min_sigma=min_sigma, max_sigma=max_sigma, num_sigma=num_sigma, threshold_rel=seuil, threshold = threshold_abs)
+# #         blobs_doh = blobs_doh.astype(int)
+# #         for coord in blobs_doh:
+# #             t1, t2, r = coord
+# #             is_in = False
+# #             for i in range(len(coordinates_all_mass)):
+# #                 m, cam_t1, cam_t2, cam_r = coordinates_all_mass[i]
+# #                 if ([t1, t2] == [cam_t1, cam_t2]):
+# #                     # Keep the element with the biggest radius
+# #                     if (r > cam_r):
+# #                         coordinates_all_mass[i][3] = r
+# #                     is_in = True
+# #                     break
+# #             if (not is_in):
+# #                 coordinates_all_mass.append([i, t1, t2, r])
+
+# #     return np.array(coordinates_all_mass)
+
+# def DoH(chromato_obj,
+#         abs_threshold,
+#         rel_threshold,
+#         noise_factor,
+#         sigma,
+#         min_sigma,
+#         max_sigma,
+#         num_sigma,
+#         mode,
+#         chromato_cube,
+#         cluster,
+#         overlap,
+#         eps,
+#         min_samples):
+#     """
+#     Detects blobs in a 2D chromatogram using the Determinant of Hessian (DoH) method.
     
-    Parameters:
-    ------------
-    chromato_obj : tuple
-        A tuple containing the chromatographic matrix and the corresponding time values.
-    seuil : float
-        Relative threshold used for blob detection.
-    num_sigma : int, optional (default=10)
-        Number of scales used for blob detection.
-    threshold_abs : float, optional (default=0)
-        Absolute threshold for blob detection.
-    mode : str, optional (default="tic")
-        Analysis mode. Can be "tic" (total ion current) or "mass_per_mass".
-    chromato_cube : ndarray, optional (default=None)
-        Chromatographic cube containing individual masses if "mass_per_mass" mode is used.
-    cluster : bool, optional (default=False)
-        Indicates whether clustering should be applied to the detected blobs.
-    min_sigma : int, optional (default=10)
-        Minimum sigma value used for blob detection.
-    max_sigma : int, optional (default=30)
-        Maximum sigma value used for blob detection.
-    unique : bool, optional (default=True)
-        Indicates whether duplicate blobs should be removed.
+#     Parameters:
+#     ------------
+#     chromato_obj : tuple
+#         A tuple containing the chromatographic matrix and the corresponding time values.
+#     seuil : float
+#         Relative threshold used for blob detection.
+#     num_sigma : int, optional (default=10)
+#         Number of scales used for blob detection.
+#     threshold_abs : float, optional (default=0)
+#         Absolute threshold for blob detection.
+#     mode : str, optional (default="tic")
+#         Analysis mode. Can be "tic" (total ion current) or "mass_per_mass".
+#     chromato_cube : ndarray, optional (default=None)
+#         Chromatographic cube containing individual masses if "mass_per_mass" mode is used.
+#     cluster : bool, optional (default=False)
+#         Indicates whether clustering should be applied to the detected blobs.
+#     min_sigma : int, optional (default=10)
+#         Minimum sigma value used for blob detection.
+#     max_sigma : int, optional (default=30)
+#         Maximum sigma value used for blob detection.
+#     unique : bool, optional (default=True)
+#         Indicates whether duplicate blobs should be removed.
     
-    Returns:
-    ---------
-    tuple (ndarray, ndarray)
-        - An array containing the coordinates of the detected blobs (without the radius).
-        - An array containing the radius values of the detected blobs.
-        Uses multiprocessing for "mass_per_mass" mode to improve performance when processing multiple mass spectra.
-    """
+#     Returns:
+#     ---------
+#     tuple (ndarray, ndarray)
+#         - An array containing the coordinates of the detected blobs (without the radius).
+#         - An array containing the radius values of the detected blobs.
+#         Uses multiprocessing for "mass_per_mass" mode to improve performance when processing multiple mass spectra.
+#     """
 
-    chromato_tic, time_rn = chromato_obj
-    if (mode == "3D"):
-        print("None 3D mode for DoH")
-        return
+#     chromato_tic, time_rn = chromato_obj
+#     if (mode == "3D"):
+#         print("None 3D mode for DoH")
+#         return
 
-    if (mode == "mass_per_mass"):
-        coordinates_all_mass = DoH_mass_per_mass_multiprocessing(
-            chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
-            num_sigma=num_sigma, min_sigma=min_sigma, max_sigma=max_sigma,
-            overlap=overlap)
+#     if (mode == "mass_per_mass"):
+#         coordinates_all_mass = DoH_mass_per_mass_multiprocessing(
+#             chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
+#             num_sigma=num_sigma, min_sigma=min_sigma, max_sigma=max_sigma,
+#             overlap=overlap)
 
-        if (len(coordinates_all_mass) == 0):
-            return np.array([]),  np.array([])
+#         if (len(coordinates_all_mass) == 0):
+#             return np.array([]),  np.array([])
 
-        coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
-        if (cluster == True):
-            coordinates_all_mass = clustering(coordinates_all_mass, eps,
-                                              min_samples)
+#         coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+#         if (cluster == True):
+#             coordinates_all_mass = clustering(coordinates_all_mass, eps,
+#                                               min_samples)
 
-        return np.delete(coordinates_all_mass, 2 ,-1), coordinates_all_mass[:,2]
+#         return np.delete(coordinates_all_mass, 2 ,-1), coordinates_all_mass[:,2]
 
-    else:
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
-        blobs_doh = skimage.feature.blob_doh(chromato_tic, min_sigma=min_sigma,
-                                             max_sigma=max_sigma,
-                                             num_sigma=num_sigma,
-                                             overlap=overlap,
-                                             threshold_abs=intensity_threshold)
+#     else:
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
+#         blobs_doh = skimage.feature.blob_doh(chromato_tic, min_sigma=min_sigma,
+#                                              max_sigma=max_sigma,
+#                                              num_sigma=num_sigma,
+#                                              overlap=overlap,
+#                                              threshold_abs=intensity_threshold)
 
-        blobs_doh = blobs_doh.astype(int)
-        blobs_doh = np.array(blobs_doh)
-        return np.delete(blobs_doh, 2 ,-1), blobs_doh[:,2]
+#         blobs_doh = blobs_doh.astype(int)
+#         blobs_doh = np.array(blobs_doh)
+#         return np.delete(blobs_doh, 2 ,-1), blobs_doh[:,2]
 
 # def pers_hom_kernel(i, m_chromato, dynamic_threshold_fact, threshold_abs):
 #     g0 = imagepers.persistence(m_chromato)
@@ -898,254 +898,254 @@ def DoH(chromato_obj,
 #         pts.append((x, y))
 #     return pts
 
-def pers_hom_kernel(mass_idx, m_chromato, abs_threshold, rel_threshold,
-                    noise_factor, sigma,  min_persistence):
-    """
-    Detect robust peaks in a 2D chromatogram using topological persistence
-    and intensity-based filtering.
+# def pers_hom_kernel(mass_idx, m_chromato, abs_threshold, rel_threshold,
+#                     noise_factor, sigma,  min_persistence):
+#     """
+#     Detect robust peaks in a 2D chromatogram using topological persistence
+#     and intensity-based filtering.
 
-    Parameters
-    ----------
-    mass_idx : int
-        index/mass number
-    m_chromato : ndarray
-        2D matrix (e.g., chromatogram) with intensity values.
-     min_persistence : float
-        Minimum persistence value as fraction of max intensity
-    threshold_abs : float
-        Minimum intensity required (as a fraction of max intensity).
+#     Parameters
+#     ----------
+#     mass_idx : int
+#         index/mass number
+#     m_chromato : ndarray
+#         2D matrix (e.g., chromatogram) with intensity values.
+#      min_persistence : float
+#         Minimum persistence value as fraction of max intensity
+#     threshold_abs : float
+#         Minimum intensity required (as a fraction of max intensity).
 
-    Returns
-    -------
-    List[Tuple[int, int]]
-        List of (x, y) coordinates corresponding to robust peak positions.
-    """
-    intensity_threshold = intensity_threshold_decision_rule(
-        abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
+#     Returns
+#     -------
+#     List[Tuple[int, int]]
+#         List of (x, y) coordinates corresponding to robust peak positions.
+#     """
+#     intensity_threshold = intensity_threshold_decision_rule(
+#         abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
 
-    if m_chromato.size == 0:
-        return []
+#     if m_chromato.size == 0:
+#         return []
 
-    persistent_groups = imagepers.persistence(m_chromato)
-    max_intensity = np.max(m_chromato) if np.max(m_chromato) > 0 else 1.0
+#     persistent_groups = imagepers.persistence(m_chromato)
+#     max_intensity = np.max(m_chromato) if np.max(m_chromato) > 0 else 1.0
 
-    peak_coords = []
-    for birth_coord, birth_val, persistence_val, death_coord in persistent_groups:
-        x, y = birth_coord
+#     peak_coords = []
+#     for birth_coord, birth_val, persistence_val, death_coord in persistent_groups:
+#         x, y = birth_coord
 
-        # Skip low absolute intensity
-        if m_chromato[x, y] < intensity_threshold:
-            continue
+#         # Skip low absolute intensity
+#         if m_chromato[x, y] < intensity_threshold:
+#             continue
 
-        # Skip low persistence
-        if persistence_val < min_persistence * max_intensity:
-            continue
+#         # Skip low persistence
+#         if persistence_val < min_persistence * max_intensity:
+#             continue
 
-        peak_coords.append((x, y))
+#         peak_coords.append((x, y))
 
-    return peak_coords
-
-
-def process_slice(mass_idx, chromato_cube,  abs_threshold, rel_threshold, noise_factor, sigma, min_persistence):
-    result = pers_hom_kernel(mass_idx, chromato_cube[mass_idx], abs_threshold, rel_threshold, noise_factor, sigma, min_persistence)
-    return [[mass_idx, x, y] for x, y in result]
+#     return peak_coords
 
 
+# def process_slice(mass_idx, chromato_cube,  abs_threshold, rel_threshold, noise_factor, sigma, min_persistence):
+#     result = pers_hom_kernel(mass_idx, chromato_cube[mass_idx], abs_threshold, rel_threshold, noise_factor, sigma, min_persistence)
+#     return [[mass_idx, x, y] for x, y in result]
 
-def pers_hom_mass_per_mass_multiprocessing(
-        chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
-        min_persistence):
-    """
-    Process each mass slice in parallel to detect peaks.
+
+
+# def pers_hom_mass_per_mass_multiprocessing(
+#         chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
+#         min_persistence):
+#     """
+#     Process each mass slice in parallel to detect peaks.
     
-    Parameters
-    ----------
-    chromato_cube : ndarray
-        3D array (mass, retention time, intensity)
-    dynamic_threshold_fact : float
-        Minimum persistence value relative to max intensity
-    min_persistence : float
-        Minimum persistence value relative to max intensity
-    threshold_abs : float
-        Minimum absolute intensity relative to max intensity
+#     Parameters
+#     ----------
+#     chromato_cube : ndarray
+#         3D array (mass, retention time, intensity)
+#     dynamic_threshold_fact : float
+#         Minimum persistence value relative to max intensity
+#     min_persistence : float
+#         Minimum persistence value relative to max intensity
+#     threshold_abs : float
+#         Minimum absolute intensity relative to max intensity
         
-    Returns
-    -------
-    ndarray
-        Array of [mass_idx, x, y] coordinates for detected peaks
-    """
-    # cpu_count = multiprocessing.cpu_count()
-    # coordinates_all_mass = []
-    # # pool = multiprocessing.Pool(processes = cpu_count)
-    # with multiprocessing.Pool(processes=cpu_count) as pool:
-    #     for i, result in enumerate(pool.starmap(pers_hom_kernel, [(i, chromato_cube[i], min_persistence, threshold_abs) for i in range(len(chromato_cube))])):
-    #         for x,y in result:
-    #             coordinates_all_mass.append([i,x,y])
+#     Returns
+#     -------
+#     ndarray
+#         Array of [mass_idx, x, y] coordinates for detected peaks
+#     """
+#     # cpu_count = multiprocessing.cpu_count()
+#     # coordinates_all_mass = []
+#     # # pool = multiprocessing.Pool(processes = cpu_count)
+#     # with multiprocessing.Pool(processes=cpu_count) as pool:
+#     #     for i, result in enumerate(pool.starmap(pers_hom_kernel, [(i, chromato_cube[i], min_persistence, threshold_abs) for i in range(len(chromato_cube))])):
+#     #         for x,y in result:
+#     #             coordinates_all_mass.append([i,x,y])
 
-    # return np.array(coordinates_all_mass)
+#     # return np.array(coordinates_all_mass)
     
-    coordinates_all_mass = []
+#     coordinates_all_mass = []
 
-    # using partial to use map() with different parameters
-    partial_func = partial(process_slice,
-                           chromato_cube=chromato_cube,
-                           abs_threshold=abs_threshold,
-                           rel_threshold=rel_threshold,
-                           noise_factor=noise_factor,
-                           sigma=sigma,
-                           min_persistence=min_persistence)
+#     # using partial to use map() with different parameters
+#     partial_func = partial(process_slice,
+#                            chromato_cube=chromato_cube,
+#                            abs_threshold=abs_threshold,
+#                            rel_threshold=rel_threshold,
+#                            noise_factor=noise_factor,
+#                            sigma=sigma,
+#                            min_persistence=min_persistence)
 
-    with ProcessPoolExecutor() as executor:
-        results = list(executor.map(partial_func, range(len(chromato_cube))))
-        for result in results:
-            coordinates_all_mass.extend(result)
+#     with ProcessPoolExecutor() as executor:
+#         results = list(executor.map(partial_func, range(len(chromato_cube))))
+#         for result in results:
+#             coordinates_all_mass.extend(result)
 
-    return np.array(coordinates_all_mass)
-
-
-def pers_hom(chromato_obj,
-             abs_threshold,
-             rel_threshold,
-             noise_factor,
-             sigma,
-             min_persistence,
-             mode,
-             chromato_cube,
-             cluster,
-             eps,
-             min_samples):
-    """
-    This function applies persistent homology to detect significant peaks in 
-    a chromatographic dataset. It supports two modes:
-    - "mass_per_mass": Applies persistent homology to each mass slice individually.
-    - `tic` (default): Computes persistent homology directly on the chromatogram.
-
-    Parameters:
-    -----------
-    chromato_obj : tuple (np.ndarray, np.ndarray)
-        Tuple containing the chromatogram (2D array) and retention times.
-    seuil = dynamic_threshold_fact: float
-        Relative intensity threshold for peak detection.
-    threshold_abs : float, optional (default=None)
-        Absolute intensity threshold for peak detection.
-    mode : str, optional (default="tic")
-        Peak detection mode, can be `"mass_per_mass"` or `"tic"`.
-    cluster : bool, optional (default=False)
-        If `True`, applies clustering to detected peaks.
-    chromato_cube : np.ndarray, optional (default=None)
-        3D array representing the chromatogram cube (mass, retention time, intensity).
-        Required for `"mass_per_mass"` mode.
-    unique : bool, optional (default=True)
-        If `True`, ensures detected peaks are unique.
-
-    Returns:
-    --------
-    np.ndarray
-        - If mode is `"mass_per_mass"`: Returns detected peak coordinates across mass slices, using multiprocessing.
-        - If mode is `"tic"`: Returns significant peak coordinates based on persistent homology.
-    """
-
-    chromato_tic, time_rn = chromato_obj
-    if (mode == "3D"):
-        raise ValueError("3D mode is not supported for persistent homology.")
-    if (mode == "mass_per_mass"):
-        if chromato_cube is None:
-            raise ValueError("chromato_cube is required for mass_per_mass mode")
-
-        coordinates_all_mass = pers_hom_mass_per_mass_multiprocessing(
-            chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
-            min_persistence)
-
-        # We delete masse dimension
-        if (len(coordinates_all_mass) > 0):
-            coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
-        if cluster is False:
-            return coordinates_all_mass
-        return clustering(coordinates_all_mass, eps, min_samples)
-    else:
-
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
-
-        g0 = imagepers.persistence(chromato_tic)
-        pts = []
-        # # max_peak_val = np.max(chromato)
-        # for i, homclass in enumerate(g0):
-        #     p_birth, bl, pers, p_death = homclass
-        #     x, y = p_birth
-        #     '''if (chromato[x,y] < seuil * max_peak_val):
-        #         continue'''
-        #     pts.append((x, y))
-        # return np.array(pts)
-        for i, homclass in enumerate(g0):
-            p_birth, birth_val, pers_val, p_death = homclass
-            x, y = p_birth
-
-            # Apply thresholds
-            max_peak_val = np.max(chromato_tic)
-
-            if chromato_tic[x, y] < intensity_threshold:
-                continue
-
-            if pers_val < min_persistence * max_peak_val:
-                continue
-
-            pts.append((x, y))
-
-        return np.array(pts)
+#     return np.array(coordinates_all_mass)
 
 
-def plm_kernel(i, m_chromato, min_distance, abs_threshold,
-               rel_threshold, noise_factor, sigma):
-    intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
-    return skimage.feature.peak_local_max(
-        m_chromato,
-        min_distance=min_distance,
-        threshold_abs=intensity_threshold)
+# def pers_hom(chromato_obj,
+#              abs_threshold,
+#              rel_threshold,
+#              noise_factor,
+#              sigma,
+#              min_persistence,
+#              mode,
+#              chromato_cube,
+#              cluster,
+#              eps,
+#              min_samples):
+#     """
+#     This function applies persistent homology to detect significant peaks in 
+#     a chromatographic dataset. It supports two modes:
+#     - "mass_per_mass": Applies persistent homology to each mass slice individually.
+#     - `tic` (default): Computes persistent homology directly on the chromatogram.
+
+#     Parameters:
+#     -----------
+#     chromato_obj : tuple (np.ndarray, np.ndarray)
+#         Tuple containing the chromatogram (2D array) and retention times.
+#     seuil = dynamic_threshold_fact: float
+#         Relative intensity threshold for peak detection.
+#     threshold_abs : float, optional (default=None)
+#         Absolute intensity threshold for peak detection.
+#     mode : str, optional (default="tic")
+#         Peak detection mode, can be `"mass_per_mass"` or `"tic"`.
+#     cluster : bool, optional (default=False)
+#         If `True`, applies clustering to detected peaks.
+#     chromato_cube : np.ndarray, optional (default=None)
+#         3D array representing the chromatogram cube (mass, retention time, intensity).
+#         Required for `"mass_per_mass"` mode.
+#     unique : bool, optional (default=True)
+#         If `True`, ensures detected peaks are unique.
+
+#     Returns:
+#     --------
+#     np.ndarray
+#         - If mode is `"mass_per_mass"`: Returns detected peak coordinates across mass slices, using multiprocessing.
+#         - If mode is `"tic"`: Returns significant peak coordinates based on persistent homology.
+#     """
+
+#     chromato_tic, time_rn = chromato_obj
+#     if (mode == "3D"):
+#         raise ValueError("3D mode is not supported for persistent homology.")
+#     if (mode == "mass_per_mass"):
+#         if chromato_cube is None:
+#             raise ValueError("chromato_cube is required for mass_per_mass mode")
+
+#         coordinates_all_mass = pers_hom_mass_per_mass_multiprocessing(
+#             chromato_cube, abs_threshold, rel_threshold, noise_factor, sigma,
+#             min_persistence)
+
+#         # We delete masse dimension
+#         if (len(coordinates_all_mass) > 0):
+#             coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+#         if cluster is False:
+#             return coordinates_all_mass
+#         return clustering(coordinates_all_mass, eps, min_samples)
+#     else: 
+#         "tic"
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
+
+#         g0 = imagepers.persistence(chromato_tic)
+#         pts = []
+#         # # max_peak_val = np.max(chromato)
+#         # for i, homclass in enumerate(g0):
+#         #     p_birth, bl, pers, p_death = homclass
+#         #     x, y = p_birth
+#         #     '''if (chromato[x,y] < seuil * max_peak_val):
+#         #         continue'''
+#         #     pts.append((x, y))
+#         # return np.array(pts)
+#         for i, homclass in enumerate(g0):
+#             p_birth, birth_val, pers_val, p_death = homclass
+#             x, y = p_birth
+
+#             # Apply thresholds
+#             max_peak_val = np.max(chromato_tic)
+
+#             if chromato_tic[x, y] < intensity_threshold:
+#                 continue
+
+#             if pers_val < min_persistence * max_peak_val:
+#                 continue
+
+#             pts.append((x, y))
+
+#         return np.array(pts)
 
 
-def plm_mass_per_mass_multiprocessing(
-        chromato_cube,
-        min_distance,
-        abs_threshold,
-        rel_threshold,
-        noise_factor,
-        sigma
-        ):
-    """
-    Detects peaks in each mass slice of a chromatogram cube using multiprocessing.
+# def plm_kernel(i, m_chromato, min_distance, abs_threshold,
+#                rel_threshold, noise_factor, sigma):
+#     intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, m_chromato)
+#     return skimage.feature.peak_local_max(
+#         m_chromato,
+#         min_distance=min_distance,
+#         threshold_abs=intensity_threshold)
 
-    This function applies the `plm_kernel()` function in parallel to each mass
-    slice of the chromatogram cube, distributing the workload across multiple CPU cores.
 
-    Parameters:
-    -----------
-    chromato_cube : np.ndarray
-        3D array representing the chromatogram cube (mass, retention time, intensity).
-    seuil : float
-        Relative intensity threshold for peak detection.
-    min_distance : int, optional (default=1)
-        Minimum distance between detected peaks.
-    threshold_abs : float, optional (default=0)
-        Absolute intensity threshold for peak detection.
+# def plm_mass_per_mass_multiprocessing(
+#         chromato_cube,
+#         min_distance,
+#         abs_threshold,
+#         rel_threshold,
+#         noise_factor,
+#         sigma
+#         ):
+#     """
+#     Detects peaks in each mass slice of a chromatogram cube using multiprocessing.
 
-    Returns:
-    --------
-    np.ndarray
-        An array of detected peak coordinates, each row containing:
-        [mass index, retention time, intensity].
-    """
+#     This function applies the `plm_kernel()` function in parallel to each mass
+#     slice of the chromatogram cube, distributing the workload across multiple CPU cores.
+
+#     Parameters:
+#     -----------
+#     chromato_cube : np.ndarray
+#         3D array representing the chromatogram cube (mass, retention time, intensity).
+#     seuil : float
+#         Relative intensity threshold for peak detection.
+#     min_distance : int, optional (default=1)
+#         Minimum distance between detected peaks.
+#     threshold_abs : float, optional (default=0)
+#         Absolute intensity threshold for peak detection.
+
+#     Returns:
+#     --------
+#     np.ndarray
+#         An array of detected peak coordinates, each row containing:
+#         [mass index, retention time, intensity].
+#     """
     
-    cpu_count = min(multiprocessing.cpu_count(),32)
-    # pool = multiprocessing.Pool(processes = cpu_count)
-    coordinates_all_mass = []
-    with multiprocessing.Pool(processes=cpu_count) as pool:
-        for i, result in enumerate(pool.starmap(plm_kernel, [(i, chromato_cube[i], min_distance, abs_threshold, rel_threshold, noise_factor, sigma) for i in range(len(chromato_cube))])):
-            for x, y in result:
-                coordinates_all_mass.append([i, x, y])
+#     cpu_count = min(multiprocessing.cpu_count(),32)
+#     # pool = multiprocessing.Pool(processes = cpu_count)
+#     coordinates_all_mass = []
+#     with multiprocessing.Pool(processes=cpu_count) as pool:
+#         for i, result in enumerate(pool.starmap(plm_kernel, [(i, chromato_cube[i], min_distance, abs_threshold, rel_threshold, noise_factor, sigma) for i in range(len(chromato_cube))])):
+#             for x, y in result:
+#                 coordinates_all_mass.append([i, x, y])
 
-    return np.array(coordinates_all_mass)
+#     return np.array(coordinates_all_mass)
 
 
 # # Return 3D coordinates so we can filter with relative threshold after without recomputing
@@ -1163,282 +1163,282 @@ def plm_mass_per_mass_multiprocessing(
 
 #     return np.array(coordinates_all_mass)
 
-def peak_local_max(chromato_obj,
-                   abs_threshold,
-                   rel_threshold,
-                   noise_factor,
-                   sigma,
-                   min_distance,
-                   mode,
-                   chromato_cube,
-                   cluster,
-                   eps,
-                   min_samples,
-                   ):
-    """
-    # ancienne fct nommee plm
-    Detects peaks in a chromatographic dataset using different processing
-    modes.
+# def peak_local_max(chromato_obj,
+#                    abs_threshold,
+#                    rel_threshold,
+#                    noise_factor,
+#                    sigma,
+#                    min_distance,
+#                    mode,
+#                    chromato_cube,
+#                    cluster,
+#                    eps,
+#                    min_samples,
+#                    ):
+#     """
+#     # ancienne fct nommee plm
+#     Detects peaks in a chromatographic dataset using different processing
+#     modes.
 
-    This function identifies local maxima (peaks) in chromatographic data using
-    `skimage.feature.peak_local_max()` with multiple modes:
-    - `"3D"`: Analyzes the entire chromatogram cube.
-    - `"mass_per_mass"`: Detects peaks slice by slice across mass dimensions
-    (parallelized).
-    - `"tic"`: Extracts peaks using Total Ion Chromatogram (TIC) mode.
+#     This function identifies local maxima (peaks) in chromatographic data using
+#     `skimage.feature.peak_local_max()` with multiple modes:
+#     - `"3D"`: Analyzes the entire chromatogram cube.
+#     - `"mass_per_mass"`: Detects peaks slice by slice across mass dimensions
+#     (parallelized).
+#     - `"tic"`: Extracts peaks using Total Ion Chromatogram (TIC) mode.
 
-    Parameters:
-    -----------
-    chromato_obj : tuple (np.ndarray, np.ndarray)
-        Tuple containing the chromatogram (2D array) and retention times.
-    seuil = dynamic_threshold_fact : float
-        Relative intensity threshold for peak detection.
-    min_distance : int, optional (default=1)
-        Minimum distance between detected peaks.
-    mode : str, optional (default="tic")
-        Peak detection mode, can be `"3D"`, `"mass_per_mass"`, or `"tic"`.
-    chromato_cube : np.ndarray, optional (default=None)
-        3D array representing the chromatogram cube (mass, retention time,
-        intensity).
-        Required for `"3D"` and `"mass_per_mass"` modes.
-    cluster : bool, optional (default=False)
-        If `True`, applies clustering to detected peaks.
-    threshold_abs : float, optional (default=0)
-        Absolute intensity threshold for peak detection.
-    unique : bool, optional (default=True)
-        If `True`, ensures detected peaks are unique.
+#     Parameters:
+#     -----------
+#     chromato_obj : tuple (np.ndarray, np.ndarray)
+#         Tuple containing the chromatogram (2D array) and retention times.
+#     seuil = dynamic_threshold_fact : float
+#         Relative intensity threshold for peak detection.
+#     min_distance : int, optional (default=1)
+#         Minimum distance between detected peaks.
+#     mode : str, optional (default="tic")
+#         Peak detection mode, can be `"3D"`, `"mass_per_mass"`, or `"tic"`.
+#     chromato_cube : np.ndarray, optional (default=None)
+#         3D array representing the chromatogram cube (mass, retention time,
+#         intensity).
+#         Required for `"3D"` and `"mass_per_mass"` modes.
+#     cluster : bool, optional (default=False)
+#         If `True`, applies clustering to detected peaks.
+#     threshold_abs : float, optional (default=0)
+#         Absolute intensity threshold for peak detection.
+#     unique : bool, optional (default=True)
+#         If `True`, ensures detected peaks are unique.
 
-    Returns:
-    --------
-    np.ndarray
-        Array of detected peak coordinates. The shape depends on the selected
-        mode:
-        - In `"3D"` mode: [[retention time, intensity]]
-        - In `"mass_per_mass"` mode: [[mass index, retention time, intensity]]
-        - In `"tic"` mode: [[retention time, intensity]]
+#     Returns:
+#     --------
+#     np.ndarray
+#         Array of detected peak coordinates. The shape depends on the selected
+#         mode:
+#         - In `"3D"` mode: [[retention time, intensity]]
+#         - In `"mass_per_mass"` mode: [[mass index, retention time, intensity]]
+#         - In `"tic"` mode: [[retention time, intensity]]
 
-    Notes:
-        If both threshold_abs and threshold_rel are provided, the maximum of
-        the two is chosen as the minimum intensity threshold of peaks.
-    """
-    chromato_tic, time_rn = chromato_obj
+#     Notes:
+#         If both threshold_abs and threshold_rel are provided, the maximum of
+#         the two is chosen as the minimum intensity threshold of peaks.
+#     """
+#     chromato_tic, time_rn = chromato_obj
 
-    # Compute peak_local_max on the entire chromato cube (3D peak_local_max)
-    if (mode == "3D"):
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
-        cube_coordinates = skimage.feature.peak_local_max(
-            chromato_cube, min_distance, threshold_abs=intensity_threshold)
+#     # Compute peak_local_max on the entire chromato cube (3D peak_local_max)
+#     if (mode == "3D"):
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_cube)
+#         cube_coordinates = skimage.feature.peak_local_max(
+#             chromato_cube, min_distance, threshold_abs=intensity_threshold)
 
-        # delete mass dimension ([[2 720 128], [24 720 128]] -> [[720 128], [720 128]])
-        coordinates = np.delete(cube_coordinates, 0, -1)
-        if cluster is False:
-            return coordinates
-        return clustering(coordinates, eps, min_samples)
+#         # delete mass dimension ([[2 720 128], [24 720 128]] -> [[720 128], [720 128]])
+#         coordinates = np.delete(cube_coordinates, 0, -1)
+#         if cluster is False:
+#             return coordinates
+#         return clustering(coordinates, eps, min_samples)
 
-    # Compute peak_local_max for very mass slices in the chromato cube 
-    elif (mode == "mass_per_mass"):
-        coordinates_all_mass = plm_mass_per_mass_multiprocessing(
-            chromato_cube, min_distance, abs_threshold, rel_threshold,
-            noise_factor, sigma)
-        # We delete masse dimension
-        if (len(coordinates_all_mass) > 0):
-            coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
-        if cluster is False:
-            return coordinates_all_mass
-        return clustering(coordinates_all_mass, eps, min_samples)
+#     # Compute peak_local_max for very mass slices in the chromato cube 
+#     elif (mode == "mass_per_mass"):
+#         coordinates_all_mass = plm_mass_per_mass_multiprocessing(
+#             chromato_cube, min_distance, abs_threshold, rel_threshold,
+#             noise_factor, sigma)
+#         # We delete masse dimension
+#         if (len(coordinates_all_mass) > 0):
+#             coordinates_all_mass = np.delete(coordinates_all_mass, 0, -1)
+#         if cluster is False:
+#             return coordinates_all_mass
+#         return clustering(coordinates_all_mass, eps, min_samples)
 
-        #coordinates= detection_mass_par_mass()
-    # Use TIC
-    else:
-        intensity_threshold = intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
-        coordinates = skimage.feature.peak_local_max(
-            chromato_tic, min_distance=min_distance,
-            threshold_abs=intensity_threshold)
-        return coordinates
-
-
-def peak_detection(chromato_obj,
-                   chromato_cube,
-                   sigma,
-                   noise_factor,
-                   abs_threshold,
-                   rel_threshold,
-                   method,
-                   mode,
-                   cluster,
-                   min_distance,
-                   min_sigma,
-                   max_sigma,
-                   sigma_ratio,
-                   num_sigma,
-                   min_persistence,
-                   overlap,
-                   eps,
-                   min_samples,
-                   ):
-    r"""Detect peaks in a 2D or 3D chromatogram.
-
-    Parameters
-    ----------
-    chromato_obj:
-        chromato, time_rn, spectra_obj = chromato_obj
-    chromato_cube: ndarray
-        3D Chromatogram.
-    seuil: float
-        Threshold to filter peaks. A float between 0 and 1. A peak is returned
-        if its intensity in chromato is greater than the maximum value in the 
-        chromatogram multiply by seuil.
-    ABS_THRESHOLDS: optional
-        If mode='mass_per_mass' or mode='3D', ABS_THRESHOLDS is the threshold
-        relative to a slice of the 3D chromatogram or a slice of the 3D
-        chromatogram.
-    method: optional
-        The method to use. The default method is "persistent_homology" but it
-        can be "peak_local_max", "LoG", "DoG", or "DoH".
-    cluster: optional
-        Whether to cluster or not the 3D coordinates when mode='mass_per_mass'
-        or mode='3D'. When peaks are detected in each slice of the 3D
-        chromatogram, coordinates associated to the same peak may differ a
-        little. 3D peak coordinates (rt1, rt2, mass slice) which are really
-        close in the first two dimensions are merged and the coordinates with
-        the highest intensity in the TIC chromatogram is kept.
-    min_distance: optional
-        peak_local_max method parameter. The minimal allowed distance
-        separating peaks. To find the maximum number of peaks, use
-        min_distance=1.
-    sigma_ratio: optional
-        DoG method parameter. The ratio between the standard deviation of
-        Gaussian Kernels used for computing the Difference of Gaussians.
-    num_sigma: optional
-        LoG/DoH method parameter. The number of intermediate values of
-        standard deviations to consider between min_sigma (1) and max_sigma
-        (30).
-    Returns
-    -------
-    A: ndarray
-        Detected peaks. ndarray of coordinates.
-    Examples
-    --------
-    >>> # Detect peak in the TIC chromatogram using persistent homology method
-    >>> import peak_detection
-    >>> import read_chroma
-    >>> from skimage.restoration import estimate_sigma
-    >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
-    >>> chromato,time_rn,spectra_obj = chromato_obj
-    >>> # seuil=MIN_SEUIL is computed as the ratio between 5 times the
-    estimated gaussian white noise standard deviation (sigma) in the
-    chromatogram and the max value in the chromatogram.
-    >>> sigma = estimate_sigma(chromato, channel_axis=None)
-    >>> MIN_SEUIL = 5 * sigma * 100 / np.max(chromato)
-    >>> chromato_cube = read_chroma.full_spectra_to_chromato_cube(
-    full_spectra=full_spectra, spectra_obj=spectra_obj)
-    >>> coordinates = peak_detection.peak_detection(chromato_obj=(chromato,
-    time_rn, spectra_obj), chromato_cube=chromato_cube, seuil=MIN_SEUIL)
-
-    """
-    # radius = None
-
-    chromato_tic, time_rn, spectra_obj = chromato_obj
-
-    if (method == "peak_local_max"):
-        coordinates = peak_local_max(chromato_obj=(
-                    chromato_tic, time_rn),
-                    abs_threshold=abs_threshold,
-                    rel_threshold=rel_threshold,
-                    noise_factor=noise_factor,
-                    sigma=sigma,
-                    min_distance=min_distance,
-                    mode=mode,
-                    chromato_cube=chromato_cube,
-                    cluster=cluster,
-                    eps=eps,
-                    min_samples=min_samples)
-
-    elif (method == "DoG"):
-        coordinates, radius = DoG(chromato_obj=(
-                    chromato_tic, time_rn),
-                    abs_threshold=abs_threshold,
-                    rel_threshold=rel_threshold,
-                    noise_factor=noise_factor,
-                    sigma=sigma,
-                    min_sigma=min_sigma, max_sigma=max_sigma,
-                    sigma_ratio=sigma_ratio, mode=mode,
-                    chromato_cube=chromato_cube, 
-                    cluster=cluster,
-                    overlap=overlap,
-                    eps=eps,
-                    min_samples=min_samples)
-    elif (method == "LoG"):
-        coordinates, radius = LoG(chromato_obj=(
-                    chromato_tic, time_rn),
-                    abs_threshold=abs_threshold,
-                    rel_threshold=rel_threshold,
-                    noise_factor=noise_factor,
-                    sigma=sigma,
-                    min_sigma=min_sigma, max_sigma=max_sigma,
-                    num_sigma=num_sigma, mode=mode,
-                    chromato_cube=chromato_cube,
-                    cluster=cluster,
-                    overlap=overlap,
-                    eps=eps,
-                    min_samples=min_samples)
-    elif (method == "DoH"):
-        coordinates, radius = DoH(chromato_obj=(
-                    chromato_tic, time_rn),
-                    abs_threshold=abs_threshold,
-                    rel_threshold=rel_threshold,
-                    noise_factor=noise_factor,
-                    sigma=sigma, min_sigma=min_sigma,
-                    max_sigma=max_sigma,
-                    num_sigma=num_sigma, mode=mode,
-                    chromato_cube=chromato_cube, cluster=cluster,
-                    overlap=overlap,
-                    eps=eps,
-                    min_samples=min_samples)
-    elif (method == "persistent_homology"):
-        coordinates = pers_hom(chromato_obj=(
-                chromato_tic, time_rn),
-                abs_threshold=abs_threshold,
-                rel_threshold=rel_threshold,
-                noise_factor=noise_factor,
-                sigma=sigma,
-                min_persistence=min_persistence, mode=mode,
-                chromato_cube=chromato_cube, cluster=cluster,
-                eps=eps,
-                min_samples=min_samples)
-    else:
-        print("Unknown method")
-        return None
-    return coordinates
+#         #coordinates= detection_mass_par_mass()
+#     # Use TIC
+#     else:
+#         intensity_threshold = intensity_threshold_decision_rule(
+#             abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
+#         coordinates = skimage.feature.peak_local_max(
+#             chromato_tic, min_distance=min_distance,
+#             threshold_abs=intensity_threshold)
+#         return coordinates
 
 
-'''def peak_detection(chromato_obj, mod_time, method = "peak_local_max", seuil = 0):
-    if (method == "peak_local_max"):
-        return peak_local_max(chromato_obj, mod_time, seuil)
-    elif (method == "wavelets"):
-        return wavelet(chromato_obj, mod_time, seuil)
-    elif (method == "tf"):
-        tf(chromato_obj, mod_time, seuil)
-        return None
-    elif(method == "sobel"):
-        return sobel(chromato_obj, mod_time, seuil)
-    elif(method == "gauss_multi_deriv"):
-        return gauss_multi_deriv(chromato_obj, mod_time, seuil)
-    elif(method == "gauss_laplace"):
-        return gauss_laplace(chromato_obj, mod_time, seuil)
-    elif(method == "prewitt"):
-        return prewitt(chromato_obj, mod_time, seuil)
-    elif(method=="gaussian_filter"):
-        return gaussian_filter(chromato_obj, mod_time, seuil)
-    elif(method=="LoG"):
-        return LoG(chromato_obj, mod_time, seuil)
-    elif(method=="DoG"):
-        return DoG(chromato_obj, mod_time, seuil)
-    elif(method=="DoH"):
-        return DoH(chromato_obj, mod_time, seuil)
-    elif(method=="persistent_homology"):
-        return pers_hom(chromato_obj, mod_time, seuil)
-    else:
-        return None'''
+# def peak_detection(chromato_obj,
+#                    chromato_cube,
+#                    sigma,
+#                    noise_factor,
+#                    abs_threshold,
+#                    rel_threshold,
+#                    method,
+#                    mode,
+#                    cluster,
+#                    min_distance,
+#                    min_sigma,
+#                    max_sigma,
+#                    sigma_ratio,
+#                    num_sigma,
+#                    min_persistence,
+#                    overlap,
+#                    eps,
+#                    min_samples,
+#                    ):
+#     r"""Detect peaks in a 2D or 3D chromatogram.
+
+#     Parameters
+#     ----------
+#     chromato_obj:
+#         chromato, time_rn, spectra_obj = chromato_obj
+#     chromato_cube: ndarray
+#         3D Chromatogram.
+#     seuil: float
+#         Threshold to filter peaks. A float between 0 and 1. A peak is returned
+#         if its intensity in chromato is greater than the maximum value in the 
+#         chromatogram multiply by seuil.
+#     ABS_THRESHOLDS: optional
+#         If mode='mass_per_mass' or mode='3D', ABS_THRESHOLDS is the threshold
+#         relative to a slice of the 3D chromatogram or a slice of the 3D
+#         chromatogram.
+#     method: optional
+#         The method to use. The default method is "persistent_homology" but it
+#         can be "peak_local_max", "LoG", "DoG", or "DoH".
+#     cluster: optional
+#         Whether to cluster or not the 3D coordinates when mode='mass_per_mass'
+#         or mode='3D'. When peaks are detected in each slice of the 3D
+#         chromatogram, coordinates associated to the same peak may differ a
+#         little. 3D peak coordinates (rt1, rt2, mass slice) which are really
+#         close in the first two dimensions are merged and the coordinates with
+#         the highest intensity in the TIC chromatogram is kept.
+#     min_distance: optional
+#         peak_local_max method parameter. The minimal allowed distance
+#         separating peaks. To find the maximum number of peaks, use
+#         min_distance=1.
+#     sigma_ratio: optional
+#         DoG method parameter. The ratio between the standard deviation of
+#         Gaussian Kernels used for computing the Difference of Gaussians.
+#     num_sigma: optional
+#         LoG/DoH method parameter. The number of intermediate values of
+#         standard deviations to consider between min_sigma (1) and max_sigma
+#         (30).
+#     Returns
+#     -------
+#     A: ndarray
+#         Detected peaks. ndarray of coordinates.
+#     Examples
+#     --------
+#     >>> # Detect peak in the TIC chromatogram using persistent homology method
+#     >>> import peak_detection
+#     >>> import read_chroma
+#     >>> from skimage.restoration import estimate_sigma
+#     >>> chromato_obj = read_chroma.read_chroma(filename, mod_time)
+#     >>> chromato,time_rn,spectra_obj = chromato_obj
+#     >>> # seuil=MIN_SEUIL is computed as the ratio between 5 times the
+#     estimated gaussian white noise standard deviation (sigma) in the
+#     chromatogram and the max value in the chromatogram.
+#     >>> sigma = estimate_sigma(chromato, channel_axis=None)
+#     >>> MIN_SEUIL = 5 * sigma * 100 / np.max(chromato)
+#     >>> chromato_cube = read_chroma.full_spectra_to_chromato_cube(
+#     full_spectra=full_spectra, spectra_obj=spectra_obj)
+#     >>> coordinates = peak_detection.peak_detection(chromato_obj=(chromato,
+#     time_rn, spectra_obj), chromato_cube=chromato_cube, seuil=MIN_SEUIL)
+
+#     """
+#     # radius = None
+
+#     chromato_tic, time_rn, spectra_obj = chromato_obj
+
+    # if (method == "peak_local_max"):
+    #     coordinates = peak_local_max(chromato_obj=(
+    #                 chromato_tic, time_rn),
+    #                 abs_threshold=abs_threshold,
+    #                 rel_threshold=rel_threshold,
+    #                 noise_factor=noise_factor,
+    #                 sigma=sigma,
+    #                 min_distance=min_distance,
+    #                 mode=mode,
+    #                 chromato_cube=chromato_cube,
+    #                 cluster=cluster,
+    #                 eps=eps,
+    #                 min_samples=min_samples)
+
+    # elif (method == "DoG"):
+    #     coordinates, radius = DoG(chromato_obj=(
+    #                 chromato_tic, time_rn),
+    #                 abs_threshold=abs_threshold,
+    #                 rel_threshold=rel_threshold,
+    #                 noise_factor=noise_factor,
+    #                 sigma=sigma,
+    #                 min_sigma=min_sigma, max_sigma=max_sigma,
+    #                 sigma_ratio=sigma_ratio, mode=mode,
+    #                 chromato_cube=chromato_cube, 
+    #                 cluster=cluster,
+    #                 overlap=overlap,
+    #                 eps=eps,
+    #                 min_samples=min_samples)
+    # elif (method == "LoG"):
+    #     coordinates, radius = LoG(chromato_obj=(
+    #                 chromato_tic, time_rn),
+    #                 abs_threshold=abs_threshold,
+    #                 rel_threshold=rel_threshold,
+    #                 noise_factor=noise_factor,
+    #                 sigma=sigma,
+    #                 min_sigma=min_sigma, max_sigma=max_sigma,
+    #                 num_sigma=num_sigma, mode=mode,
+    #                 chromato_cube=chromato_cube,
+    #                 cluster=cluster,
+    #                 overlap=overlap,
+    #                 eps=eps,
+    #                 min_samples=min_samples)
+    # elif (method == "DoH"):
+    #     coordinates, radius = DoH(chromato_obj=(
+    #                 chromato_tic, time_rn),
+    #                 abs_threshold=abs_threshold,
+    #                 rel_threshold=rel_threshold,
+    #                 noise_factor=noise_factor,
+    #                 sigma=sigma, min_sigma=min_sigma,
+    #                 max_sigma=max_sigma,
+    #                 num_sigma=num_sigma, mode=mode,
+    #                 chromato_cube=chromato_cube, cluster=cluster,
+    #                 overlap=overlap,
+    #                 eps=eps,
+    #                 min_samples=min_samples)
+    # elif (method == "persistent_homology"):
+    #     coordinates = pers_hom(chromato_obj=(
+    #             chromato_tic, time_rn),
+    #             abs_threshold=abs_threshold,
+    #             rel_threshold=rel_threshold,
+    #             noise_factor=noise_factor,
+    #             sigma=sigma,
+    #             min_persistence=min_persistence, mode=mode,
+    #             chromato_cube=chromato_cube, cluster=cluster,
+    #             eps=eps,
+    #             min_samples=min_samples)
+    # else:
+    #     print("Unknown method")
+    #     return None
+    # return coordinates
+
+
+# '''def peak_detection(chromato_obj, mod_time, method = "peak_local_max", seuil = 0):
+#     if (method == "peak_local_max"):
+#         return peak_local_max(chromato_obj, mod_time, seuil)
+#     elif (method == "wavelets"):
+#         return wavelet(chromato_obj, mod_time, seuil)
+#     elif (method == "tf"):
+#         tf(chromato_obj, mod_time, seuil)
+#         return None
+#     elif(method == "sobel"):
+#         return sobel(chromato_obj, mod_time, seuil)
+#     elif(method == "gauss_multi_deriv"):
+#         return gauss_multi_deriv(chromato_obj, mod_time, seuil)
+#     elif(method == "gauss_laplace"):
+#         return gauss_laplace(chromato_obj, mod_time, seuil)
+#     elif(method == "prewitt"):
+#         return prewitt(chromato_obj, mod_time, seuil)
+#     elif(method=="gaussian_filter"):
+#         return gaussian_filter(chromato_obj, mod_time, seuil)
+#     elif(method=="LoG"):
+#         return LoG(chromato_obj, mod_time, seuil)
+#     elif(method=="DoG"):
+#         return DoG(chromato_obj, mod_time, seuil)
+#     elif(method=="DoH"):
+#         return DoH(chromato_obj, mod_time, seuil)
+#     elif(method=="persistent_homology"):
+#         return pers_hom(chromato_obj, mod_time, seuil)
+#     else:
+#         return None'''

@@ -110,7 +110,7 @@ def detection_mass_par_mass_Dog(chromato_cube,
     coordinate_cluster, radius = cluster_per_mass(coordinate, radius, chromato_cube, time_rn, mod_time, rt1_delta=5, rt2_delta=0.1, thr_debscan=0.04, max_peak_per_mass=max_peak_per_mass)
     print(str(np.sum([len(x) for x in coordinate_cluster])) + " peaks")
 
-    print("deconvolution per mass")
+    print("Deconvolution per mass")
     quanti = deconvolution.deconvolution(chromato_cube, time_rn, mod_time, coordinate_cluster, radius, multi_processing=multi_processing)
     quanti_all_mass = []
     coordinates_all_mass = []
