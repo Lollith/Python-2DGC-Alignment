@@ -386,9 +386,9 @@ def identification(filename,
             overlap=overlap,
             eps=eps,
             min_samples=min_samples)
-    print("nb peaks", len(coordinates))
-    
-    if(plot_):
+    print("Peaks number: ", len(coordinates))
+
+    if (plot_):
         coordinates_in_chromato = projection.matrix_to_chromato(
                 coordinates, time_rn, mod_time, chromato_tic.shape)
         plot.visualizer((chromato_tic, time_rn), mod_time,
@@ -399,11 +399,10 @@ def identification(filename,
             (chromato_tic, time_rn, mass_range), baseline_cube, coordinates,
             mod_time,
             match_factor_min, nist)
-  
-    print("nb match", len(matches))
+
+    print("Matches found: ", len(matches))
     base_name = os.path.basename(filename)
 
-    print("write data")
     matches_identification, sample_metadata_list = compute_matches_identification(
             matches, sepc_list, area, chromato_tic, baseline_cube,time_rn,mod_time, mass_range,base_name,
             formated_spectra, quant,extract_patch,output_hdf5_file)
@@ -442,7 +441,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
         - Height : Peak height (related to concentration)
     """
 
-    with open(PATH + filename, 'w', encoding='UTF8', newline='') as f:
+    with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
 
         # header
@@ -511,7 +510,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
 #             f.write(line)
 
 def cohort_identification_alignment_input_format_txt(
-        filename, matches_identification, PATH,deconvo=False):
+        filename, matches_identification, PATH, deconvo=False):
     r"""Generate formatted peak table for alignment.
 
     Parameters
@@ -525,13 +524,15 @@ def cohort_identification_alignment_input_format_txt(
         Path to the resulting formatted peak table.
     """
     if deconvo:
-        name_file=PATH + filename+'_deconvo' + '.txt'
+        deconvo_dir = os.path.join(PATH, 'deconvolution')
+        os.makedirs(deconvo_dir, exist_ok=True)
+        name_file = os.path.join(deconvo_dir, filename + '_Dc.txt')
+        print("📂 /deconvolution directory created")
     else:
-        name_file=PATH + filename + '.txt'
-    with open(name_file, 'w', encoding='UTF8') as f:
+        name_file = PATH + filename + '.txt'
 
+    with open(name_file, 'w', encoding='UTF8') as f:
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
-        
         for identification_data_dict in matches_identification:
             compound_name = identification_data_dict['compound_name']
             rt1 = identification_data_dict['rt1']
@@ -606,73 +607,64 @@ def sample_identification(path, file, output_path,
     #if os.path.exists(output_hdf5_file):
     #    raise FileExistsError(f"The file '{output_hdf5_file}' already exists.")
     if output_hdf5_file is None:
-        output_hdf5_file= os.path.join(output_path, "data_set.h5")
+        output_hdf5_file = os.path.join(output_path, "data_set.h5")
 
     print('Identification started\n')
     start_time = time.time()
     try:
         full_filename = path + "/" + file
-        matches_identification, sample_metadata_list = identification(full_filename,
-                                                mod_time,
-                                                method,
-                                                mode,
-                                                noise_factor,
-                                                abs_thresholds,
-                                                rel_thresholds,
-                                                cluster,
-                                                min_distance,
-                                                min_sigma,
-                                                max_sigma,
-                                                sigma_ratio,
-                                                num_sigma,
-                                                formated_spectra,
-                                                match_factor_min,
-                                                min_persistence,
-                                                overlap,
-                                                eps,
-                                                min_samples,
-                                                nist, quant_method,extract_patch,output_hdf5_file,method_baseline,plot_)
-
-
+        matches_identification, sample_metadata_list = identification(
+            full_filename,
+            mod_time,
+            method,
+            mode,
+            noise_factor,
+            abs_thresholds,
+            rel_thresholds,
+            cluster,
+            min_distance,
+            min_sigma,
+            max_sigma,
+            sigma_ratio,
+            num_sigma,
+            formated_spectra,
+            match_factor_min,
+            min_persistence,
+            overlap,
+            eps,
+            min_samples,
+            nist,
+            quant_method,
+            extract_patch,
+            output_hdf5_file,
+            method_baseline,
+            plot_
+        )
         print("Identification done", time.time()-start_time, 's')
 
-        # print("output_path from identificqtion", output_path)
-        if nist:
-            name_txt =  os.path.splitext(file)[0] + '_D_N'
-            name_csv =  os.path.splitext(file)[0] + '_D_N'
-        else:
-            name_txt =  os.path.splitext(file)[0] + '_D'
-            name_csv =  os.path.splitext(file)[0] + '_D'
-#         cohort_identification_alignment_input_format_txt(
-#             name_txt, matches_identification, output_path)
-#         cohort_identification_to_csv(name_csv, matches_identification,
-#                                      output_path)
-        
-#         return (f'{output_path + name_txt} & '
-#                 + f'{output_path + name_csv} created')
-        print("output_path from identification", output_path, file)
+        base_name = os.path.splitext(file)[0] + ('_Dt_N' if nist else '_Dt')
         cohort_identification_alignment_input_format_txt(
-            name_txt, matches_identification, output_path)
+            base_name, matches_identification, output_path)
         cohort_identification_alignment_input_format_txt(
-           name_txt, matches_identification, output_path, deconvo=True)
-        if(extract_patch):
-            cohort_identification_sample_metadata(name_csv, sample_metadata_list,
-                                     output_path)
+            base_name, matches_identification, output_path, deconvo=True)
+        if (extract_patch):
+            cohort_identification_sample_metadata(
+                base_name, sample_metadata_list, output_path)
         else:
-            cohort_identification_to_csv(name_csv, matches_identification,
-                                     output_path)
-        print(f'{output_path + os.path.splitext(file)[0]}.txt created')
-        return (f'{output_path + os.path.splitext(file)[0]}.txt created')
+            cohort_identification_to_csv(
+                base_name, matches_identification, output_path)
+        result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}_Dc.txt, {output_path + base_name}.csv created']
+        return result
 
     except Exception as e:
         traceback.print_exc()
         return (f"Erreur lors du traitement du fichier {file}: {e}")
 
 
-def cohort_identification_sample_metadata(file, sample_metadata_list,
-                                     output_path):
-    file_path= output_path + '/'+ file + "_sample_metadata.csv"
-    
+def cohort_identification_sample_metadata(
+        file, sample_metadata_list, output_path):
+    file_path = output_path + '/' + file + "_sample_metadata.csv"
+
     fieldnames = sample_metadata_list[0].keys()
     with open(file_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=';')
@@ -699,8 +691,8 @@ def clip_patch_by_rt(full_patch, full_rt_bounds, center_rt, clip_rt1_window, cli
     y_clip_max_float = ((target_rt2_max - full_rt2_min) / rt2_range_full) * (patch_width -1)
     x_clip_min_idx = int(round(x_clip_min_float)); x_clip_max_idx = int(round(x_clip_max_float)) + 1
     y_clip_min_idx = int(round(y_clip_min_float)); y_clip_max_idx = int(round(y_clip_max_float)) + 1
-    x_clip_min_idx=max(0, x_clip_min_idx); y_clip_min_idx=max(0, y_clip_min_idx)
-    x_clip_max_idx=min(patch_height, x_clip_max_idx); y_clip_max_idx=min(patch_width, y_clip_max_idx)
+    x_clip_min_idx = max(0, x_clip_min_idx); y_clip_min_idx=max(0, y_clip_min_idx)
+    x_clip_max_idx = min(patch_height, x_clip_max_idx); y_clip_max_idx=min(patch_width, y_clip_max_idx)
     if x_clip_min_idx >= x_clip_max_idx or y_clip_min_idx >= y_clip_max_idx: return np.array([[]])
     return full_patch[x_clip_min_idx:x_clip_max_idx, y_clip_min_idx:y_clip_max_idx]
 

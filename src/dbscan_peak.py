@@ -92,7 +92,7 @@ def detection_mass_par_mass_Dog(chromato_cube,
     """
     (chromato, time_rn) = chromato_obj
 
-    print("start peak detection")
+    print("Starting peak detection...")
     results = detect_peak_dog_mp(
         chromato_cube,
         abs_threshold,
@@ -104,7 +104,7 @@ def detection_mass_par_mass_Dog(chromato_cube,
         multi_processing=multi_processing
         )
 
-    print("cluster_per_mass ")
+    print("Clustering per mass...")
     coordinate = [x[0] for x in results]
     radius = [x[1] for x in results]
     coordinate_cluster, radius = cluster_per_mass(coordinate, radius, chromato_cube, time_rn, mod_time, rt1_delta=5, rt2_delta=0.1, thr_debscan=0.04, max_peak_per_mass=max_peak_per_mass)
@@ -123,10 +123,10 @@ def detection_mass_par_mass_Dog(chromato_cube,
             for x, y in elt_coord:
                 coordinates_all_mass.append([x, y])
 
-    print("compute distance metric " + str(len(coordinates_all_mass)) + " peaks")
+    print("Compute distance metric: " + str(len(coordinates_all_mass)) + " peaks")
     distance_matrix = compute_distance_metric(np.array(coordinates_all_mass), chromato_cube, mod_time, time_rn, rt1_delta=rt1_delta, rt2_delta=rt2_delta)
 
-    print("start clustering")
+    print("Starting clustering...")
     coordinates, coordinates, clusters, label = cluster_peak(distance_matrix, chromato, coordinates_all_mass, coordinates_all_mass, thr_debscan=thr_debscan, min_sample_db_scan=min_size_cluster_mass)
 
     print(str(len(coordinates)) + " peaks clustered")

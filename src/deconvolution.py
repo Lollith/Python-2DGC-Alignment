@@ -115,7 +115,6 @@ def estimate_sigma_from_FWHM_asym(image, center):
     return sigma_x1, sigma_x2, sigma_y1, sigma_y2
 
 # --------- 3. Multi-gaussienne pour lmfit ---------
-from lmfit import Model, Parameters
 
 def twoD_Gaussian_bi_asym_fixed_center(coords, amp, sx1, sx2, sy1, sy2, xo, yo):
     x, y = coords
@@ -261,8 +260,6 @@ def fit_all_peaks_fixed_centers(tmp, coords, bounds, plot=False):
     return fitted_results
 
 
-import numpy as np
-
 def compute_bounds(coords, radii):
     """
     Calcule les bornes [min,max] en RT et m/z pour chaque pic
@@ -369,8 +366,6 @@ def cluster_bounds(coords, bounds, time_rn, mod_time, chromato_shape, max_size=4
     return final_clusters
 
 
-
-
 def expand_cluster_bounds(bounds, clusters):
     """Élargit les bornes de chaque cluster"""
     cluster_bounds = []
@@ -382,7 +377,6 @@ def expand_cluster_bounds(bounds, clusters):
         cluster_bounds.append([[rt_min, rt_max], [mz_min, mz_max]])
     return np.array(cluster_bounds)
 
-# consrtuct spectrum
 
 def construct_spectrum(quanti_all_mass, label, nmass):
     spec_list = []
@@ -416,40 +410,46 @@ def construct_spectrum(quanti_all_mass, label, nmass):
 
 def deconvolution(chromato_cube, time_rn, mod_time, coordinate, radius, multi_processing=True, plot_deconvo=False) :
     inputs = range(chromato_cube.shape[0])
-    results =[]
+    results = []
     if (multi_processing):
-        num_workers = min(multiprocessing.cpu_count(),32)
-        with multiprocessing.Pool(processes = num_workers) as pool:
-                    for i, result in enumerate(pool.starmap(deconvolution_per_mass, [(coordinate[m], 
-                                                                                      radius[m], chromato_cube[m,:,:],
-                                                                                      time_rn,mod_time,plot_deconvo) for m in inputs])):
-                                                                                results.append(result)
+        num_workers = min(multiprocessing.cpu_count(), 32)
+        with multiprocessing.Pool(processes=num_workers) as pool:
+            for i, result in enumerate(pool.starmap(deconvolution_per_mass, [
+                (coordinate[m], radius[m], chromato_cube[m, :, :],
+                 time_rn, mod_time, plot_deconvo) for m in inputs
+                 ])):
+                results.append(result)
     else:
         for m in inputs:
-            results.append(deconvolution_per_mass(coordinate[m], radius[m], chromato_cube[m,:,:],time_rn,mod_time, plot_deconvo))
+            results.append(deconvolution_per_mass(coordinate[m], radius[m], chromato_cube[m,:,:], time_rn, mod_time, plot_deconvo))
     return results
 
 
-def deconvolution_per_mass(coordinates,radius, chomato_mass, time_rn, mod_time, plot_deconvo=False):
-    if(len(coordinates)>0):
-        coordinates_in_chromato=projection.matrix_to_chromato((coordinates), time_rn, mod_time, chomato_mass.shape)
+def deconvolution_per_mass(coordinates, radius, chomato_mass, time_rn, mod_time, plot_deconvo=False):
+    if (len(coordinates) > 0):
+        coordinates_in_chromato = projection.matrix_to_chromato((coordinates), time_rn, mod_time, chomato_mass.shape)
         bounds = compute_bounds(coordinates_in_chromato, radius)
-        clusters = cluster_bounds(coordinates_in_chromato,bounds,time_rn, mod_time, chomato_mass.shape)
+        clusters = cluster_bounds(coordinates_in_chromato, bounds, time_rn, mod_time, chomato_mass.shape)
         final_bounds = expand_cluster_bounds(bounds, clusters)
-        #tic= baseline_correct(chomato_mass,lmbd=1)
-        res=[]
+        # tic= baseline_correct(chomato_mass,lmbd=1)
+        res = []
         for j in range(len(clusters)):
-            res.append(fit_all_peaks_fixed_centers(chomato_mass, coordinates[clusters[j]], projection.chromato_to_matrix(final_bounds[j].T,time_rn, mod_time, chomato_mass.shape).T, plot=plot_deconvo))
-         
-        area=[]
-        height=[]
-        coord_order=[]
+            res.append(fit_all_peaks_fixed_centers(
+                chomato_mass, coordinates[clusters[j]],
+                projection.chromato_to_matrix(
+                    final_bounds[j].T, time_rn, mod_time,
+                    chomato_mass.shape).T, plot=plot_deconvo
+                    ))
+
+        area = []
+        height = []
+        coord_order = []
         for x in res:
-            for j in x :
+            for j in x:
                 height.append(j['params'][0])
                 area.append(j['area'])   
                 coord_order.append(j['center'])  
 
-        return  np.column_stack((area, height)), np.array(coord_order)
-    else :
-         return ([],[])
+        return np.column_stack((area, height)), np.array(coord_order)
+    else:
+        return ([], [])

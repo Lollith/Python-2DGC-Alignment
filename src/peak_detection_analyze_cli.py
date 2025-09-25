@@ -43,12 +43,12 @@ def save_parameters(selected_files, output_path, method, mode, noise_factor, min
             for key, value in params.items():
                 f.write(f"{key}: {value}\n")
 
-        #affichage
-        if output_path.startswith(docker_volume_path):
-            display_path = output_path.replace(docker_volume_path, "")
-        else:
-            display_path = output_path
-        print(f"📂 Parameters saved to '/{display_path}analysis_parameters.params'")
+        # #affichage
+        # if output_path.startswith(docker_volume_path):
+        #     display_path = output_path.replace(docker_volume_path, "")
+        # else:
+        #     display_path = output_path
+        # print(f"📂 Parameters saved to '/{display_path}analysis_parameters.params'")
 
 
 def get_scan_number(file_path):
@@ -77,7 +77,7 @@ def get_mod_time(file_path):
         
         if scan_number in modulation_times:
             mod_time, data_type = modulation_times[scan_number]
-            print(f"   Data type {data_type}")
+            print(f"   Data type: {data_type}")
             return mod_time
         else:
             print(f"   ⚠️  Unknown scan_number: {scan_number}, using default modulation time")
@@ -142,7 +142,7 @@ def main():
                     mod_time = 1.25
                 print(f"⏱️  Modulation time: {mod_time} seconds")
                     
-            result = sample_identification(
+            results = sample_identification(
                 path,
                 file,
                 args.output,
@@ -165,9 +165,22 @@ def main():
                 args.min_samples,
                 args.nist
             )
+            # affichage
+            if args.output.startswith(docker_volume_path):
+                display_path = args.output.replace(docker_volume_path, "")
+            else:
+                display_path = args.output
+            print(f"📂 Parameters saved to '/{display_path}analysis_parameters.params'")
             print(f"✅ Analysis completed successfully!")
-            print(f"✅ Fichier {file} traité, résultat : {result}")
+
+            for result in results:
+                if result.startswith(docker_volume_path):
+                    display_path = result.replace(docker_volume_path, "")
+                else:
+                    display_path = result
+                print(f"✅ Fichier {file} traité, résultats: /{display_path}")
             successful_analyses += 1
+            
         except Exception as e:
             print(f"❌ Analysis failed for {f}:")
             print(f"   Error: {str(e)}")
@@ -178,6 +191,7 @@ def main():
         print(f"✅ Réussies: {successful_analyses}")
         print(f"❌ Échouées: {failed_analyses}")
         print(f"📈 Taux de succès: {successful_analyses}/{len(args.input)} ({100*successful_analyses/len(args.input):.1f}%)")
+
 
 if __name__ == "__main__":
     main()
