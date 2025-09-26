@@ -260,12 +260,13 @@ class ChromatographicAligner:
         return similarity_matrix - RT1_index - RT2_index
 
 
-    def consensus_align_bis(self, input_file_list,
-                        seed_file=0,  # Python uses 0-based indexing
-                        common_ions=None,
-                        # standard_library=None,
-                        # nist=False
-                        ):
+    def consensus_align_bis(
+            self, input_file_list,
+            seed_file=0,
+            common_ions=None,
+            # standard_library=None,
+            # nist=False
+            ):
         """
         Consensus alignment function for chromatographic data.
         
@@ -305,38 +306,35 @@ class ChromatographicAligner:
             Quantification method
         standard_library : optional
             Standard library
-            
+
         Returns:
         --------
         dict : Dictionary containing alignment results with keys:
             'Alignment_Matrix', 'Peak_Info', 'RT_group', 'spectra_group'
         """
-        
         # Set default values
         if self.disimilarity_cutoff is None:
             self.disimilarity_cutoff = self.similarity_cutoff - 90
         if common_ions is None:
             common_ions = []
-        
-       
-        
+
         # Import files if not provided
         if self.imported_files is None:
             self.import_files(input_file_list)
-        
+
         # Check for missing files
         missing_file_list = []
         for file_data in self.imported_files:
             if len(file_data) > 2 and file_data[2]:  # Check if there's an error message
                 missing_file_list.append(file_data[2])
-        
+
         if missing_file_list:
             raise FileNotFoundError(f"Missing files: {missing_file_list}")
-        
+
         # Set seed sample (first file in the list by default)
-        seed_sample = [df.copy() if isinstance(df, pd.DataFrame) else list(df) if isinstance(df, list) else df 
-                    for df in self.imported_files[seed_file]]
-        
+        seed_sample = [df.copy() if isinstance(df, pd.DataFrame) else list(df) if isinstance(df, list) else df
+                       for df in self.imported_files[seed_file]]
+
         # Initialize matrices
         n_rows = len(seed_sample[0])
         n_cols = len(input_file_list)
@@ -347,13 +345,15 @@ class ChromatographicAligner:
         col_names = input_file_list.copy()
         # col_names = [os.path.basename(f) for f in input_file_list]
         
-        final_matrix = pd.DataFrame(np.full((n_rows, n_cols), np.nan), 
-                                index=row_names, columns=col_names, dtype=float)
-        final_matrix_rt = pd.DataFrame(np.full((n_rows, n_cols), None), 
-                                    index=row_names, columns=col_names, dtype=object)
-        final_matrix_spectra = pd.DataFrame(np.full((n_rows, n_cols), None), 
-                                        index=row_names, columns=col_names, dtype=object)
-
+        final_matrix = pd.DataFrame(
+            np.full((n_rows, n_cols), np.nan),
+            index=row_names, columns=col_names, dtype=float)
+        final_matrix_rt = pd.DataFrame(
+            np.full((n_rows, n_cols), None),
+            index=row_names, columns=col_names, dtype=object)
+        final_matrix_spectra = pd.DataFrame(
+            np.full((n_rows, n_cols), None),
+            index=row_names, columns=col_names, dtype=object)
 
         # Process each sample
         for samp_num in range(len(self.imported_files)):
@@ -365,10 +365,10 @@ class ChromatographicAligner:
             seed_name = seed_sample[0].iloc[0, 0] + "_1"  # ou autre nom exact
             # Calculate match scores (maximum similarity for each compound)
             match_scores = np.nanmax(sim_cutoffs, axis=0)
-            
+
             # Find best matches (indices of maximum similarity)
             mates = np.nanargmax(sim_cutoffs, axis=0)
-            
+
             # Find dissimilar matches
             dissmatch = np.where(match_scores < self.disimilarity_cutoff)[0]
 
@@ -376,7 +376,7 @@ class ChromatographicAligner:
             # 1. Create named arrays
             named_scores = {i: score for i, score in enumerate(match_scores)}
             named_mates = {i: mate for i, mate in enumerate(mates)}
-            
+
             # 2. Sort by descending match scores
             sorted_indices = sorted(named_scores.keys(), key=lambda x: named_scores[x], reverse=True)
 
@@ -392,12 +392,11 @@ class ChromatographicAligner:
             # 4. Restore original order
             final_scores = np.array([named_scores[i] for i in range(len(match_scores))])
             final_mates = np.array([named_mates[i] for i in range(len(mates))])
-            
+
             # Fill matrices based on quantification method
             if self.quant_method == "T":
                 valid_matches = final_scores >= self.similarity_cutoff
                 valid_indices = np.where(valid_matches)[0]
-                
                 for sample_idx in valid_indices:
                     seed_idx = final_mates[sample_idx]
                     if seed_idx < len(final_matrix):
@@ -421,12 +420,15 @@ class ChromatographicAligner:
                 new_row_names = [f"{self.imported_files[samp_num][0].iloc[idx, 0]}_{samp_num+1}" for idx in dissmatch]
 
                 # Create new rows filled with NaN
-                new_rows_area = pd.DataFrame(np.full((len(new_row_names), len(col_names)), np.nan), 
-                                            index=new_row_names, columns=col_names, dtype=float)
-                new_rows_rt = pd.DataFrame(np.full((len(new_row_names), len(col_names)), None), 
-                                        index=new_row_names, columns=col_names, dtype=object)
-                new_rows_spectra = pd.DataFrame(np.full((len(new_row_names), len(col_names)), None), 
-                                            index=new_row_names, columns=col_names, dtype=object)
+                new_rows_area = pd.DataFrame(
+                    np.full((len(new_row_names), len(col_names)), np.nan), 
+                    index=new_row_names, columns=col_names, dtype=float)
+                new_rows_rt = pd.DataFrame(
+                    np.full((len(new_row_names), len(col_names)), None), 
+                    index=new_row_names, columns=col_names, dtype=object)
+                new_rows_spectra = pd.DataFrame(
+                    np.full((len(new_row_names), len(col_names)), None), 
+                    index=new_row_names, columns=col_names, dtype=object)
                 
                 # Fill with current sample data
                 for i, dissim_idx in enumerate(dissmatch):
@@ -451,7 +453,7 @@ class ChromatographicAligner:
         # Update seed sample names to match final matrix row names
         seed_sample[0] = seed_sample[0].iloc[:len(final_matrix)].copy()
         seed_sample[0]['Name'] = final_matrix.index.tolist()
-        
+
         # Order by RT (assuming RT1 is in a column called 'RT1' or similar)
         if 'RT1' in seed_sample[0].columns:
             order_rt = seed_sample[0]['RT1'].argsort()
@@ -468,10 +470,8 @@ class ChromatographicAligner:
                 'RT_group': final_matrix_rt,
                 'spectra_group': final_matrix_spectra
             }
-        
+
         return self.alignment_results
-
-
 
     def get_alignment_matrix(self):
         """Get the alignment matrix from the last alignment."""
@@ -484,7 +484,6 @@ class ChromatographicAligner:
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
         return self.alignment_results['Peak_Info']
-
 
     def filter_alignment_matrix(self, missing_value_threshold=None):
         """
@@ -499,7 +498,7 @@ class ChromatographicAligner:
         Returns:
         --------
         pd.DataFrame : Filtered alignment matrix
-        """ 
+        """
         if missing_value_threshold is None:
             missing_value_threshold = self.missing_value_limit
         else:
@@ -507,14 +506,14 @@ class ChromatographicAligner:
 
         if self.alignment_results is None:
             raise ValueError("No alignment results available. Run consensus_align first.")
-    
+
         alignment_matrix = self.alignment_results['Alignment_Matrix'].copy()
-        
+
         # Détermination des lignes à conserver
         non_na_count = alignment_matrix.notna().sum(axis=1)
         threshold = missing_value_threshold * alignment_matrix.shape[1]
         mask_keep = non_na_count > threshold
-        
+
         print(f"Filtering: kept {mask_keep.sum()} rows out of {alignment_matrix.shape[0]} "
             f"(threshold: {missing_value_threshold*100:.0f}% non-missing values)")
 
@@ -525,7 +524,6 @@ class ChromatographicAligner:
             'RT_group': self.alignment_results['RT_group'].iloc[mask_keep.values],
             'spectra_group': self.alignment_results['spectra_group'].iloc[mask_keep.values]
         }
-
 
     def nist_identification(self,
                             nist=False, 
@@ -550,7 +548,6 @@ class ChromatographicAligner:
 
         print("✅ Service NIST OK, identification en cours...")
 
-        
         # --- CAS 1 : résultats en mémoire ---
         if self.alignment_results is not None:
             print("👉 Cas 1 : résultats en mémoire")
@@ -561,7 +558,6 @@ class ChromatographicAligner:
             self._update_peak_info(identifications)
             self._update_rt_group(identifications)
             self._update_alignment_matrix(identifications)
-
 
         # --- CAS 2 ou 3 : résultats déjà sauvegardés ---
         elif self._csv_results_exist():
