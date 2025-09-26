@@ -17,6 +17,9 @@ import pyms
 import dbscan_peak
 import h5py
 import pandas as pd
+import imagepers
+from projection import chromato_to_matrix, matrix_to_chromato
+import uuid
 
 
 def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
@@ -72,8 +75,6 @@ def mass_spectra_format(mass_range, int_values):
                               str(mz_int[1]))
     return formatted_spectrum
 
-from projection import chromato_to_matrix,matrix_to_chromato
-import uuid
 def compute_matches_identification(matches, sepc_list, area,chromato, chromato_cube,time_rn,mod_time,
                                    mass_range, sample_name, formated_spectra,
                                    quant="mass",extract_patch=False,output_hdf5_file=None,itegration_mod_max=False,similarity_threshold=0.001
@@ -209,9 +210,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
 
             identification_data_dict['spectra_deconvo'] = mass_spectra_format(mass_range, spec_deconvo)
 
-
         if extract_patch:
-            
             # Adjust spectrum length to match the canonical length for this sample
             if spectrum_data is not None:
                 current_length = len(spectrum_data)
@@ -246,7 +245,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             # --- Calculate mass_index using range_min ---
             mass=majority_mass+ mass_range[0]
             mass_index = majority_mass # Index relative to the start of cube's axis
-   
+ 
             if mass_index < 0 or mass_index >= chromato_cube.shape[0]:
                 raise ValueError(f"Mass index {mass_index} (mass {mass}, min_mz {mass_range[0]}) out of cube bounds[0]={chromato_cube.shape[0]}.")
             if x_min >= x_max or y_min >= y_max:
@@ -262,13 +261,12 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             clipped_patch_data = clip_patch_by_rt(
                       context_patch_data, full_rt_bounds, center_rt_corr,
                       0.1, 0.1175 )
-            
 
             unique_id_data = str(uuid.uuid4())
             clip_patch_id = f"clip_patch_{unique_id_data}" if clipped_patch_data.size > 0 else None
             context_patch_id = f"context_patch_{unique_id_data}" if context_patch_data.size > 0 else None
             spectrum_id = f"spectrum_{unique_id_data}" if spectrum_data is not None and spectrum_data.size > 0 else None
-            
+ 
             with h5py.File(output_hdf5_file, "r+") as h5_file:
                 sample_group_h5 = h5_file[sample_name_group]
                 if clip_patch_id: sample_group_h5.create_dataset(clip_patch_id, data=clipped_patch_data, compression="gzip")
@@ -294,12 +292,15 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
     return matches_identification , sample_metadata_list
 
 def identification(filename,
+                   output_path,
                    mod_time,
                    method, mode, noise_factor,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence, overlap, eps, min_samples, nist,quant,extract_patch,output_hdf5_file, method_baseline, plot_):
+                   min_persistence, overlap, eps, min_samples,
+                   nist, quant, extract_patch, output_hdf5_file,
+                   method_baseline, plot_):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -343,75 +344,96 @@ def identification(filename,
         coordinates...
     --------
     """
+    base_name = os.path.splitext(os.path.basename(filename))[0]
+
     chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
-        read_chroma.read_chromato_and_chromato_cube(filename, 
+        read_chroma.read_chromato_and_chromato_cube(filename,
+                                                    output_path,
                                                     mod_time,
-                                                    pre_process=False,plot_=plot_
+                                                    pre_process=False, plot_=plot_
                                                     ))
-    
-    baseline_cube=np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube,method=method_baseline))
-    
-    if (mode=="mass_per_mass") & (method=="DoG") :
-        max_peak_per_mass=600
-        coordinates,sepc_list, area = dbscan_peak.detection_mass_par_mass_Dog(baseline_cube,(chromato_tic, time_rn),
-                                                            mod_time,
-                                                                abs_threshold,
-                                                                rel_threshold,
-                                                                noise_factor,
-                                                                min_sigma,
-                                                                max_sigma,
-                                                                sigma_ratio,
-                                                                overlap, 
-                                                                max_peak_per_mass,
-                                                                rt1_delta=2, 
-                                                                rt2_delta=0.02,
-                                                                min_size_cluster_mass=3, 
-                                                                thr_debscan=0.04, 
-                                                                multi_processing=True,
-                                                                cleaning_close_peak=True)
-    else:
-        coordinates = peak_detection.peak_detection(
-            (chromato_tic, time_rn, mass_range),
-            chromato_cube=baseline_cube,
-            sigma=sigma,
-            noise_factor=noise_factor,
-            abs_threshold=abs_threshold,
-            rel_threshold=rel_threshold,
-            method=method,
-            mode=mode,
-            cluster=cluster,
-            min_distance=min_distance,
-            min_sigma=min_sigma,
-            max_sigma=max_sigma,
-            sigma_ratio=sigma_ratio,
-            num_sigma=num_sigma,
-            min_persistence=min_persistence,
-            overlap=overlap,
-            eps=eps,
-            min_samples=min_samples)
-    print("nb peaks", len(coordinates))
-    
-    if(plot_):
-        coordinates_in_chromato = projection.matrix_to_chromato(
-                coordinates, time_rn, mod_time, chromato_tic.shape)
-        plot.visualizer((chromato_tic, time_rn), mod_time,
-                            title=f"peak detection with mode {mode} and method {method}",
-                            log_chromato=True, points=coordinates_in_chromato)
 
-    matches = matching.matching_nist_lib_from_chromato_cube(
-            (chromato_tic, time_rn, mass_range), baseline_cube, coordinates,
+    baseline_cube = np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube, method=method_baseline))
+
+    if (mode == "mass_per_mass") & (method == "DoG"):
+        max_peak_per_mass = 600
+        coordinates, spec_list, area = dbscan_peak.detection_mass_par_mass_Dog(
+            baseline_cube, (chromato_tic, time_rn),
             mod_time,
-            match_factor_min, nist)
-  
-    print("nb match", len(matches))
-    base_name = os.path.basename(filename)
+            abs_threshold,
+            rel_threshold,
+            noise_factor,
+            min_sigma,
+            max_sigma,
+            sigma_ratio,
+            overlap,
+            max_peak_per_mass,
+            rt1_delta=2,
+            rt2_delta=0.02,
+            min_size_cluster_mass=3,
+            thr_debscan=0.04,
+            multi_processing=True,
+            cleaning_close_peak=True)
 
-    print("write data")
-    matches_identification, sample_metadata_list = compute_matches_identification(
-            matches, sepc_list, area, chromato_tic, baseline_cube,time_rn,mod_time, mass_range,base_name,
-            formated_spectra, quant,extract_patch,output_hdf5_file)
+        print("Peaks number: ", len(coordinates))
+        if (plot_):
+            print("Plotting detected peaks...")
+            dir_save = f"{output_path}"
+            coordinates_in_chromato = projection.matrix_to_chromato(
+                    coordinates, time_rn, mod_time, chromato_tic.shape)
+            fig_title = f"{base_name}_dt_{mode}_and_{method}"
+            plot.visualizer((chromato_tic, time_rn), mod_time,
+                            title=fig_title, log_chromato=True,
+                            points=coordinates_in_chromato,
+                            save=True, dir_save=dir_save)
+
+        matches = matching.matching_nist_lib_from_chromato_cube(
+                (chromato_tic, time_rn, mass_range), baseline_cube,
+                coordinates, mod_time, match_factor_min, nist)
+
+        print("Matches found: ", len(matches))
+
+        matches_identification, sample_metadata_list = compute_matches_identification(
+                matches, spec_list, area, chromato_tic, baseline_cube,time_rn,mod_time, mass_range,base_name,
+                formated_spectra, quant, extract_patch, output_hdf5_file)
+
+        return matches_identification, sample_metadata_list
+
+    elif (mode == "tic") & (method == "persistent_homology"):
+        intensity_threshold = peak_detection.intensity_threshold_decision_rule(
+            abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
+        g0 = imagepers.persistence(chromato_tic)
+        pts = []
+        for i, homclass in enumerate(g0):
+            p_birth, birth_val, pers_val, p_death = homclass
+            x, y = p_birth
+            # Apply thresholds
+            max_peak_val = np.max(chromato_tic)
+            if chromato_tic[x, y] < intensity_threshold:
+                continue
+            if pers_val < min_persistence * max_peak_val:
+                continue
+            pts.append((x, y))
+        
+        coordinates = np.array(pts)
+        print("Peaks number: ", len(coordinates))
+        
+        if plot_:
+            coordinates_in_chromato = projection.matrix_to_chromato(
+                    coordinates, time_rn, mod_time, chromato_tic.shape)
+            plot.visualizer((chromato_tic, time_rn), mod_time,
+                                title = f"peak detection with mode {mode} and method {method}",
+                                log_chromato = True, points=coordinates_in_chromato)
     
-    return matches_identification, sample_metadata_list
+
+        # return np.array(pts), []
+        return coordinates, "persistent_homology_mode"
+    else:
+        print("Autres fonctions de detection ne fonctionnent pas pour le moment")
+        return [], []
+        # coordinates = peak_detection.peak_detection()
+
+    
 
 
 def cohort_identification_to_csv(filename, matches_identification, PATH):
@@ -445,7 +467,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
         - Height : Peak height (related to concentration)
     """
 
-    with open(PATH + filename, 'w', encoding='UTF8', newline='') as f:
+    with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
 
         # header
@@ -514,7 +536,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
 #             f.write(line)
 
 def cohort_identification_alignment_input_format_txt(
-        filename, matches_identification, PATH,deconvo=False):
+        filename, matches_identification, PATH, deconvo=False):
     r"""Generate formatted peak table for alignment.
 
     Parameters
@@ -528,13 +550,15 @@ def cohort_identification_alignment_input_format_txt(
         Path to the resulting formatted peak table.
     """
     if deconvo:
-        name_file=PATH + filename+'_deconvo' + '.txt'
+        deconvo_dir = os.path.join(PATH, 'deconvolution')
+        os.makedirs(deconvo_dir, exist_ok=True)
+        name_file = os.path.join(deconvo_dir, filename + '_Dc.txt')
+        print("📂 /deconvolution directory created")
     else:
-        name_file=PATH + filename + '.txt'
-    with open(name_file, 'w', encoding='UTF8') as f:
+        name_file = PATH + filename + '.txt'
 
+    with open(name_file, 'w', encoding='UTF8') as f:
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
-        
         for identification_data_dict in matches_identification:
             compound_name = identification_data_dict['compound_name']
             rt1 = identification_data_dict['rt1']
@@ -554,11 +578,15 @@ def sample_identification(path, file, output_path,
                           noise_factor=5, abs_thresholds=1000,
                           rel_thresholds=0.001,
                           cluster=0.5,
-                          min_distance=1, min_sigma=1, max_sigma=3, sigma_ratio=1.5,
+                          min_distance=1, min_sigma=1, max_sigma=3,
+                          sigma_ratio=1.5,
                           num_sigma=10,
-                          formated_spectra=True, match_factor_min=600, min_persistence=0.0002,
-                          overlap=0.5, eps=0.001, min_samples=1, nist=False, method_baseline="als",
-                          quant_method="mass", extract_patch=False, output_hdf5_file=None, plot_=False):
+                          formated_spectra=True, match_factor_min=600,
+                          min_persistence=0.0002,
+                          overlap=0.5, eps=0.001, min_samples=1, nist=False,
+                          method_baseline="als",
+                          quant_method="mass", extract_patch=False,
+                          output_hdf5_file=None, plot_=True):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -609,73 +637,83 @@ def sample_identification(path, file, output_path,
     #if os.path.exists(output_hdf5_file):
     #    raise FileExistsError(f"The file '{output_hdf5_file}' already exists.")
     if output_hdf5_file is None:
-        output_hdf5_file= os.path.join(output_path, "data_set.h5")
+        output_hdf5_file = os.path.join(output_path, "data_set.h5")
 
     print('Identification started\n')
     start_time = time.time()
     try:
         full_filename = path + "/" + file
-        matches_identification, sample_metadata_list = identification(full_filename,
-                                                mod_time,
-                                                method,
-                                                mode,
-                                                noise_factor,
-                                                abs_thresholds,
-                                                rel_thresholds,
-                                                cluster,
-                                                min_distance,
-                                                min_sigma,
-                                                max_sigma,
-                                                sigma_ratio,
-                                                num_sigma,
-                                                formated_spectra,
-                                                match_factor_min,
-                                                min_persistence,
-                                                overlap,
-                                                eps,
-                                                min_samples,
-                                                nist, quant_method,extract_patch,output_hdf5_file,method_baseline,plot_)
+        result = identification(
+            full_filename,
+            output_path,
+            mod_time,
+            method,
+            mode,
+            noise_factor,
+            abs_thresholds,
+            rel_thresholds,
+            cluster,
+            min_distance,
+            min_sigma,
+            max_sigma,
+            sigma_ratio,
+            num_sigma,
+            formated_spectra,
+            match_factor_min,
+            min_persistence,
+            overlap,
+            eps,
+            min_samples,
+            nist,
+            quant_method,
+            extract_patch,
+            output_hdf5_file,
+            method_baseline,
+            plot_
+        )
+        # Vérifier le type de résultat
+        if isinstance(result, tuple) and len(result) == 2:
+            first, second = result
+            if second == "persistent_homology_mode":
+                coordinates = first
+                return f"✅ Peak detection completed: {len(coordinates)} peaks found"
+            else:
+                # Cas normal
+                matches_identification, sample_metadata_list = result
 
+                 # Vérifier si les résultats sont vides
+                if not matches_identification and not sample_metadata_list:
+                    return f"❌ Aucune identification possible avec method='{method}' et mode='{mode}'"
+                if not matches_identification:
+                    return f"⚠️ Aucun composé identifié pour {file}"
 
-        print("Identification done", time.time()-start_time, 's')
+                print("Identification done", time.time()-start_time, 's')
 
-        # print("output_path from identificqtion", output_path)
-        if nist:
-            name_txt =  os.path.splitext(file)[0] + '_D_N'
-            name_csv =  os.path.splitext(file)[0] + '_D_N'
+                base_name = os.path.splitext(file)[0] + ('_Dt_N' if nist else '_Dt')
+                cohort_identification_alignment_input_format_txt(
+                    base_name, matches_identification, output_path)
+                cohort_identification_alignment_input_format_txt(
+                    base_name, matches_identification, output_path, deconvo=True)
+                if (extract_patch):
+                    cohort_identification_sample_metadata(
+                        base_name, sample_metadata_list, output_path)
+                else:
+                    cohort_identification_to_csv(
+                        base_name, matches_identification, output_path)
+                result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}_Dc.txt, {output_path + base_name}.csv created']
+                return result
         else:
-            name_txt =  os.path.splitext(file)[0] + '_D'
-            name_csv =  os.path.splitext(file)[0] + '_D'
-#         cohort_identification_alignment_input_format_txt(
-#             name_txt, matches_identification, output_path)
-#         cohort_identification_to_csv(name_csv, matches_identification,
-#                                      output_path)
-        
-#         return (f'{output_path + name_txt} & '
-#                 + f'{output_path + name_csv} created')
-        print("output_path from identification", output_path, file)
-        cohort_identification_alignment_input_format_txt(
-            name_txt, matches_identification, output_path)
-        cohort_identification_alignment_input_format_txt(
-           name_txt, matches_identification, output_path, deconvo=True)
-        if(extract_patch):
-            cohort_identification_sample_metadata(name_csv, sample_metadata_list,
-                                     output_path)
-        else:
-            cohort_identification_to_csv(name_csv, matches_identification,
-                                     output_path)
-        print(f'{output_path + os.path.splitext(file)[0]}.txt created')
-        return (f'{output_path + os.path.splitext(file)[0]}.txt created')
+            return "❌ Erreur inattendue lors de l'identification/peak detection."
 
     except Exception as e:
         traceback.print_exc()
         return (f"Erreur lors du traitement du fichier {file}: {e}")
 
 
-def cohort_identification_sample_metadata(file, sample_metadata_list,
-                                     output_path):
-    file_path= output_path + '/'+ file + "_sample_metadata.csv"
-    
+def cohort_identification_sample_metadata(
+        file, sample_metadata_list, output_path):
+    file_path = output_path + '/' + file + "_sample_metadata.csv"
+
     fieldnames = sample_metadata_list[0].keys()
     with open(file_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=';')
@@ -702,8 +740,8 @@ def clip_patch_by_rt(full_patch, full_rt_bounds, center_rt, clip_rt1_window, cli
     y_clip_max_float = ((target_rt2_max - full_rt2_min) / rt2_range_full) * (patch_width -1)
     x_clip_min_idx = int(round(x_clip_min_float)); x_clip_max_idx = int(round(x_clip_max_float)) + 1
     y_clip_min_idx = int(round(y_clip_min_float)); y_clip_max_idx = int(round(y_clip_max_float)) + 1
-    x_clip_min_idx=max(0, x_clip_min_idx); y_clip_min_idx=max(0, y_clip_min_idx)
-    x_clip_max_idx=min(patch_height, x_clip_max_idx); y_clip_max_idx=min(patch_width, y_clip_max_idx)
+    x_clip_min_idx = max(0, x_clip_min_idx); y_clip_min_idx=max(0, y_clip_min_idx)
+    x_clip_max_idx = min(patch_height, x_clip_max_idx); y_clip_max_idx=min(patch_width, y_clip_max_idx)
     if x_clip_min_idx >= x_clip_max_idx or y_clip_min_idx >= y_clip_max_idx: return np.array([[]])
     return full_patch[x_clip_min_idx:x_clip_max_idx, y_clip_min_idx:y_clip_max_idx]
 

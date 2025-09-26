@@ -112,13 +112,6 @@ def read_chroma(filename, mod_time, max_val=None):
             mv = get_var("mass_values")[:max_val] if max_val else get_var("mass_values")
             iv = get_var("intensity_values")[:max_val] if max_val else get_var("intensity_values")
 
-            # FIXME 
-            print(f"Loaded {len(mv)} mass values")
-            print(f"Non-finite mass values: {np.sum(~np.isfinite(mv))}")
-    
-            print(mv[~np.isfinite(mv)][:10])  # pour voir les premières masses invalides
-            print(iv[~np.isfinite(iv)][:10])  # idem pour les intensités
-
             range_min = math.ceil(get_var("mass_range_min").min())
             range_max = math.floor(get_var("mass_range_max").max())
             start_time = get_var("scan_acquisition_time")[0] / 60
@@ -179,7 +172,8 @@ def read_chroma(filename, mod_time, max_val=None):
 #     return (chromato,time_rn,spectra_obj), chromato_cube, sigma
 
 
-def read_chromato_and_chromato_cube(filename, 
+def read_chromato_and_chromato_cube(filename,
+                                    output_path,
                                     mod_time,
                                     pre_process=True,plot_=True):
     r"""Same as read_chromato_cube(Read chromatogram file and compute TIC
@@ -216,19 +210,21 @@ def read_chromato_and_chromato_cube(filename,
         (range_min, range_max)=read_chroma.read_chromato_and_chromato_cube(
         filename, mod_time=1.25, pre_process=True)
     """
-
+    base_name = os.path.splitext(os.path.basename(filename))[0]
     start_time = time.time()
     chromato_obj = read_chroma(filename, mod_time)
     tic_chromato, time_rn, spectra_obj = chromato_obj
     if plot_:
-        plot.visualizer((tic_chromato, time_rn), mod_time, title="Chromatogram TIC")
+        dir_save = f"{output_path}"
+        fig_title = f"{base_name}_Chromatogram_TIC"
+        plot.visualizer((tic_chromato, time_rn), mod_time, title=fig_title, save=True, dir_save=dir_save)
     (l1, l2, mv, iv, range_min, range_max) = spectra_obj
     print("chromato read", time.time()-start_time, 's')
 
     start_time = time.time()
     full_spectra = mass_spec.read_full_spectra_centroid(
         spectra_obj=spectra_obj)
-    print("full spectra computed", time.time()-start_time, 's')
+    print("Full spectra computed:", time.time()-start_time, 's')
 
     # spectra, debuts, fins = full_spectra
     chromato_cube = full_spectra_to_chromato_cube(full_spectra=full_spectra,

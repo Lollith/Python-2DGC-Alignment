@@ -4,11 +4,11 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-COPY config/jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
-COPY notebooks/ /app/notebooks/
-
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+
+COPY config/jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
+COPY notebooks/ /app/notebooks/
 
 EXPOSE 8888
 
