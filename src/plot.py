@@ -10,6 +10,9 @@ import mass_spec
 import pandas as pd
 import seaborn as sn
 import pandas as pd
+import os
+
+docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
 def plot_confusion_matrix(conf_mat):
     df_cm = pd.DataFrame(conf_mat, index = [i for i in ["0" , "1"]],
@@ -49,10 +52,11 @@ def plot_feature_corr(index, corr_matrix, mol_list, id_max=20):
     if (isinstance(index, str)):
         index = np.argwhere(mol_list == index)[0][0]
     series = pd.Series(
-    corr_matrix[index],
-    index=mol_list
-    ).sort_values(ascending=True)[-id_max:]
+        corr_matrix[index],
+        index=mol_list
+        ).sort_values(ascending=True)[-id_max:]
     series.plot.barh(title=mol_list[index] + " correlation")
+
 
 def plot_feature_and_permutation_importance(feature_importance, permutation_importance, mol_list, id_max=10):
     sorted_idx = np.argsort(feature_importance)
@@ -62,7 +66,6 @@ def plot_feature_and_permutation_importance(feature_importance, permutation_impo
     plt.barh(pos[-id_max:], feature_importance[sorted_idx][-id_max:], align="center")
     plt.yticks(pos[-id_max:], np.array(mol_list)[sorted_idx][-id_max:])
     plt.title("Feature Importance (MDI)")
-
 
     sorted_idx = permutation_importance.importances_mean.argsort()
     plt.subplot(1, 2, 2)
@@ -116,32 +119,34 @@ def plot_acp(features_disc_mol_new_cd, labels, projection=None, figsize=(10,5)):
     for g in ['negatif', 'positif faible', 'positif']:
         index = np.where(labels == g)
         p = features_disc_mol_new_cd[index]
-        if (projection=="3d"):
-            ax1.scatter(p[:,0], p[:,1], p[:,0], c = cdict[g], label = g)
+        if (projection == "3d"):
+            ax1.scatter(p[:, 0], p[:, 1], p[:, 0], c=cdict[g], label=g)
         else:
-            ax1.scatter(p[:,0], p[:,1], c = cdict[g], label = g)
+            ax1.scatter(p[:, 0], p[:, 1], c=cdict[g], label=g)
     ax1.set_title("Positif vs Positif Faible vs Negatif")
     ax1.legend()
-    
+
     ax2 = fig.add_subplot(122, projection=projection)
 
     cdict = {'negatif': 'blue', 'positif faible': 'red', 'positif': 'red'}
     for g in ['negatif', 'positif faible', 'positif']:
         index = np.where(labels == g)
         p = features_disc_mol_new_cd[index]
-        if (projection=="3d"):
-            ax2.scatter(p[:,0], p[:,1], p[:,0], c = cdict[g], label = g)
+        if (projection == "3d"):
+            ax2.scatter(p[:, 0], p[:, 1], p[:, 0], c=cdict[g], label=g)
         else:
-            ax2.scatter(p[:,0], p[:,1], c = cdict[g], label = g)
+            ax2.scatter(p[:, 0], p[:, 1], c=cdict[g], label=g)
     ax2.set_title("Positif vs Negatif")
     ax2.legend()
 
     plt.show()
 
+
 def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct 
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n)
+
 
 def mass_overlay(mass_values_list, intensity_values_list, title="mass_overlay", top_n_mass=10, figsize=(32, 18)):
     r"""Plot multiple mass spectra
@@ -179,8 +184,8 @@ def mass_overlay(mass_values_list, intensity_values_list, title="mass_overlay", 
             }
     plt.figure(figsize=figsize)
     spectrum = zip(mass_values_list[0], intensity_values_list[0])
-    sorted_mz = sorted(spectrum, key = lambda x: x[1],reverse=True)
-    for i in range (len(mass_values_list)):
+    sorted_mz = sorted(spectrum, key=lambda x: x[1], reverse=True)
+    for i in range(len(mass_values_list)):
         plt.bar(mass_values_list[i],intensity_values_list[i], width=0.4)
     for i, mi in enumerate(sorted_mz):
         if (i >= top_n_mass):
@@ -228,7 +233,7 @@ def plot_mass(mass_values, int_values, title="", top_n_mass=10, figsize=(32, 18)
             'size': 32,
             }
     plt.figure(figsize=figsize)
-    plt.bar(mass_values,int_values, width=0.4)
+    plt.bar(mass_values, int_values, width=0.4)
     spectrum = zip(mass_values, int_values)
     sorted_mz = sorted(spectrum, key = lambda x: x[1],reverse=True)
     if (title):
@@ -255,13 +260,14 @@ def point_is_visible(point, indexes):
     #     return False
     # return True
 
+
 def plot(chromato_obj):
     """USELESS"""
     chromato, time_rn = chromato_obj
     plt.contourf(chromato)
     plt.colorbar()
     plt.show()
-    
+
 
 def visualizer(
         chromato_obj,
@@ -335,7 +341,7 @@ def visualizer(
     chromato, time_rn = chromato_obj
     shape = chromato.shape
     #X = np.linspace(time_rn[0], time_rn[1], shape[0])
-    X= np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
+    X = np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
     Y = np.linspace(0, mod_time, shape[1])
     if (rt1 is not None and rt2 is not None):
         rt1minusrt1window = rt1 - rt1_window
@@ -367,8 +373,8 @@ def visualizer(
             indexes[0][0]:indexes[1][0],
             indexes[0][1]:indexes[1][1]
             ]
-        X=X[indexes[0][0]:indexes[1][0]]
-        Y=Y[indexes[0][1]:indexes[1][1]]
+        X = X[indexes[0][0]:indexes[1][0]]
+        Y = Y[indexes[0][1]:indexes[1][1]]
     elif (center_pt_window_1 and center_pt_window_2):
         center_pt1_minusrt1window = center_pt[0] - center_pt_window_1
         center_pt1_plusrt1window = center_pt[0] + center_pt_window_1
@@ -399,8 +405,8 @@ def visualizer(
         #indexes_in_chromato = matrix_to_chromato(indexes,time_rn=time_rn, mod_time=mod_time, chromato_dim=shape)
         indexes_in_chromato = indexes
 
-        X=X[center_pt1_minusrt1window:center_pt1_plusrt1window + 1]
-        Y=Y[center_pt2_minusrt2window:center_pt2_plusrt2window + 1]
+        X = X[center_pt1_minusrt1window:center_pt1_plusrt1window + 1]
+        Y = Y[center_pt2_minusrt2window:center_pt2_plusrt2window + 1]
 
         indexes = np.array([
             [center_pt1_minusrt1window, center_pt2_minusrt2window],
@@ -409,8 +415,8 @@ def visualizer(
     if (log_chromato):
         chromato = np.log(chromato)
     chromato = np.transpose(chromato)
-    
     fig, ax = plt.subplots(figsize=(15, 4))
+    # print("save")
 
     #tmp = ax.pcolormesh(X, Y, chromato)
     tmp = ax.contourf(X, Y, chromato)
@@ -433,7 +439,7 @@ def visualizer(
                 c = plt.Circle((points[i][0], points[i][1]), radius[i] / shape[1], color="red", linewidth=2, fill=False)
                 ax.add_patch(c)
         if (len(points) > 0):
-            if (casnos_dict != None):
+            if (casnos_dict is not None):
                 mol_name = []
                 scatter_list = []
                 comp_list = list(casnos_dict.keys())
@@ -485,9 +491,15 @@ def visualizer(
         else:
             ax.plot(contour[:, 0], contour[:, 1], "b.")
     if (save):
-        plt.savefig(f"{dir_save}chromato_" + title + ".png")
+        os.makedirs(f"{dir_save}/figures/", exist_ok=True)
+        plt.savefig(f"{dir_save}/figures/" + title + ".png")
+        if dir_save.startswith(docker_volume_path):
+            display_dir_save = dir_save.replace(docker_volume_path, "")
+        else:
+            display_dir_save = dir_save
+        print(f"📂 Figure saved in {display_dir_save}figures/" + title + ".png")
 
-    plt.show(block=False)
+    # plt.show(block=False)
     if (plotly):
         fig = go.Figure(data=go.Contour(
             z=np.transpose(chromato),

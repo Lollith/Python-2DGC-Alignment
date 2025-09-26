@@ -292,12 +292,15 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
     return matches_identification , sample_metadata_list
 
 def identification(filename,
+                   output_path,
                    mod_time,
                    method, mode, noise_factor,
                    abs_threshold, rel_threshold, cluster, min_distance,
                    min_sigma, max_sigma, sigma_ratio,
                    num_sigma, formated_spectra, match_factor_min,
-                   min_persistence, overlap, eps, min_samples, nist,quant,extract_patch,output_hdf5_file, method_baseline, plot_):
+                   min_persistence, overlap, eps, min_samples,
+                   nist, quant, extract_patch, output_hdf5_file,
+                   method_baseline, plot_):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -341,8 +344,11 @@ def identification(filename,
         coordinates...
     --------
     """
+    base_name = os.path.splitext(os.path.basename(filename))[0]
+
     chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
-        read_chroma.read_chromato_and_chromato_cube(filename, 
+        read_chroma.read_chromato_and_chromato_cube(filename,
+                                                    output_path,
                                                     mod_time,
                                                     pre_process=False, plot_=plot_
                                                     ))
@@ -372,21 +378,20 @@ def identification(filename,
         print("Peaks number: ", len(coordinates))
         if (plot_):
             print("Plotting detected peaks...")
-            dir_save = "/app/data/figs/"
-            os.makedirs(dir_save, exist_ok=True)
+            dir_save = f"{output_path}"
             coordinates_in_chromato = projection.matrix_to_chromato(
                     coordinates, time_rn, mod_time, chromato_tic.shape)
+            fig_title = f"{base_name}_dt_{mode}_and_{method}"
             plot.visualizer((chromato_tic, time_rn), mod_time,
-                                title=f"peak_detection_with_mode_{mode}_and_method_{method}",
-                                log_chromato=True, points=coordinates_in_chromato, save=True, dir_save=dir_save)
+                            title=fig_title, log_chromato=True,
+                            points=coordinates_in_chromato,
+                            save=True, dir_save=dir_save)
 
         matches = matching.matching_nist_lib_from_chromato_cube(
-                (chromato_tic, time_rn, mass_range), baseline_cube, coordinates,
-                mod_time,
-                match_factor_min, nist)
+                (chromato_tic, time_rn, mass_range), baseline_cube,
+                coordinates, mod_time, match_factor_min, nist)
 
         print("Matches found: ", len(matches))
-        base_name = os.path.basename(filename)
 
         matches_identification, sample_metadata_list = compute_matches_identification(
                 matches, spec_list, area, chromato_tic, baseline_cube,time_rn,mod_time, mass_range,base_name,
@@ -640,6 +645,7 @@ def sample_identification(path, file, output_path,
         full_filename = path + "/" + file
         result = identification(
             full_filename,
+            output_path,
             mod_time,
             method,
             mode,
