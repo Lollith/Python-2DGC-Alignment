@@ -556,8 +556,10 @@ class ChromatographicAligner:
                                                         match_factor_min)
             # Mettre à jour résultats en mémoire
             self._update_peak_info(identifications)
-            self._update_rt_group(identifications)
-            self._update_alignment_matrix(identifications)
+
+            # pour mise a jour des csv rt group et alignment matrix si besoin:
+            # self._update_rt_group(identifications)
+            # self._update_alignment_matrix(identifications)
 
         # --- CAS 2 ou 3 : résultats déjà sauvegardés ---
         elif self._csv_results_exist():
@@ -656,7 +658,9 @@ class ChromatographicAligner:
         ]
         spectra_group.index = new_index
 
-        self.filtered_results["spectra_group"] = spectra_group
+        # pour mise a jour du CSV spectra_group:
+        # self.filtered_results["spectra_group"] = spectra_group
+
         # print("✅ NIST search completed on all spectra.")
         return df_ident
 
@@ -760,17 +764,17 @@ class ChromatographicAligner:
         peak_info["Compounds"] = compounds
         peak_info["Scores"] = scores
 
-        rt_group["Compounds"] = compounds
-
-        spectra_group["Compounds"] = compounds
-        spectra_group["Scores"] = scores
+        # pour mise a jour des csv rt group et alignment matrix si besoin:
+        # rt_group["Compounds"] = compounds
+        # spectra_group["Compounds"] = compounds
+        # spectra_group["Scores"] = scores
         print("NIST identifications ajoutées aux DataFrames chargés depuis CSV.")
 
         # Sauvegarde
-        alignment_matrix.to_csv(self.output_dir / "alignment_matrix.csv")
+        # alignment_matrix.to_csv(self.output_dir / "alignment_matrix.csv")
         peak_info.to_csv(self.output_dir / "peak_info.csv")
-        rt_group.to_csv(self.output_dir / "rt_group.csv")
-        spectra_group.to_csv(self.output_dir / "spectra_group.csv")
+        # rt_group.to_csv(self.output_dir / "rt_group.csv")
+        # spectra_group.to_csv(self.output_dir / "spectra_group.csv")
 
 
     def save_results(self, output_dir, with_filter=False):
