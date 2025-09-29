@@ -326,7 +326,7 @@ class Interface:
 
         for i, fc in enumerate(self._choosers):
             selected = fc.selected_path
-            print(f"Processing selection {i+1}: {selected}")
+            # print(f"Processing selection {i+1}: {selected}")
             if not selected:
                 continue
 
@@ -346,7 +346,7 @@ class Interface:
                         print(f"⚠️  Unsupported file ignored: {fc.selected_filename}")
 
                 else: # ce n 'est pas un fichier
-                    print(f"📁 Processing folder: {selected_path}")
+                    # print(f"📁 Processing folder: {selected_path}")
                     dir_files = self._get_files_from_directory(selected_path)
 
                     for f in dir_files:

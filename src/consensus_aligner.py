@@ -8,6 +8,7 @@ from datetime import datetime
 # import nist_search
 import matching
 import nist_search
+import tqdm
 
 
 class ChromatographicAligner:
@@ -178,7 +179,7 @@ class ChromatographicAligner:
                 self.imported_files = list(executor.map(self.importFile, file_list))
         
         return self.imported_files
-
+    
     def generate_sim_frames(self, sample, seed_sample):
         """Generate similarity matrix between sample and seed.
 
@@ -193,10 +194,25 @@ class ChromatographicAligner:
         --------
         np.ndarray : Similarity matrix with RT penalties applied
         """
+        sample_compounds = len(sample[0])  # Nombre de composés
+        seed_compounds = len(seed_sample[0])
         
+        print(f"    🔄 Computing {sample_compounds} x {seed_compounds} similarities...")
         # Get spectra data
         seed_spectra_list = seed_sample[1]
         sample_spectra_list = sample[1]
+         # Votre matrice de résultats
+        # sim_matrix = np.zeros((sample_compounds, seed_compounds))
+
+        # with tqdm(total=sample_compounds, desc="    Comparing", leave=False) as pbar:
+        #     for i in range(sample_compounds):
+        #         for j in range(seed_compounds):
+        #             # Votre calcul de similarité ici
+        #             sim_matrix[i, j] = self.compute_similarity(sample[0].iloc[i], seed_sample[0].iloc[j])
+                
+        #         pbar.update(1)
+        #         if i % 10 == 0:  # Mise à jour moins fréquente
+        #             pbar.set_postfix({'Current': f"{i+1}/{sample_compounds}"})
         
         # Convert to matrix and normalize
         max_len = max(len(s) for s in seed_spectra_list + sample_spectra_list if len(s) > 0)
@@ -320,8 +336,10 @@ class ChromatographicAligner:
 
         # Import files if not provided
         if self.imported_files is None:
+            print("📂 Importing files...")
             self.import_files(input_file_list)
 
+        total_samples = len(self.imported_files)
         # Check for missing files
         missing_file_list = []
         for file_data in self.imported_files:
@@ -342,9 +360,11 @@ class ChromatographicAligner:
         # Create row names (Name + "_1")
         row_names = [f"{seed_sample[0].iloc[i, 0]}_1" for i in range(n_rows)]
 
-        col_names = input_file_list.copy()
+        # col_names = input_file_list.copy()
         # col_names = [os.path.basename(f) for f in input_file_list]
-        
+        col_names = [os.path.splitext(os.path.basename(f))[0].split('#')[0] for f in input_file_list]
+
+
         final_matrix = pd.DataFrame(
             np.full((n_rows, n_cols), np.nan),
             index=row_names, columns=col_names, dtype=float)
@@ -357,7 +377,9 @@ class ChromatographicAligner:
 
         # Process each sample
         for samp_num in range(len(self.imported_files)):
-            # print(f"Processing sample: {samp_num + 1}")
+            # print(f"Processing sample: {col_names[samp_num]}")
+            sample_name = col_names[samp_num]
+
             # Generate similarity frames (this function needs to be implemented)
             sim_cutoffs = self.generate_sim_frames(self.imported_files[samp_num], seed_sample)
 
@@ -435,7 +457,7 @@ class ChromatographicAligner:
                     new_rows_area.iloc[i, samp_num] = float(self.imported_files[samp_num][0].iloc[dissim_idx, 2])  # Area
                     new_rows_rt.iloc[i, samp_num] = str(self.imported_files[samp_num][0].iloc[dissim_idx, 1])      # RT
                     new_rows_spectra.iloc[i, samp_num] = str(self.imported_files[samp_num][0].iloc[dissim_idx, 4]) # Spectra
-                
+                   
                 # Append new rows to matrices
                 final_matrix = pd.concat([final_matrix, new_rows_area])
                 final_matrix_rt = pd.concat([final_matrix_rt, new_rows_rt])
@@ -473,17 +495,17 @@ class ChromatographicAligner:
 
         return self.alignment_results
 
-    def get_alignment_matrix(self):
-        """Get the alignment matrix from the last alignment."""
-        if self.alignment_results is None:
-            raise ValueError("No alignment results available. Run consensus_align first.")
-        return self.alignment_results['Alignment_Matrix']
+    # def get_alignment_matrix(self):
+    #     """Get the alignment matrix from the last alignment."""
+    #     if self.alignment_results is None:
+    #         raise ValueError("No alignment results available. Run consensus_align first.")
+    #     return self.alignment_results['Alignment_Matrix']
 
-    def get_peak_info(self):
-        """Get the peak information from the last alignment."""
-        if self.alignment_results is None:
-            raise ValueError("No alignment results available. Run consensus_align first.")
-        return self.alignment_results['Peak_Info']
+    # def get_peak_info(self):
+    #     """Get the peak information from the last alignment."""
+    #     if self.alignment_results is None:
+    #         raise ValueError("No alignment results available. Run consensus_align first.")
+    #     return self.alignment_results['Peak_Info']
 
     def filter_alignment_matrix(self, missing_value_threshold=None):
         """
@@ -626,70 +648,94 @@ class ChromatographicAligner:
         print("Running NIST search on spectra...")
 
         mapping = []
+        peak_counter = 1
 
         for analyte_id, row in spectra_group.iterrows():
-            compound_name = "NA"
-            best_score = -1
+            compounds, casnos, formulas, scores = [], [], [], []
+            total_hits = 0
+
             for spec in row:
-                mz_list, int_list = self._parse_spectrum_string(spec) if (spec and isinstance(spec, str)) else ([], [])
+                mz_list, int_list = (
+                    self._parse_spectrum_string(spec)
+                    if (spec and isinstance(spec, str))
+                    else ([], [])
+                )
                 if mz_list and int_list:
                     try:
                         serialized_spectrum = {"mass": mz_list, "intensity": int_list}
                         results = self.nist_api.nist_single_search(serialized_spectrum)
                         list_hits = self.nist_api.hit_list_from_nist_api(results)
                         top_hits = matching.filter_best_hits(list_hits, match_factor_min)
-                        if top_hits and top_hits[0][0].match_factor > best_score:
-                            compound_name = top_hits[0][0].name
-                            best_score = top_hits[0][0].match_factor
-                    except Exception:
+
+                        if top_hits:
+                            for j, hit in enumerate(top_hits):
+                                search_result, ref_data = hit
+                                compounds.append(getattr(search_result, "name", "NA"))
+                                casnos.append(getattr(search_result, "cas", "NA"))
+                                formulas.append(getattr(ref_data, "formula", "NA"))
+                                scores.append(str(getattr(search_result, "match_factor", -1)))
+                            
+                    except Exception as e:
+                        print(f"Warning; Nist search failed for {analyte_id}: {e}")
                         continue
-            mapping.append({
-                "AnalyteID": analyte_id,
-                "Compounds": compound_name,
-                "Scores": str(best_score) if compound_name != "NA" else "NA"
-            })
-        
-        # Retourne un DataFrame pour le mapping
-        df_ident = pd.DataFrame(mapping).set_index("AnalyteID")
-        spectra_group = self.filtered_results["spectra_group"].copy()
-        new_index = [
-            nist if (nist is not None and nist != "NA" and str(nist).strip() != "") else analyte
-            for analyte, nist in zip(spectra_group.index, df_ident.loc[spectra_group.index, "Compounds"])
-        ]
-        spectra_group.index = new_index
 
-        # pour mise a jour du CSV spectra_group:
-        # self.filtered_results["spectra_group"] = spectra_group
+            if compounds:
+                mapping.append(
+                    {
+                        "AnalyteID": analyte_id,
+                        "Compounds": "/".join(compounds),
+                        "CASNo": "/".join(casnos),
+                        "Formula": "/".join(formulas),
+                        "Scores": "/".join(scores),
+                    }
+                )
+            else:
+                mapping.append(
+                    {
+                        "AnalyteID": analyte_id,
+                        "Compounds": "NA",
+                        "CASNo": "NA",
+                        "Formula": "NA",
+                        "Scores": "NA",
+                    }
+                )
+            peak_counter += 1
+        total_identified = sum(1 for m in mapping if m["Compounds"] != "NA")
+        total_unidentified = len(mapping) - total_identified
+        print(f"NIST matching completed. Identified: {total_identified}, Unidentified: {total_unidentified}")
 
-        # print("✅ NIST search completed on all spectra.")
-        return df_ident
+        return pd.DataFrame(mapping).set_index("AnalyteID")
 
 
     def _update_peak_info(self, identifications):
         """
-        Met à jour Peak_Info et RT_group :
-        - L’index devient le nom NIST si trouvé, sinon l’identifiant original pour chaque ligne.
+        Met à jour Peak_Info en ajoutant les résultats d’identification NIST :
+        - L'index reste les analyte_numéros.
+        - Ajout des colonnes : Compound_Name, CASNo, MatchFactor, Formula.
         """
         if "Peak_Info" not in self.alignment_results:
             raise ValueError("Peak_Info non trouvé dans alignment_results")
         peak_info = self.alignment_results["Peak_Info"].copy()
+
         if "Name" in peak_info.columns:
             analyte_ids = peak_info["Name"]
         else:
             analyte_ids = peak_info.index
         compound_map = identifications["Compounds"].to_dict()
+        casno_map = identifications.get("CASNo", {}).to_dict() if "CASNo" in identifications else {}
+        matchfactor_map = identifications.get("Scores", {}).to_dict() if "Scores" in identifications else {}
+        formula_map = identifications.get("Formula", {}).to_dict() if "Formula" in identifications else {}
 
-        new_index = [
-            compound_map.get(analyte_id, analyte_id) if compound_map.get(analyte_id, "NA") not in [None, "NA", ""] else analyte_id
+        peak_info["Compound_Name"] = [
+            compound_map.get(analyte_id, "NA") if compound_map.get(analyte_id, "NA") not in [None, "NA", ""] else "NA"
             for analyte_id in analyte_ids
-        ]
-        peak_info.index = new_index
-
-        for col in ["Name"]:
-            if col in peak_info.columns:
-                peak_info = peak_info.drop(columns=[col])
+            ]
+        peak_info["CASNo"] = [casno_map.get(analyte_id, "NA") for analyte_id in analyte_ids]
+        peak_info["MatchFactor"] = [matchfactor_map.get(analyte_id, "NA") for analyte_id in analyte_ids]
+        peak_info["Formula"] = [formula_map.get(analyte_id, "NA") for analyte_id in analyte_ids]
 
         self.filtered_results["Peak_Info"] = peak_info
+
 
     def _update_rt_group(self, identifications):
         if "RT_group" in self.filtered_results:
@@ -772,7 +818,7 @@ class ChromatographicAligner:
 
         # Sauvegarde
         # alignment_matrix.to_csv(self.output_dir / "alignment_matrix.csv")
-        peak_info.to_csv(self.output_dir / "peak_info.csv")
+        # peak_info.to_csv(self.output_dir / "peak_info.csv", sep=";", index=True)
         # rt_group.to_csv(self.output_dir / "rt_group.csv")
         # spectra_group.to_csv(self.output_dir / "spectra_group.csv")
 
@@ -798,7 +844,7 @@ class ChromatographicAligner:
         os.makedirs(output_dir, exist_ok=True)
         name_filter = ""
         if with_filter:
-            name_filter = f"_F_{self.missing_value_limit}"
+            name_filter = f"#F#{self.missing_value_limit}"
         
         for key in ['Alignment_Matrix', 'Peak_Info', 'RT_group', 'spectra_group']:
             obj = self.filtered_results.get(key)
@@ -809,8 +855,8 @@ class ChromatographicAligner:
                         obj = pd.DataFrame(obj)
                     obj.to_csv(
                         os.path.join(output_dir, f"{key}{name_filter}_{timestamp}.csv"),
-                        # sep="\t", index=(key != 'Peak_Info'), na_rep="NA"
-                    )
+                        sep=";", index=False if key == "Peak_Info" else True)
+                    
                     # print(f"✅ {key} saved.")
                 except Exception as e:
                     print(f"❌ Impossible de sauvegarder {key} en CSV: {e}")

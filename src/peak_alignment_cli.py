@@ -3,8 +3,33 @@ import argparse
 import os
 import sys
 from consensus_aligner import ChromatographicAligner
+# from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
+# def run_alignment_with_progress(aligner, input_files):
+#     """Wrapper avec barre de progression pour le CLI"""
+    
+#     # Créer la barre de progression
+#     pbar = tqdm(total=len(input_files), desc="Aligning samples")
+    
+#     def progress_callback(current, total, sample_name):
+#         pbar.set_description(f"Processing: {sample_name[:15]}")
+#         if current > 0:  # Éviter de mettre à jour au début
+#             pbar.update(1)
+    
+#     try:
+#         # Lancer l'alignement avec callback
+#         results = aligner.consensus_align_bis(
+#             input_files, 
+#             progress_callback=progress_callback
+#         )
+#         pbar.close()
+#         return results
+#     except Exception as e:
+#         pbar.close()
+#         raise e
+    
 
 def main():
     parser = argparse.ArgumentParser(description="GC×GC-MS Peak Alignment CLI")
