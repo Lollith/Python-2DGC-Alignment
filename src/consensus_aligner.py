@@ -194,6 +194,7 @@ class ChromatographicAligner:
         --------
         np.ndarray : Similarity matrix with RT penalties applied
         """
+        
         sample_compounds = len(sample[0])  # Nombre de composés
         seed_compounds = len(seed_sample[0])
         
@@ -201,18 +202,6 @@ class ChromatographicAligner:
         # Get spectra data
         seed_spectra_list = seed_sample[1]
         sample_spectra_list = sample[1]
-         # Votre matrice de résultats
-        # sim_matrix = np.zeros((sample_compounds, seed_compounds))
-
-        # with tqdm(total=sample_compounds, desc="    Comparing", leave=False) as pbar:
-        #     for i in range(sample_compounds):
-        #         for j in range(seed_compounds):
-        #             # Votre calcul de similarité ici
-        #             sim_matrix[i, j] = self.compute_similarity(sample[0].iloc[i], seed_sample[0].iloc[j])
-                
-        #         pbar.update(1)
-        #         if i % 10 == 0:  # Mise à jour moins fréquente
-        #             pbar.set_postfix({'Current': f"{i+1}/{sample_compounds}"})
         
         # Convert to matrix and normalize
         max_len = max(len(s) for s in seed_spectra_list + sample_spectra_list if len(s) > 0)
@@ -339,7 +328,7 @@ class ChromatographicAligner:
             print("📂 Importing files...")
             self.import_files(input_file_list)
 
-        total_samples = len(self.imported_files)
+        # total_samples = len(self.imported_files)
         # Check for missing files
         missing_file_list = []
         for file_data in self.imported_files:
@@ -364,7 +353,7 @@ class ChromatographicAligner:
         # col_names = [os.path.basename(f) for f in input_file_list]
         col_names = [os.path.splitext(os.path.basename(f))[0].split('#')[0] for f in input_file_list]
 
-
+        print(f"🧩 Initializing alignment matrix with {n_rows} rows and {n_cols} columns...")
         final_matrix = pd.DataFrame(
             np.full((n_rows, n_cols), np.nan),
             index=row_names, columns=col_names, dtype=float)
@@ -377,8 +366,8 @@ class ChromatographicAligner:
 
         # Process each sample
         for samp_num in range(len(self.imported_files)):
-            # print(f"Processing sample: {col_names[samp_num]}")
-            sample_name = col_names[samp_num]
+            print(f"Processing sample: {col_names[samp_num]}")
+            # sample_name = col_names[samp_num]
 
             # Generate similarity frames (this function needs to be implemented)
             sim_cutoffs = self.generate_sim_frames(self.imported_files[samp_num], seed_sample)
