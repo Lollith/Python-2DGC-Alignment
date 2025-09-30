@@ -158,7 +158,7 @@ def main():
                 print(results)  # Afficher le message d'erreur
                 failed_analyses += 1
             elif isinstance(results, list):
-            # affichage
+            # affichage du path
                 if args.output.startswith(docker_volume_path):
                     display_path = args.output.replace(docker_volume_path, "")
                 else:
