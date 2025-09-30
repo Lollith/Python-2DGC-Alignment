@@ -326,7 +326,7 @@ class PeakPrecompressor:
         for samp_num, imp in enumerate(imported_files):
             out_name = (
                 # input_file_list[samp_num][:-4] + "_Py_Processed1.csv"
-                output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "_P.txt"
+                output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "#P.txt"
             )
             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
             print(f"✅ Fichier {input_file_list[samp_num]} traité, résultat: {out_name}")

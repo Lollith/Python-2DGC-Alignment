@@ -199,11 +199,6 @@ def matching_nist_lib_from_chromato_cube(
         # mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
         spectrum_hash = hash_spectrum(mass_values, int_values)
 
-        # serialized_spectrum = {
-        #     "mass": [float(m) for m in mass_values],
-        #     "intensity": [float(i) for i in int_values]
-        #     }
-
         if nist and nist_api.check_nist_health():
             if spectrum_hash in cache:
                 top_hits = cache[spectrum_hash]

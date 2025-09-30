@@ -3,6 +3,7 @@ import argparse
 import os
 import sys
 from consensus_aligner import ChromatographicAligner
+# from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 

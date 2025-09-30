@@ -321,39 +321,51 @@ class Interface:
         Automatically determines whether it's a file or a folder.
         """
         all_files = []
-        processed_paths = set()
+        processed_files = set()
         already_seen_files = set()
 
         for i, fc in enumerate(self._choosers):
             selected = fc.selected_path
-            print(f"Processing selection {i+1}: {selected}")
+            # print(f"Processing selection {i+1}: {selected}")
             if not selected:
                 continue
 
             try:
+                # selected_path = Path(selected)
+                # if str(selected_path) in processed_paths:
+                #     continue
+                # processed_paths.add(str(selected_path))
                 selected_path = Path(selected)
-                if str(selected_path) in processed_paths:
-                    continue
-                processed_paths.add(str(selected_path))
 
                 if fc.selected_filename:
+                    full_path = selected_path / fc.selected_filename
+                    full_path_str = str(full_path)
+
+                    name_without_ext = fc.selected_filename.rsplit('.', 1)[0]
+
                     if fc.selected_filename.endswith(self.supported_extensions):
-                        full_path = selected_path / fc.selected_filename
-                        all_files.append(str(full_path))
-                        print(f"📄 File added: {full_path}")
-                        # print(f"📄 File added: {full_path}")
+                        all_files.append(full_path_str)
+                        processed_files.add(full_path_str)
                     else:
                         print(f"⚠️  Unsupported file ignored: {fc.selected_filename}")
+                        print(f"   Supported extensions: {', '.join(self.supported_extensions)}")
+
 
                 else: # ce n 'est pas un fichier
-                    print(f"📁 Processing folder: {selected_path}")
+                    # print(f"📁 Processing folder: {selected_path}")
+                    selected_path_str = str(selected_path)
+                    if selected_path_str in processed_files:
+                        print(f"⚠️  Folder already processed: {selected_path_str}")
+                        continue
+
+                    processed_files.add(selected_path_str)
                     dir_files = self._get_files_from_directory(selected_path)
 
                     for f in dir_files:
                         path = str(Path(f))
-                        if path not in processed_paths:
+                        if path not in processed_files:
                             all_files.append(path)
-                            processed_paths.add(path)
+                            processed_files.add(path)
                     print(f"   Found {len(dir_files)} compatible files")
 
             except Exception as e:

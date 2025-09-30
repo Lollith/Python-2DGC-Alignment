@@ -234,7 +234,7 @@ def check_containers():
 
         status_messages = []
         for container_name, status in services_status.items():
-            # print(f"Service: {container_name}, Status: {status}")
+            print(f"Service: {container_name}, Status: {status}")
             # logger.info(f"Service: {container_name}, Status: {status}")
             if status['running']:
                 status_messages.append(f"🟢 {container_name}: En cours d'exécution")

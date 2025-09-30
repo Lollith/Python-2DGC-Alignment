@@ -381,7 +381,7 @@ def identification(filename,
             dir_save = f"{output_path}"
             coordinates_in_chromato = projection.matrix_to_chromato(
                     coordinates, time_rn, mod_time, chromato_tic.shape)
-            fig_title = f"{base_name}_dt_{mode}_and_{method}"
+            fig_title = f"{base_name}#Dt_{mode}_{method}"
             plot.visualizer((chromato_tic, time_rn), mod_time,
                             title=fig_title, log_chromato=True,
                             points=coordinates_in_chromato,
@@ -552,7 +552,7 @@ def cohort_identification_alignment_input_format_txt(
     if deconvo:
         deconvo_dir = os.path.join(PATH, 'deconvolution')
         os.makedirs(deconvo_dir, exist_ok=True)
-        name_file = os.path.join(deconvo_dir, filename + '_Dc.txt')
+        name_file = os.path.join(deconvo_dir, filename + '#Dc.txt')
         print("📂 /deconvolution directory created")
     else:
         name_file = PATH + filename + '.txt'
@@ -689,7 +689,7 @@ def sample_identification(path, file, output_path,
 
                 print("Identification done", time.time()-start_time, 's')
 
-                base_name = os.path.splitext(file)[0] + ('_Dt_N' if nist else '_Dt')
+                base_name = os.path.splitext(file)[0] + ('#Dt#N' if nist else '#Dt')
                 cohort_identification_alignment_input_format_txt(
                     base_name, matches_identification, output_path)
                 cohort_identification_alignment_input_format_txt(
@@ -700,7 +700,7 @@ def sample_identification(path, file, output_path,
                 else:
                     cohort_identification_to_csv(
                         base_name, matches_identification, output_path)
-                result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}_Dc.txt, {output_path + base_name}.csv created']
+                result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}#Dc.txt, {output_path + base_name}.csv created']
                 return result
         else:
             return "❌ Erreur inattendue lors de l'identification/peak detection."
