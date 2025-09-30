@@ -84,8 +84,25 @@ class DataConverter:
         messages = []
 
         try:
+            hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
+            if os.path.exists(hdf5_path):
+                print(f"Le fichier {hdf5_path} existe déjà. Vérification...")
+                file_size = os.path.getsize(hdf5_path)
+                if file_size > 0:  # Fichier non vide
+                    messages.append(f"ℹ️ Fichier déjà créé: {file_name[:-4]}.h5 ({file_size // 1024 // 1024}MB)")
+                    messages.append(f"✅ [{file_idx+1}/{total_files}] {file_name} - Déjà converti")
+                    return True, messages, hdf5_path
+                else:
+                    # Fichier existe mais est vide, le supprimer
+                    os.remove(hdf5_path)
+                    messages.append(f"🗑️ Fichier vide supprimé: {file_name[:-4]}.h5")
+
             # Vérifier l'espace disque disponible
             file_size = os.path.getsize(full_path)
+            if file_size == 0:
+                messages.append(f"❌ Fichier vide: {file_name}")
+                return False, messages, None
+            
             free_space = self.get_free_space(output_path) 
             if free_space < file_size * 2:  # Besoin d'au moins 2x la taille pour la conversion
                 messages.append(f"Erreur : Espace disque insuffisant pour {file_name} (besoin: {file_size*2//1024//1024}MB, disponible: {free_space//1024//1024}MB)")
@@ -95,8 +112,6 @@ class DataConverter:
 
             # Lire le fichier CDF avec gestion mémoire optimisée
             with nc.Dataset(full_path, 'r', encoding="latin-1") as dataset:
-                hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
-
                 with h5py.File(hdf5_path, 'w') as h5f:
                     # Conversion mass_values en float32
                     for var in ['scan_acquisition_time',

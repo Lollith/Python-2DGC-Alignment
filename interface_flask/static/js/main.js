@@ -272,26 +272,6 @@ function initializeApp() {
         }
     });
 
-    
-    // Event listener pour le formulaire de conversion
-    const convertBtn = document.getElementById('convertBtn');
-    convertBtn.addEventListener('click', async function() {
-        displayMessage('Début de la conversion...', 'info');
-        // Récupération des params
-        const inputPath = document.getElementById('inputPath').value;
-        const outputPath = document.getElementById('outputPath').value;
-        const files = document.getElementById('files').value;
-        // Appel à l'API
-        const response = await fetch('/api/convert', {
-            method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ input_path: inputPath, output_path: outputPath, files: files })
-            });
-            const result = await response.json();
-            // Affichage des messages
-            result.messages?.forEach(msg => displayMessage(msg, msg.toLowerCase().includes('erreur') ? 'error' : 'success'));
-        });
-
     const converterForm = document.getElementById('converterForm');
     if (converterForm) {
         converterForm.addEventListener('submit', async function(e) {
