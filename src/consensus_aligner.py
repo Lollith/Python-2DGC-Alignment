@@ -489,18 +489,6 @@ class ChromatographicAligner:
         print("  ✅ Alignment complete.", flush=True)
         return self.alignment_results
 
-    # def get_alignment_matrix(self):
-    #     """Get the alignment matrix from the last alignment."""
-    #     if self.alignment_results is None:
-    #         raise ValueError("No alignment results available. Run consensus_align first.")
-    #     return self.alignment_results['Alignment_Matrix']
-
-    # def get_peak_info(self):
-    #     """Get the peak information from the last alignment."""
-    #     if self.alignment_results is None:
-    #         raise ValueError("No alignment results available. Run consensus_align first.")
-    #     return self.alignment_results['Peak_Info']
-
     def load_csv_results(self):
         """
         Recharge les CSV d'alignement (cas 2/3).
@@ -508,7 +496,8 @@ class ChromatographicAligner:
         csvs = self._csv_results_exist()
         if not csvs:
             raise ValueError("No alignment results available. CSV files not found.")
-        
+        print("📂 Loading CSV results...", flush=True)
+
         alignment_matrix = pd.read_csv(csvs["alignment_matrix"], sep=";", index_col=0)
         peak_info = pd.read_csv(csvs["peak_info"], sep=";", index_col=None)  # Pas d'index car sauvé avec index=False
         rt_group = pd.read_csv(csvs["rt_group"], sep=";", index_col=0)
@@ -536,7 +525,7 @@ class ChromatographicAligner:
         --------
         pd.DataFrame : Filtered alignment matrix
         """
-        print("🔍 Filtering alignment matrix...", flush=True)
+        print("🔍 Filtering alignment matrix ...", flush=True)
         if missing_value_threshold is None:
             missing_value_threshold = self.missing_value_limit
             print(f"Using default missing value threshold: {missing_value_threshold}", flush=True)
@@ -652,8 +641,6 @@ class ChromatographicAligner:
                     mz, inten = pair.split(":")
                     mz_list.append(float(mz))
                     int_list.append(float(inten))
-        # print(f"Parsed spectrum: {len(mz_list)} peaks")
-        # print(int_list)
         return mz_list, int_list
     
     def _run_nist_on_spectra(self, spectra_group, match_factor_min=700):
@@ -667,7 +654,6 @@ class ChromatographicAligner:
 
         for analyte_id, row in spectra_group.iterrows():
             compounds, casnos, formulas, scores = [], [], [], []
-            total_hits = 0
 
             for spec in row:
                 mz_list, int_list = (
@@ -723,7 +709,6 @@ class ChromatographicAligner:
 
         return pd.DataFrame(mapping).set_index("AnalyteID")
 
-
     def _update_peak_info(self, identifications):
         """
         Met à jour Peak_Info en ajoutant les résultats d’identification NIST :
@@ -753,7 +738,6 @@ class ChromatographicAligner:
 
         self.filtered_results["Peak_Info"] = peak_info
 
-
     def _update_rt_group(self, identifications):
         if "RT_group" in self.filtered_results:
             rt_group = self.filtered_results["RT_group"].copy()
@@ -766,7 +750,6 @@ class ChromatographicAligner:
                 if col in rt_group.columns:
                     rt_group = rt_group.drop(columns=[col])
             self.filtered_results["RT_group"] = rt_group
-
 
     def _update_alignment_matrix(self, identifications):
         """
@@ -794,7 +777,7 @@ class ChromatographicAligner:
     def _csv_results_exist(self):
         """
         Vérifie qu'il existe exactement un fichier pour chaque mot-clé attendu
-        dans le dossier, et retourne un dict {mot_clef: fichier_trouvé}.
+        dans le dossier, et retourne un dict {mot_clef: chemin complet du fichier_trouvé}.
         """
         keywords = [
             "alignment_matrix",
@@ -802,23 +785,25 @@ class ChromatographicAligner:
             "rt_group",
             "spectra_group",
         ]
-        print(f"Vérification fichiers dans : {self.input_filter_path}")
-        all_files = list(self.input_filter_path.iterdir())
-        print("Fichiers présents :", [f.name for f in all_files])
+        all_files = self.input_filter_path
+    
         found = {}
-        ok = True
-        for kw in keywords:
-            matching = [f for f in all_files if kw in f.name]
-            if len(matching) == 1:
-                found[kw] = matching[0]
-            elif len(matching) == 0:
-                print(f"❌ Aucun fichier trouvé contenant '{kw}' !")
-                ok = False
+        for keyword in keywords:
+        #     matching = [f for f in all_files if keyword.lower() in os.path.basename(f).lower()]
+            matching_files = []
+            for file_path in all_files:
+                filename = os.path.basename(file_path)
+                if keyword.lower() in filename.lower():
+                    matching_files.append(file_path)  # Garder le chemin complet
+            
+            if len(matching_files) == 1:
+                found[keyword] = matching_files[0]
+                print(f"✅ {keyword}: {os.path.basename(matching_files[0])}")
+            elif len(matching_files) == 0:
+                print(f"❌ {keyword}: Non trouvé")
             else:
-                print(f"❌ Plus d'un fichier pour '{kw}' : {[f.name for f in matching]}")
-                ok = False
-        return found if ok else None
-
+                print(f"⚠️ {keyword}: {len(matching_files)} fichiers trouvés")
+        return found
 
     def _update_csv_results_with_identifications(
         self, alignment_matrix, peak_info, rt_group, spectra_group, identifications
@@ -856,7 +841,7 @@ class ChromatographicAligner:
         filtered_results : dict, optional
             Dictionary containing filtered versions of all matrices
         """
-        print("Saving results...", flush=True)
+        print("Saving results ...", flush=True)
         timestamp = datetime.now().strftime("%Y%m%d")
 
         # if self.alignment_results is None:

@@ -37,14 +37,14 @@ def main():
             missing_value_limit=args.missing_value_limit,
             quant_method=args.quant_method,
             auto_tune_match_stringency=args.auto_tune_match_stringency,
-            missing_peak_finder_similarity_lax=args.missing_peak_finder_similarity_lax;
+            missing_peak_finder_similarity_lax=args.missing_peak_finder_similarity_lax,
             output_path=args.output_path
         )
         aligner.consensus_align_bis(args.input, args.seed_file,
                                     common_ions=None,
                                     )
         aligner.filter_alignment_matrix()
-        aligner.nist_identification(args.nist, match_factor_min=650 )
+        aligner.nist_identification(args.nist, match_factor_min=650)
         aligner.save_results()
     except Exception as e:
         print(f"Error during alignment: {e}")
