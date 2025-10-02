@@ -326,15 +326,10 @@ class Interface:
 
         for i, fc in enumerate(self._choosers):
             selected = fc.selected_path
-            # print(f"Processing selection {i+1}: {selected}")
             if not selected:
                 continue
 
             try:
-                # selected_path = Path(selected)
-                # if str(selected_path) in processed_paths:
-                #     continue
-                # processed_paths.add(str(selected_path))
                 selected_path = Path(selected)
 
                 if fc.selected_filename:
