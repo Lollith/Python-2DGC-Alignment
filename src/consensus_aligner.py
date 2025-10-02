@@ -497,7 +497,7 @@ class ChromatographicAligner:
         if not csvs:
             raise ValueError("No alignment results available. CSV files not found.")
         print("📂 Loading CSV results...", flush=True)
-
+       
         alignment_matrix = pd.read_csv(csvs["alignment_matrix"], sep=";", index_col=0)
         peak_info = pd.read_csv(csvs["peak_info"], sep=";", index_col=None)  # Pas d'index car sauvé avec index=False
         rt_group = pd.read_csv(csvs["rt_group"], sep=";", index_col=0)
@@ -795,7 +795,7 @@ class ChromatographicAligner:
                 filename = os.path.basename(file_path)
                 if keyword.lower() in filename.lower():
                     matching_files.append(file_path)  # Garder le chemin complet
-            
+
             if len(matching_files) == 1:
                 found[keyword] = matching_files[0]
                 print(f"✅ {keyword}: {os.path.basename(matching_files[0])}")
@@ -870,7 +870,11 @@ class ChromatographicAligner:
             else:
                 print(f"⚠ {key} n'existe pas dans filtered_results.")
 
-        print(f"Results saved to directory: {self.output_path}", flush=True)
+        if self.output_path.startswith(self.docker_volume_path):
+            display_path = self.output_path.replace(self.docker_volume_path, "")
+        else:
+            display_path = self.output_path
+        print(f"Results saved to directory: /{display_path}", flush=True)
 
 
 if __name__ == "__main__":
