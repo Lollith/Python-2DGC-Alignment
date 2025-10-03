@@ -166,6 +166,7 @@ def matching_nist_lib_from_chromato_cube(
         reverse_match_factor
     --------
     """
+    print(f"Starting matching with {len(coordinates)} peaks...")
     global cache
     # print("matching nist, chromatocube shape", chromato_cube.shape)
 

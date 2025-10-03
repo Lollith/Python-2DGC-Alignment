@@ -110,6 +110,7 @@ def main():
     failed_analyses = 0
 
     print(f"🔍 Starting analysis of {len(args.input)} files: {args.input}...")
+    print(f"\n{'='*60}")
     for i, f in enumerate(args.input, 1):
         if f.startswith(docker_volume_path):
             display_path = f.replace(docker_volume_path, "")

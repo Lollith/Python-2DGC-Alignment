@@ -356,6 +356,7 @@ def identification(filename,
     baseline_cube = np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube, method=method_baseline))
 
     if (mode == "mass_per_mass") & (method == "DoG"):
+        print(f"Peak detection with mode {mode} and method {method}")
         max_peak_per_mass = 600
         coordinates, spec_list, area = dbscan_peak.detection_mass_par_mass_Dog(
             baseline_cube, (chromato_tic, time_rn),
