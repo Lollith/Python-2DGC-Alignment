@@ -214,7 +214,7 @@ def matching_nist_lib_from_chromato_cube(
                 list_hit = nist_api.hit_list_from_nist_api(results)
                 top_hits = filter_best_hits(list_hit, match_factor_min)
                 cache[spectrum_hash] = top_hits
-                print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
+                # print(f"Peak {i + 1} has {len(top_hits)} hits for {coord}.")
         else:
             top_hits = []
 
