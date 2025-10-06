@@ -11,6 +11,35 @@
 
 </head>
 <body>
+     <div class="modal fade" id="fileExplorerModal" tabindex="-1">
+
+
+
+        <div class="modal-dialog modal-lg">
+
+
+            <div class="modal-content">
+
+
+                <div class="modal-header">
+
+
+                    <h5 class="modal-title">Explorateur de fichiers</h5>
+
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="currentPath" class="mb-3"></div>
+                    <div id="fileList" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" id="selectFolder" class="btn btn-primary">Sélectionner ce dossier</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div id="dockerPathMeta" data-docker-path="{{ host_volume_path }}"></div>
 
     <div class="container">
