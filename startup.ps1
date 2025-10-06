@@ -51,26 +51,7 @@ if ($flaskPids) {
         }
     }
 } else {
-    Write-Host "Aucun Flask actif sur le port $port."
-}
-
-# Nettoyage des serveurs Flask existants (port 8080)
-Write-Host "=== Verification des serveurs Flask sur le port 8080 ==="
-$port = 8080
-$flaskPids = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue |
-             Select-Object -ExpandProperty OwningProcess -Unique
-
-if ($flaskPids) {
-    foreach ($procId in $flaskPids) {
-        try {
-            Write-Host "Arrêt du serveur Flask sur le port $port (PID=$procId)"
-            Stop-Process -Id $procId -Force
-        } catch {
-            Write-Host "Impossible de stopper PID=$procId" -ForegroundColor Red
-        }
-    }
-} else {
-    Write-Host "Aucun Flask actif sur le port $port."
+    Write-Host "Aucun Flask deja actif sur le port $port."
 }
 
 # Activation de l'environnement Flask
