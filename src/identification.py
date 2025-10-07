@@ -75,9 +75,100 @@ def mass_spectra_format(mass_range, int_values):
                               str(mz_int[1]))
     return formatted_spectrum
 
+from scipy.signal import find_peaks
+from scipy.ndimage import gaussian_filter1d
+
+def find_peak_bounds_valley_detection(profile, peak_idx, min_prominence=0.1):
+    """
+    Trouve les bornes en détectant les vallées autour du pic
+    
+    Parameters:
+    -----------
+    profile : array
+        Profil d'intensité 1D
+    peak_idx : int
+        Index du maximum du pic
+    min_prominence : float
+        Prominence minimale pour détecter une vallée
+        
+    Returns:
+    --------
+    left_bound, right_bound : int, int
+    """
+    # Lisser légèrement pour éviter les micro-oscillations
+    smooth_profile = gaussian_filter1d(profile, sigma=1)
+    
+    # Inverser le signal pour détecter les minima comme des maxima
+    inverted = -smooth_profile
+    
+    # Détecter tous les minima (vallées)
+    valleys, _ = find_peaks(inverted, prominence=min_prominence)
+    
+    # Trouver la vallée la plus proche à gauche
+    left_valleys = valleys[valleys < peak_idx]
+    left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
+    
+    # Trouver la vallée la plus proche à droite  
+    right_valleys = valleys[valleys > peak_idx]
+    right_bound = right_valleys[0] if len(right_valleys) > 0 else len(profile) - 1
+    
+    return left_bound, right_bound
+
+def find_peak_bounds_robust(profile, peak_idx, baseline_factor=0.1, 
+                           fwhm_factor=0.1, min_width=5):
+    """
+    Méthode hybride combinant plusieurs approches
+    
+    1. Valley detection (prioritaire)
+    2. Baseline threshold (fallback)
+
+    """
+    peak_intensity = profile[peak_idx]
+    
+    # === MÉTHODE 1: Valley Detection ===
+    try:
+        left_valley, right_valley = find_peak_bounds_valley_detection(profile, peak_idx)
+        
+        # Vérifier que les bornes sont raisonnables
+        width = right_valley - left_valley
+        if width >= min_width and width <= len(profile) // 2:
+            return left_valley, right_valley
+    except:
+        pass
+    
+    # === MÉTHODE 2: Baseline Threshold (Fallback) ===
+    baseline = np.percentile(profile, 10)  # 10% percentile comme baseline
+    threshold = baseline + (peak_intensity - baseline) * baseline_factor
+    
+    # Borne gauche
+    left_bound = peak_idx
+    for i in range(peak_idx - 1, -1, -1):
+        if profile[i] <= threshold:
+            left_bound = i + 1
+            break
+        left_bound = i
+    
+    # Borne droite
+    right_bound = peak_idx  
+    for i in range(peak_idx + 1, len(profile)):
+        if profile[i] <= threshold:
+            right_bound = i - 1
+            break
+        right_bound = i
+    
+    width = right_bound - left_bound + 1
+    if width < min_width:
+        expand = (min_width - width) // 2
+        left_bound = max(0, left_bound - expand)
+        right_bound = min(len(profile) - 1, right_bound + expand)
+    
+    return left_bound, right_bound
+
 def compute_matches_identification(matches, sepc_list, area,chromato, chromato_cube,time_rn,mod_time,
                                    mass_range, sample_name, formated_spectra,
-                                   quant="mass",extract_patch=False,output_hdf5_file=None,itegration_mod_max=False,similarity_threshold=0.001
+                                   quant="mass",extract_patch=False,output_hdf5_file=None,
+                                   integration_mod_max1=True, integration_mod_max2=False,
+                                   similarity_threshold=0.001
                                    ):
     """
     Computes the identification data for each match in a list of matches,
@@ -148,7 +239,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
     min_mz, max_mz = int(mass_range[0]), int(mass_range[1])
     canonical_length = max_mz - min_mz + 1
     basename = os.path.splitext(sample_name)[0]
-    sample_name_group=basename
+    sample_name_group = basename
     if extract_patch: 
         with h5py.File(output_hdf5_file, "a") as h5_file:
             if sample_name_group not in h5_file:
@@ -165,28 +256,34 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
         majority_mass=np.argmax(spec_deconvo)
         
         if(quant=="mass"):
-            chormato_m = chromato_cube[majority_mass,:,:] ## pas sur le chromato mais sur la masse majoritaire 
+            chromato_m = chromato_cube[majority_mass,:,:] ## pas sur le chromato mais sur la masse majoritaire 
         else: 
-            chormato_m=chromato
+            chromato_m=chromato
         
-        if(itegration_mod_max):
-            # blob = integration.peak_pool_similarity_check(
-            #         chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-            #         threshold=0.01, plot_labels=True,
-            #         similarity_threshold=similarity_threshold)                
-            # area_total = integration.compute_area(chormato_m, blob) 
-            # blob=
-            # mask = np.zeros_like(blob)
-            # mask[coord[0],: ] = blob[coord[0],:]
-            # TODO
-            area_mod_max = np.sum(chormato_m[coord[0],borne]) borne= ajouter une methode pour dter;iner les bound du pics en 1D 
-            
-            
-            # area_mod_max= integration.compute_area(chormato_m, mask) 
-        else : area_mod_max = 0 
+        # TODO tester
+        if(integration_mod_max1):
+            print("methode nicolas")
+            blob = integration.peak_pool_similarity_check(
+                    chromato_m, np.stack(matches[:, 2]), coord, chromato_cube,
+                    threshold=0.01, plot_labels=True,
+                    similarity_threshold=similarity_threshold)                
+            area_total = integration.compute_area(chromato_m, blob) 
 
-        height = chormato_m[coord[0], coord[1]]
-        area_j=area[j]
+            mask = np.zeros_like(blob)
+            mask[coord[0],: ] = blob[coord[0],:]
+            area_mod_max = integration.compute_area(chromato_m, mask)
+
+        #TODO    
+        elif integration_mod_max2:
+            print("methode camille")
+            left_bound, right_bound = find_peak_bounds_robust(chromato_m[coord[0], :], coord[1])#???
+            area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound+1]) #borne= ajouter une methode pour dter;iner les bound du pics en 1D 
+        
+        else:
+            area_mod_max = 0
+
+        height = chromato_m[coord[0], coord[1]]
+        area_j = area[j]
 
         def join_field(field):
             return '/'.join(str(m.get(field, '')) for m in match_data_list)
@@ -378,7 +475,7 @@ def identification(filename,
             min_size_cluster_mass=3,
             thr_debscan=0.04,
             multi_processing=True,
-            cleaning_close_peak=True)
+            cleaning_close_peak=True,)
 
         print("Peaks number: ", len(coordinates))
         if (plot_):
@@ -749,104 +846,3 @@ def clip_patch_by_rt(full_patch, full_rt_bounds, center_rt, clip_rt1_window, cli
     x_clip_max_idx = min(patch_height, x_clip_max_idx); y_clip_max_idx=min(patch_width, y_clip_max_idx)
     if x_clip_min_idx >= x_clip_max_idx or y_clip_min_idx >= y_clip_max_idx: return np.array([[]])
     return full_patch[x_clip_min_idx:x_clip_max_idx, y_clip_min_idx:y_clip_max_idx]
-
-# def read_process_input_and_launch_sample_identification(PATH, filename, OUTPUT_PATH, method='persistent_homology', mode='tic', seuil=5, hit_prob_min=15, ABS_THRESHOLDS=None, cluster=True, min_distance=1, sigma_ratio=1.6, num_sigma=10, formated_spectra=True, match_factor_min=700):
-
-#     r"""Read chromatogram and generate peak table. Executed in subprocess to avoid memory leaks due to NIST search.
-
-#     Parameters
-#     ----------
-#     PATH :
-#         Path to the chromatogram.
-#     file :
-#         Filename of the chromatogram.
-#     OUTPUT_PATH : optional
-#         Path to the resulting peak table.
-#     --------
-#     Examples
-#     --------
-#     >>> python identification.py 'PATH' 'file'
-#     >>> # or
-#     >>> python identification.py 'PATH' 'file' 'OUTPUT_PATH'
-#     """
-#     '''if (len(sys.argv) > 2):
-#         PATH=sys.argv[1]
-#         file=sys.argv[2]
-#         if (len(sys.argv) > 3):
-#             OUTPUT_PATH=sys.argv[3]
-#             sample_identification(PATH, file, OUTPUT_PATH)
-#         else:
-#             print(PATH, file)
-#             sample_identification(PATH, file)'''
-            
-#     sample_identification(PATH, filename, OUTPUT_PATH, method=method, mode=mode, seuil=seuil, hit_prob_min=hit_prob_min, ABS_THRESHOLDS=ABS_THRESHOLDS, cluster=cluster, min_distance=min_distance, sigma_ratio=sigma_ratio, num_sigma=num_sigma, formated_spectra=formated_spectra, match_factor_min=match_factor_min)
-
-    
-# def cohort_identification(path):
-#     files = os.listdir(path)
-#     name_files_list = []
-    
-#     for file in files:
-
-#         try:
-#             print(file)
-#             name_files_list.append(file[:-4])
-#             full_filename = path + file
-#             matches_identification = identification(full_filename, hit_prob_min=35, formated_spectra=True)
-#             print("identification done")
-#             cohort_identification_alignment_input_format_txt(file[:-4], matches_identification)
-#             print("csv created")
-#         except:
-#             print('error', file)
-#             traceback.print_exc()
-
-#         try:
-#             del matches_identification
-#         except:
-#             continue
-
-# if __name__ == '__main__':
-
-#     # read parameters
-#     parser=argparse.ArgumentParser(description="Launch sample identification")
-#     # required parameters
-#     parser.add_argument('-p', '--path', required=True, help="Path to the directory containing the chromatograms of the cohort")
-#     parser.add_argument('-f', '--filename', required=True, help="Filename of the cdf chromatogram")
-#     parser.add_argument('-op', '--output_path', required=True, help="Path where peaks table will be generated. The input path for the alignment and path where aligned peak table will be generated")
-
-#     # optionals parameters
-#     parser.add_argument('-m', '--method', default='persistent_homology', help="Method used to detect peaks")
-#     parser.add_argument('--mod_time', default=1.25, type=float, help="Modulation time")
-#     parser.add_argument('--mode', default='tic', help="Mode used to detect peaks. Can be either tic or mass_per_mass or 3D.")
-#     parser.add_argument('--match_factor_min', type=int, default=0, help="Filter compounds with match_factor < match_factor_min")
-#     parser.add_argument('-t', '--threshold', type=float, default=5, help="Used to compute theshold as threshold * 100 * estimated gaussian white noise / np.max(chromato).")
-#     parser.add_argument('-hpm', '--hit_prob_min', type=int, default=0, help="Filter compounds with hit_prob < hit_prob_min")
-#     parser.add_argument('-at', '--abs_threshold', default=None, type=float, help="If mode='mass_per_mass' or mode='3D', ABS_THRESHOLDS is the threshold relative to a slice of the 3D chromatogram or a slice of the 3D chromatogram.")
-#     parser.add_argument('-c', '--cluster', default=True, type=bool, help="Whether to cluster coordinates when mode is mass_per_mass or 3D.")
-#     parser.add_argument('-md', '--min_distance', default=1, type=int, help="peak_local_max method parameter. The minimal allowed distance separating peaks. To find the maximum number of peaks, use min_distance=1.")
-#     parser.add_argument('-sr', '--sigma_ratio', default=1.6, type=float, help="DoG method parameter. The ratio between the standard deviation of Gaussian Kernels used for computing the Difference of Gaussians.")
-#     parser.add_argument('-ns', '--num_sigma', default=10, type=int, help="LoG/DoH method parameter. The number of intermediate values of standard deviations to consider between min_sigma (1) and max_sigma (30).")
-#     parser.add_argument('-fs', '--format_spectra', default=True, type=bool, help="If spectra need to be formatted for peak table based alignment.")
-#     args=parser.parse_args()
-
-
-#     print(args.path, type(args.path))
-#     print(args.filename, type(args.path))
-#     print(args.output_path, type(args.output_path))
-#     print(args.mod_time, type(args.mod_time))
-#     print(args.method, type(args.method))
-#     print(args.mode, type(args.mode))
-#     print(args.match_factor_min, type(args.match_factor_min))
-#     print(args.threshold, type(args.threshold))
-#     print(args.hit_prob_min, type(args.hit_prob_min))
-#     print(args.abs_threshold, type(args.abs_threshold))
-#     print(args.cluster, type(args.cluster))
-#     print(args.min_distance, type(args.min_distance))
-#     print(args.sigma_ratio, type(args.sigma_ratio))
-#     print(args.num_sigma, type(args.num_sigma))
-#     print(args.format_spectra, type(args.format_spectra))
-
-#     print('start identification')
-
-#     #read_process_input_and_launch_sample_identification(args.path, args.filename, args.output_path, method=args.method, mode=args.mode, seuil=args.threshold, hit_prob_min=args.hit_prob_min, ABS_THRESHOLDS=args.abs_threshold, cluster=args.cluster, min_distance=args.min_distance, sigma_ratio=args.sigma_ratio, num_sigma=args.num_sigma, formated_spectra=args.format_spectra, match_factor_min=args.match_factor_min)
-#     sample_identification(args.path, args.filename, args.output_path, mod_time=args.mod_time, method=args.method, mode=args.mode, seuil=args.threshold, hit_prob_min=args.hit_prob_min, ABS_THRESHOLDS=args.abs_threshold, cluster=args.cluster, min_distance=args.min_distance, sigma_ratio=args.sigma_ratio, num_sigma=args.num_sigma, formated_spectra=args.format_spectra, match_factor_min=args.match_factor_min)
