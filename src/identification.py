@@ -170,15 +170,19 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             chormato_m=chromato
         
         if(itegration_mod_max):
-            blob = integration.peak_pool_similarity_check(
-                    chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-                    threshold=0.01, plot_labels=True,
-                    similarity_threshold=similarity_threshold)                
-            area_total = integration.compute_area(chormato_m, blob) 
-            mask = np.zeros_like(blob)
-            mask[coord[0],: ] = blob[coord[0],:]
-
-            area_mod_max= integration.compute_area(chormato_m, mask) 
+            # blob = integration.peak_pool_similarity_check(
+            #         chormato_m, np.stack(matches[:, 2]), coord, chromato_cube,
+            #         threshold=0.01, plot_labels=True,
+            #         similarity_threshold=similarity_threshold)                
+            # area_total = integration.compute_area(chormato_m, blob) 
+            # blob=
+            # mask = np.zeros_like(blob)
+            # mask[coord[0],: ] = blob[coord[0],:]
+            # TODO
+            area_mod_max = np.sum(chormato_m[coord[0],borne]) borne= ajouter une methode pour dter;iner les bound du pics en 1D 
+            
+            
+            # area_mod_max= integration.compute_area(chormato_m, mask) 
         else : area_mod_max = 0 
 
         height = chormato_m[coord[0], coord[1]]
