@@ -80,44 +80,44 @@ from scipy.ndimage import gaussian_filter1d
 
 def find_peak_bounds_valley_detection(profile, peak_idx, min_prominence=0.1):
     """
-    Trouve les bornes en détectant les vallées autour du pic
+    Trouve les bornes en dÃ©tectant les vallÃ©es autour du pic
     
     Parameters:
     -----------
     profile : array
-        Profil d'intensité 1D
+        Profil d'intensitÃ© 1D
     peak_idx : int
         Index du maximum du pic
     min_prominence : float
-        Prominence minimale pour détecter une vallée
+        Prominence minimale pour dÃ©tecter une vallÃ©e
         
     Returns:
     --------
     left_bound, right_bound : int, int
     """
-    # Lisser légèrement pour éviter les micro-oscillations
+    # Lisser lÃ©gÃ¨rement pour Ã©viter les micro-oscillations
     smooth_profile = gaussian_filter1d(profile, sigma=1)
     
-    # Inverser le signal pour détecter les minima comme des maxima
+    # Inverser le signal pour dÃ©tecter les minima comme des maxima
     inverted = -smooth_profile
     
-    # Détecter tous les minima (vallées)
+    # DÃ©tecter tous les minima (vallÃ©es)
     valleys, _ = find_peaks(inverted, prominence=min_prominence)
     
-    # Trouver la vallée la plus proche à gauche
+    # Trouver la vallÃ©e la plus proche Ã  gauche
     left_valleys = valleys[valleys < peak_idx]
     left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
     
-    # Trouver la vallée la plus proche à droite  
+    # Trouver la vallÃ©e la plus proche Ã  droite  
     right_valleys = valleys[valleys > peak_idx]
     right_bound = right_valleys[0] if len(right_valleys) > 0 else len(profile) - 1
     
     return left_bound, right_bound
 
 def find_peak_bounds_robust(profile, peak_idx, baseline_factor=0.1, 
-                           fwhm_factor=0.1, min_width=5):
+                           fwhm_factor=0.6, min_width=5):
     """
-    Méthode hybride combinant plusieurs approches
+    MÃ©thode hybride combinant plusieurs approches
     
     1. Valley detection (prioritaire)
     2. Baseline threshold (fallback)
@@ -125,18 +125,19 @@ def find_peak_bounds_robust(profile, peak_idx, baseline_factor=0.1,
     """
     peak_intensity = profile[peak_idx]
     
-    # === MÉTHODE 1: Valley Detection ===
+    # === MÃ‰THODE 1: Valley Detection ===
     try:
         left_valley, right_valley = find_peak_bounds_valley_detection(profile, peak_idx)
         
-        # Vérifier que les bornes sont raisonnables
+        # VÃ©rifier que les bornes sont raisonnables
         width = right_valley - left_valley
         if width >= min_width and width <= len(profile) // 2:
             return left_valley, right_valley
     except:
         pass
     
-    # === MÉTHODE 2: Baseline Threshold (Fallback) ===
+    # === MÃ‰THODE 2: Baseline Threshold (Fallback) ===
+    print("   ⚠️ Valley detection failed or unreasonable, using baseline threshold...")
     baseline = np.percentile(profile, 10)  # 10% percentile comme baseline
     threshold = baseline + (peak_intensity - baseline) * baseline_factor
     
@@ -163,6 +164,253 @@ def find_peak_bounds_robust(profile, peak_idx, baseline_factor=0.1,
         right_bound = min(len(profile) - 1, right_bound + expand)
     
     return left_bound, right_bound
+
+from scipy.signal import find_peaks
+
+def has_clear_valleys(roi):
+    """
+    Vérifie s'il y a des vallées significatives dans la région
+    """
+    
+    # Lisser légèrement
+    smooth_roi = gaussian_filter1d(roi, sigma=1)
+    
+    # Chercher des vallées (minima)
+    inverted = -smooth_roi
+    valleys, properties = find_peaks(inverted, prominence=np.std(roi) * 2)
+    
+    # Il y a des vallées claires si :
+    # 1. Au moins une vallée détectée
+    # 2. Prominence significative par rapport au bruit
+    return len(valleys) > 0 and np.max(properties['prominences']) > np.std(roi) * 1.5
+
+def valley_detection_in_roi(roi):
+    """
+    Applique valley detection dans la ROI seulement
+    """
+    from scipy.signal import find_peaks
+    
+    # Détecter toutes les vallées
+    inverted = -roi
+    valleys, _ = find_peaks(inverted, prominence=np.std(roi))
+    
+    # Trouver le pic principal dans la ROI
+    peak_idx_roi = np.argmax(roi)
+    
+    # Vallées à gauche et droite
+    left_valleys = valleys[valleys < peak_idx_roi]
+    right_valleys = valleys[valleys > peak_idx_roi]
+    
+    # Bornes = vallées les plus proches du pic
+    left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
+    right_bound = right_valleys[0] if len(right_valleys) > 0 else len(roi) - 1
+    
+    return left_bound, right_bound
+
+def chromatof_bounds_exact(profile, peak_idx, expected_width, snr):
+    """
+    Reproduction exacte de l'algorithme ChromaTOF LECO
+    """
+    peak_intensity = profile[peak_idx]
+    # Fenêtre de recherche baseline (large)
+    search_window = expected_width * 3
+    start = max(0, peak_idx - search_window)
+    end = min(len(profile), peak_idx + search_window)
+    
+    # Baseline = minimum absolu dans la fenêtre
+    baseline = np.min(profile[start:end])
+    
+    # Hauteur et seuil
+    peak_height = profile[peak_idx] - baseline
+    threshold = baseline + (peak_height / snr)
+    
+    # Limites de recherche des bornes
+    max_left = max(0, peak_idx - expected_width)
+    max_right = min(len(profile) - 1, peak_idx + expected_width)
+
+    print(f"🔍 DEBUG ChromaTOF:")
+    print(f"   Peak: {peak_intensity:.0f}, Baseline: {baseline:.0f}")
+    print(f"   Threshold: {threshold:.0f} (SNR={snr})")
+    print(f"   Search zone: [{max_left}:{max_right}] (±{expected_width})")
+    print(f"   Profile in zone: {profile[max_left:max_right+1]}")
+    
+    # Recherche borne gauche
+    left_bound = peak_idx
+    for i in range(peak_idx, max_left - 1, -1):
+        if profile[i] <= threshold:
+            left_bound = i + 1
+            break
+        left_bound = i
+    
+    # Recherche borne droite
+    right_bound = peak_idx  
+    for i in range(peak_idx, max_right + 1):
+        if profile[i] <= threshold:
+            right_bound = i - 1
+            break
+        right_bound = i
+    
+    return left_bound, right_bound
+
+def method_chromatof_valley(profile, peak_idx, expected_width, snr=2):
+    """
+    Hybride optimisé : ChromaTOF + validation valley
+    """
+    
+    # 1. Essayer ChromaTOF d'abord (rapide)
+    left_chr, right_chr = chromatof_bounds_exact(profile, peak_idx, expected_width, snr)
+    
+    # 2. Vérifier s'il y a des vallées dans cette zone
+    roi = profile[max(0, left_chr-2):min(len(profile), right_chr+3)]
+    if has_clear_valleys(roi):
+        print("   ⚠️ Vallées détectées, ajustement des bornes...")
+        # Affiner avec valley detection locale
+        left_val, right_val = valley_detection_in_roi(roi)
+        return left_chr + left_val, left_chr + right_val
+    else:
+        # Garder le résultat ChromaTOF
+        return left_chr, right_chr
+
+import matplotlib.pyplot as plt
+def visualize_integration_methods(chromato_m, coord, mod_time, FWHM=0.02, peak_name="Peak", FWHM_FACTOR=0.6):
+    """
+    Visualise les deux méthodes d'intégration sur le même graphique
+    
+    Parameters:
+    -----------
+    chromato_m : ndarray
+        Chromatogramme 2D
+    coord : tuple
+        (rt1_idx, rt2_idx) position du pic
+    mod_time : float
+        Temps de modulation
+    FWHM : float
+        Largeur à mi-hauteur 
+    peak_name : str
+        Nom du pic pour le titre
+    """
+    
+    # Extraire le profil RT2
+    profile = chromato_m[coord[0], :]
+    peak_idx = coord[1]
+    
+    # Paramètres ChromaTOF
+    rt2_hz = len(profile) / mod_time  # ou chromato.shape[1] / mod_time
+    baseline_width_sec = FWHM * 2.35
+    expected_width = int(baseline_width_sec * rt2_hz)
+    
+    # === MÉTHODE 1: ChromaTOF ===
+    left_chr, right_chr = method_chromatof_valley(profile, peak_idx, expected_width, snr=2)
+    area_chromatof = np.sum(profile[left_chr:right_chr+1])
+    
+    # === MÉTHODE 2: Robuste ===
+   
+    left_rob, right_rob = find_peak_bounds_robust(profile, peak_idx, fwhm_factor=FWHM_FACTOR)
+    area_robust = np.sum(profile[left_rob:right_rob+1])
+    
+    # === VISUALISATION ===
+    plt.figure(figsize=(14, 8))
+    
+    # Graphique principal
+    plt.subplot(2, 2, (1, 2))  # Large plot en haut
+    
+    # Profil complet
+    x_axis = np.arange(len(profile))
+    plt.plot(x_axis, profile, 'b-', linewidth=2, label='Profil RT2', alpha=0.7)
+    
+    # Peak apex
+    plt.scatter([peak_idx], [profile[peak_idx]], color='black', s=100, 
+                marker='x', linewidth=3, label=f'Apex (RT2={peak_idx})')
+    
+    # Bornes ChromaTOF
+    plt.axvline(left_chr, color='red', linestyle='--', linewidth=2, alpha=0.8)
+    plt.axvline(right_chr, color='red', linestyle='--', linewidth=2, alpha=0.8)
+    plt.fill_between(x_axis[left_chr:right_chr+1], 
+                     profile[left_chr:right_chr+1], 
+                     alpha=0.3, color='red', label=f'ChromaTOF: [{left_chr}:{right_chr}]')
+    
+    # Bornes Robuste
+    plt.axvline(left_rob, color='green', linestyle=':', linewidth=2, alpha=0.8)
+    plt.axvline(right_rob, color='green', linestyle=':', linewidth=2, alpha=0.8)
+    plt.fill_between(x_axis[left_rob:right_rob+1], 
+                     profile[left_rob:right_rob+1], 
+                     alpha=0.2, color='green', label=f'Robuste: [{left_rob}:{right_rob}]')
+    
+    plt.title(f'{peak_name} - Comparaison des Méthodes d\'Intégration\n'
+              f'Coord: {coord} | RT2: {rt2_hz:.0f} Hz | Expected width: {expected_width} pts')
+    plt.xlabel('RT2 Index')
+    plt.ylabel('Intensité')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # === ZOOM SUR LE PIC ===
+    plt.subplot(2, 2, 3)
+    
+    # Définir zone de zoom
+    zoom_left = max(0, min(left_chr, left_rob) - 5)
+    zoom_right = min(len(profile), max(right_chr, right_rob) + 5)
+    zoom_x = x_axis[zoom_left:zoom_right]
+    zoom_profile = profile[zoom_left:zoom_right]
+    
+    plt.plot(zoom_x, zoom_profile, 'b-', linewidth=2)
+    plt.scatter([peak_idx], [profile[peak_idx]], color='black', s=80, marker='x')
+    
+    # Bornes dans le zoom
+    plt.axvline(left_chr, color='red', linestyle='--', alpha=0.8)
+    plt.axvline(right_chr, color='red', linestyle='--', alpha=0.8)
+    plt.axvline(left_rob, color='green', linestyle=':', alpha=0.8)
+    plt.axvline(right_rob, color='green', linestyle=':', alpha=0.8)
+    
+    plt.title('Zoom sur le Pic')
+    plt.xlabel('RT2 Index')
+    plt.ylabel('Intensité')
+    plt.grid(True, alpha=0.3)
+    
+    # === STATISTIQUES ===
+    plt.subplot(2, 2, 4)
+    plt.axis('off')
+    
+    # Calculs comparatifs
+    width_chr = right_chr - left_chr + 1
+    width_rob = right_rob - left_rob + 1
+    diff_area = abs(area_chromatof - area_robust)
+    diff_percent = (diff_area / max(area_chromatof, area_robust)) * 100
+    
+    stats_text = f"""
+📊 STATISTIQUES COMPARATIVES
+
+🔴 ChromaTOF:
+   Bornes: [{left_chr}:{right_chr}]
+   Largeur: {width_chr} points
+   Aire: {area_chromatof:,.0f}
+
+🟢 Robuste:
+   Bornes: [{left_rob}:{right_rob}]
+   Largeur: {width_rob} points  
+   Aire: {area_robust:,.0f}
+
+📈 Différences:
+   Δ Aire: {diff_area:,.0f} ({diff_percent:.1f}%)
+   Δ Largeur: {width_chr - width_rob:+d} points
+
+⚙️ Paramètres:
+   FWHM: {FWHM} s
+   RT2 fréquence: {rt2_hz:.0f} Hz
+   Expected width: {expected_width} pts
+"""
+    
+    plt.text(0.1, 0.9, stats_text, transform=plt.gca().transAxes, 
+             fontsize=10, verticalalignment='top', fontfamily='monospace')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Retourner les résultats pour usage ultérieur
+    return {
+        'chromatof': {'bounds': (left_chr, right_chr), 'area': area_chromatof},
+        'robust': {'bounds': (left_rob, right_rob), 'area': area_robust},
+        'parameters': {'rt2_hz': rt2_hz, 'expected_width': expected_width}
+    }
 
 def compute_matches_identification(matches, sepc_list, area,chromato, chromato_cube,time_rn,mod_time,
                                    mass_range, sample_name, formated_spectra,
@@ -233,7 +481,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
     sample_metadata_list =[]
     max_len = max(len(match) for match in matches)
 
-    # Compléter les lignes plus courtes ou tronquer les lignes trop longues
+    # ComplÃ©ter les lignes plus courtes ou tronquer les lignes trop longues
     matches = [match + [None] * (max_len - len(match)) if len(match) < max_len else match[:max_len] for match in matches]
     matches = np.array(matches, dtype=object)
     min_mz, max_mz = int(mass_range[0]), int(mass_range[1])
@@ -261,24 +509,47 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             chromato_m=chromato
         
         # TODO tester
+        FWHM = 0.02
+        FWHM_FACTOR = 0.5
         if(integration_mod_max1):
-            print("methode nicolas")
-            blob = integration.peak_pool_similarity_check(
-                    chromato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-                    threshold=0.01, plot_labels=True,
-                    similarity_threshold=similarity_threshold)                
-            area_total = integration.compute_area(chromato_m, blob) 
+            # print("methode nicolas")
+            # blob = integration.peak_pool_similarity_check(
+            #         chromato_m, np.stack(matches[:, 2]), coord, chromato_cube,
+            #         threshold=0.01, plot_labels=True,
+            #         similarity_threshold=similarity_threshold)                
+            # area_total = integration.compute_area(chromato_m, blob) 
 
-            mask = np.zeros_like(blob)
-            mask[coord[0],: ] = blob[coord[0],:]
-            area_mod_max = integration.compute_area(chromato_m, mask)
+            # mask = np.zeros_like(blob)
+            # mask[coord[0],: ] = blob[coord[0],:]
+            # area_mod_max = integration.compute_area(chromato_m, mask)
+            print("methode chromatof_valley")
+            rt2_hz = chromato.shape[1] / mod_time                    # Fréquence RT2
+            baseline_width_sec = FWHM * 2.35                  # Largeur de base en secondes
+            expected_width = int(baseline_width_sec * rt2_hz)        # Points attendus
+    
+            # print(f"🎯 RT2: {rt2_hz:.0f} Hz → Expected width: {expected_width} points")
+            #snr =3 = standard chromatof
+            left, right = method_chromatof_valley(chromato_m[coord[0], :], coord[1], expected_width, snr=3)
+            area_mod_max = np.sum(chromato_m[coord[0], left:right+1])
+            # VISUALISATION (pour les premiers pics seulement)
+            if j < 5:  # Afficher seulement les 5 premiers pics
+                results = visualize_integration_methods(
+                    chromato_m, coord, mod_time, FWHM, peak_name=f"Peak {j+1}", FWHM_FACTOR=FWHM_FACTOR
+                )
+            print(f"Peak at {coord} → Bounds: ({left}, {right}), Area: {area_mod_max}")
 
         #TODO    
         elif integration_mod_max2:
-            print("methode camille")
-            left_bound, right_bound = find_peak_bounds_robust(chromato_m[coord[0], :], coord[1])#???
-            area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound+1]) #borne= ajouter une methode pour dter;iner les bound du pics en 1D 
-        
+            print("methode valley")
+            left_bound, right_bound = find_peak_bounds_robust(chromato_m[coord[0], :], coord[1], fwhm_factor=FWHM_FACTOR)
+            area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound+1])
+            # VISUALISATION
+            # if j < 5:  # Afficher seulement les 5 premiers pics
+            #     results = visualize_integration_methods(
+            #         chromato_m, coord, mod_time, FWHM=0.04, peak_name=f"Peak {j+1}"
+            #     )
+            print(f"Peak at {coord} → Bounds: ({left_bound}, {right_bound}), Area: {area_mod_max}")
+
         else:
             area_mod_max = 0
 
@@ -655,7 +926,7 @@ def cohort_identification_alignment_input_format_txt(
         deconvo_dir = os.path.join(PATH, 'deconvolution')
         os.makedirs(deconvo_dir, exist_ok=True)
         name_file = os.path.join(deconvo_dir, filename + '#Dc.txt')
-        print("📂 /deconvolution directory created")
+        print("ðŸ“‚ /deconvolution directory created")
     else:
         name_file = PATH + filename + '.txt'
 
@@ -773,21 +1044,21 @@ def sample_identification(path, file, output_path,
             method_baseline,
             plot_
         )
-        # Vérifier le type de résultat
+        # VÃ©rifier le type de rÃ©sultat
         if isinstance(result, tuple) and len(result) == 2:
             first, second = result
             if second == "persistent_homology_mode":
                 coordinates = first
-                return f"✅ Peak detection completed: {len(coordinates)} peaks found"
+                return f"âœ… Peak detection completed: {len(coordinates)} peaks found"
             else:
                 # Cas normal
                 matches_identification, sample_metadata_list = result
 
-                 # Vérifier si les résultats sont vides
+                 # VÃ©rifier si les rÃ©sultats sont vides
                 if not matches_identification and not sample_metadata_list:
-                    return f"❌ Aucune identification possible avec method='{method}' et mode='{mode}'"
+                    return f"âŒ Aucune identification possible avec method='{method}' et mode='{mode}'"
                 if not matches_identification:
-                    return f"⚠️ Aucun composé identifié pour {file}"
+                    return f"âš ï¸ Aucun composÃ© identifiÃ© pour {file}"
 
                 print("Identification done", time.time()-start_time, 's')
 
@@ -805,7 +1076,7 @@ def sample_identification(path, file, output_path,
                 result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}#Dc.txt, {output_path + base_name}.csv created']
                 return result
         else:
-            return "❌ Erreur inattendue lors de l'identification/peak detection."
+            return "âŒ Erreur inattendue lors de l'identification/peak detection."
 
     except Exception as e:
         traceback.print_exc()
