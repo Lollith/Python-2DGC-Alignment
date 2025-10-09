@@ -1,34 +1,30 @@
+# import profile
 import read_chroma
-import mass_spec
 import baseline_correction
 import peak_detection
 import matching
-import integration
+
 import csv
 import numpy as np
-# from skimage.restoration import estimate_sigma
 import os
 import traceback
-# import argparse
 import time
 import projection
 import plot
-import pyms
+
 import dbscan_peak
 import h5py
-import pandas as pd
 import imagepers
 from projection import chromato_to_matrix, matrix_to_chromato
 import uuid
+# from scipy.signal import find_peaks
+# from scipy.ndimage import gaussian_filter1d
 
 
 def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
     return (compound_name + "\t" + "\"" + str(rt1 * 60) + " , " + str(rt2)
             + "\"" + "\t" + str(area) + "\t" + "T" + "\t" + formatted_spectrum
             + "\n")
-
-# def takeSecond(elem):
-#     return elem[1]
 
 
 def mass_spectra_format(mass_range, int_values):
@@ -75,342 +71,403 @@ def mass_spectra_format(mass_range, int_values):
                               str(mz_int[1]))
     return formatted_spectrum
 
-from scipy.signal import find_peaks
-from scipy.ndimage import gaussian_filter1d
 
-def find_peak_bounds_valley_detection(profile, peak_idx, min_prominence=0.1):
-    """
-    Trouve les bornes en dÃ©tectant les vallÃ©es autour du pic
+# def find_peak_bounds_valley_detection(profile, peak_idx):
+#     """
+#     Valley detection avec validation du ratio baseline/peak
+#     """
+#     peak_intensity = profile[peak_idx]
+#     baseline = np.percentile(profile, 10)
+#     peak_height = peak_intensity - baseline
     
-    Parameters:
-    -----------
-    profile : array
-        Profil d'intensitÃ© 1D
-    peak_idx : int
-        Index du maximum du pic
-    min_prominence : float
-        Prominence minimale pour dÃ©tecter une vallÃ©e
+#     # Valley detection classique
+#     min_prominence = peak_height * 0.25
+#     smooth_profile = gaussian_filter1d(profile, sigma=1)
+#     inverted = -smooth_profile
+#     valleys, _ = find_peaks(inverted, prominence=min_prominence)
+    
+#     # Trouver vallées proches
+#     left_valleys = valleys[valleys < peak_idx]
+#     right_valleys = valleys[valleys > peak_idx]
+    
+#     # VALIDATION : Vérifier que les zones entre vallées ne contiennent pas d'autres gros pics
+#     left_bound = left_valleys[-1] if len(left_valleys) > 0 else max(0, peak_idx - 20)
+#     right_bound = right_valleys[0] if len(right_valleys) > 0 else min(len(profile) - 1, peak_idx + 20)
+    
+#     # Extraire la région entre les bornes
+#     region = profile[left_bound:right_bound+1]
+#     region_max = np.max(region)
+#     region_median = np.median(region)
+    
+#     print(f"🔍 Valley Validation:")
+#     print(f"   Region max: {region_max:.0f}")
+#     print(f"   Region median: {region_median:.0f}")
+#     print(f"   Peak: {peak_intensity:.0f}")
+    
+#     # Si la région contient des intensités très élevées en dehors du pic principal, c'est suspect
+#     region_without_peak = np.concatenate([
+#         region[:peak_idx-left_bound], 
+#         region[peak_idx-left_bound+1:]
+#     ])
+    
+#     if len(region_without_peak) > 0:
+#         second_highest = np.max(region_without_peak)
+#         ratio = second_highest / peak_intensity
         
-    Returns:
-    --------
-    left_bound, right_bound : int, int
-    """
-    # Lisser lÃ©gÃ¨rement pour Ã©viter les micro-oscillations
-    smooth_profile = gaussian_filter1d(profile, sigma=1)
+#         print(f"   Second highest in region: {second_highest:.0f} (ratio: {ratio:.2f})")
+        
+#         # Si il y a un autre pic > 60% du pic principal, rejeter
+#         if ratio > 0.6:
+#             print(f"   ❌ Multi-peak detected - ratio {ratio:.2f} > 0.6")
+#             raise ValueError("Multiple peaks in region")
     
-    # Inverser le signal pour dÃ©tecter les minima comme des maxima
-    inverted = -smooth_profile
-    
-    # DÃ©tecter tous les minima (vallÃ©es)
-    valleys, _ = find_peaks(inverted, prominence=min_prominence)
-    
-    # Trouver la vallÃ©e la plus proche Ã  gauche
-    left_valleys = valleys[valleys < peak_idx]
-    left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
-    
-    # Trouver la vallÃ©e la plus proche Ã  droite  
-    right_valleys = valleys[valleys > peak_idx]
-    right_bound = right_valleys[0] if len(right_valleys) > 0 else len(profile) - 1
-    
-    return left_bound, right_bound
+#     return left_bound, right_bound
 
-def find_peak_bounds_robust(profile, peak_idx, baseline_factor=0.1, 
-                           fwhm_factor=0.6, min_width=5):
-    """
-    MÃ©thode hybride combinant plusieurs approches
+# def find_peak_bounds_valley_detection(profile, peak_idx, min_prominence=0.3):
+#     """
+#     Trouve les bornes en dÃ©tectant les vallÃ©es autour du pic
     
-    1. Valley detection (prioritaire)
-    2. Baseline threshold (fallback)
+#     Parameters:
+#     -----------
+#     profile : array
+#         Profil d'intensitÃ© 1D
+#     peak_idx : int
+#         Index du maximum du pic
+#     min_prominence : float
+#         Prominence minimale pour dÃ©tecter une vallÃ©e
+        
+#     Returns:
+#     --------
+#     left_bound, right_bound : int, int
+#     """
 
+#     peak_intensity = profile[peak_idx]
+#     baseline = np.percentile(profile, 10)
+#     peak_height = peak_intensity - baseline
+    
+#     # PROMINENCE ADAPTÉE au pic (pas fixe !)
+#     min_prominence = peak_height * min_prominence  # 30% de la hauteur du pic
+    
+#     print(f"🔍 Valley Detection Fixed:")
+#     print(f"   Peak height: {peak_height:.0f}")
+#     print(f"   Min prominence: {min_prominence:.0f} ({min_prominence*100}%)")
+    
+#     # Lisser lÃ©gÃ¨rement pour Ã©viter les micro-oscillations
+#     smooth_profile = gaussian_filter1d(profile, sigma=1)
+    
+#     # Inverser le signal pour dÃ©tecter les minima comme des maxima
+#     inverted = -smooth_profile
+    
+#     # DÃ©tecter tous les minima (vallÃ©es)
+#     valleys, _ = find_peaks(inverted, prominence=min_prominence)
+#     if len(valleys) == 0:
+#         raise ValueError("No valleys found")
+    
+#     # Trouver la vallÃ©e la plus proche Ã  gauche
+#     left_valleys = valleys[valleys < peak_idx]
+#     left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
+    
+#     # Trouver la vallÃ©e la plus proche Ã  droite  
+#     right_valleys = valleys[valleys > peak_idx]
+#     right_bound = right_valleys[0] if len(right_valleys) > 0 else len(profile) - 1
+    
+#     return left_bound, right_bound
+
+# def find_peak_bounds_robust(profile, peak_idx, 
+#                            fwhm_factor=0.6, min_width=5):
+#     """
+#     MÃ©thode hybride combinant plusieurs approches
+    
+#     1. Valley detection (prioritaire)
+#     2. Baseline threshold (fallback)
+
+#     """
+#     peak_intensity = profile[peak_idx]
+    
+#     # === MÃ‰THODE 1: Valley Detection ===
+#     try:
+#         left_valley, right_valley = find_peak_bounds_valley_detection(profile, peak_idx)
+        
+#         # VÃ©rifier que les bornes sont raisonnables
+#         width = right_valley - left_valley
+#         if width >= min_width and width <= len(profile) // 2:
+#             return left_valley, right_valley
+#     except:
+#         pass
+    
+#     # === MÃ‰THODE 2: Baseline Threshold (Fallback) ===
+#     print("   ⚠️ Valley detection failed or unreasonable, using baseline threshold...")
+#     baseline = np.percentile(profile, 10)  # 10% percentile comme baseline
+#     half_height = baseline + (peak_intensity - baseline) / 2
+#     threshold = half_height * (1 - fwhm_factor)
+    
+#     # Borne gauche
+#     left_bound = peak_idx
+#     for i in range(peak_idx - 1, -1, -1):
+#         if profile[i] <= threshold:
+#             left_bound = i + 1
+#             break
+#         left_bound = i
+    
+#     # Borne droite
+#     right_bound = peak_idx  
+#     for i in range(peak_idx + 1, len(profile)):
+#         if profile[i] <= threshold:
+#             right_bound = i - 1
+#             break
+#         right_bound = i
+    
+#     width = right_bound - left_bound + 1
+#     if width < min_width:
+#         expand = (min_width - width) // 2
+#         left_bound = max(0, left_bound - expand)
+#         right_bound = min(len(profile) - 1, right_bound + expand)
+    
+#     return left_bound, right_bound
+
+
+# def has_clear_valleys(roi):
+#     """
+#     Vérifie s'il y a des vallées significatives dans la région
+#     """
+    
+#     # Lisser légèrement
+#     smooth_roi = gaussian_filter1d(roi, sigma=1)
+    
+#     # Chercher des vallées (minima)
+#     inverted = -smooth_roi
+#     valleys, properties = find_peaks(inverted, prominence=np.std(roi) * 2)
+    
+#     # Il y a des vallées claires si :
+#     # 1. Au moins une vallée détectée
+#     # 2. Prominence significative par rapport au bruit
+#     return len(valleys) > 0 and np.max(properties['prominences']) > np.std(roi) * 1.5
+
+# def valley_detection_in_roi(roi):
+#     """
+#     Applique valley detection dans la ROI seulement
+#     """
+#     from scipy.signal import find_peaks
+    
+#     # Détecter toutes les vallées
+#     inverted = -roi
+#     valleys, _ = find_peaks(inverted, prominence=np.std(roi))
+    
+#     # Trouver le pic principal dans la ROI
+#     peak_idx_roi = np.argmax(roi)
+    
+#     # Vallées à gauche et droite
+#     left_valleys = valleys[valleys < peak_idx_roi]
+#     right_valleys = valleys[valleys > peak_idx_roi]
+    
+#     # Bornes = vallées les plus proches du pic
+#     left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
+#     right_bound = right_valleys[0] if len(right_valleys) > 0 else len(roi) - 1
+    
+#     return left_bound, right_bound
+
+# def chromatof_bounds_exact(profile, peak_idx, expected_width, snr):
+#     """
+#     Reproduction exacte de l'algorithme ChromaTOF LECO
+#     """
+#     peak_intensity = profile[peak_idx]
+#     # Fenêtre de recherche baseline (large)
+#     search_window = expected_width * 3
+#     start = max(0, peak_idx - search_window)
+#     end = min(len(profile), peak_idx + search_window)
+    
+#     # Baseline = minimum absolu dans la fenêtre
+#     baseline = np.min(profile[start:end])
+    
+#     # Hauteur et seuil
+#     peak_height = profile[peak_idx] - baseline
+#     threshold = baseline + (peak_height / snr)
+    
+#     # Limites de recherche des bornes
+#     max_left = max(0, peak_idx - expected_width)
+#     max_right = min(len(profile) - 1, peak_idx + expected_width)
+
+#     print(f"🔍 DEBUG ChromaTOF:")
+#     print(f"   Peak: {peak_intensity:.0f}, Baseline: {baseline:.0f}")
+#     print(f"   Threshold: {threshold:.0f} (SNR={snr})")
+#     print(f"   Search zone: [{max_left}:{max_right}] (±{expected_width})")
+#     print(f"   Profile in zone: {profile[max_left:max_right+1]}")
+    
+#     # Recherche borne gauche
+#     left_bound = peak_idx
+#     for i in range(peak_idx, max_left - 1, -1):
+#         if profile[i] <= threshold:
+#             left_bound = i + 1
+#             break
+#         left_bound = i
+    
+#     # Recherche borne droite
+#     right_bound = peak_idx  
+#     for i in range(peak_idx, max_right + 1):
+#         if profile[i] <= threshold:
+#             right_bound = i - 1
+#             break
+#         right_bound = i
+    
+#     return left_bound, right_bound
+
+def method_chromatof(profile, peak_idx, snr=2):
+    """
+    ChromaTOF SANS contrainte d'expected_width
     """
     peak_intensity = profile[peak_idx]
     
-    # === MÃ‰THODE 1: Valley Detection ===
-    try:
-        left_valley, right_valley = find_peak_bounds_valley_detection(profile, peak_idx)
-        
-        # VÃ©rifier que les bornes sont raisonnables
-        width = right_valley - left_valley
-        if width >= min_width and width <= len(profile) // 2:
-            return left_valley, right_valley
-    except:
-        pass
+    # Baseline sur une grande fenêtre
+    search_window = 50
+    start = max(0, peak_idx - search_window)
+    end = min(len(profile), peak_idx + search_window)
+    baseline = np.percentile(profile[start:end], 5)
     
-    # === MÃ‰THODE 2: Baseline Threshold (Fallback) ===
-    print("   ⚠️ Valley detection failed or unreasonable, using baseline threshold...")
-    baseline = np.percentile(profile, 10)  # 10% percentile comme baseline
-    threshold = baseline + (peak_intensity - baseline) * baseline_factor
+    peak_height = peak_intensity - baseline
+    threshold = baseline + (peak_height / snr)
     
-    # Borne gauche
+    print(f"🔧 ChromaTOF Unconstrained:")
+    print(f"   Peak: {peak_intensity:.0f}, Baseline: {baseline:.0f}")
+    print(f"   SNR: {snr} → Threshold: {threshold:.0f}")
+    print(f"   Threshold is {threshold/peak_intensity*100:.1f}% of peak")
+    
     left_bound = peak_idx
     for i in range(peak_idx - 1, -1, -1):
         if profile[i] <= threshold:
             left_bound = i + 1
             break
-        left_bound = i
+        left_bound = max(0, i)
     
-    # Borne droite
-    right_bound = peak_idx  
+    right_bound = peak_idx
     for i in range(peak_idx + 1, len(profile)):
         if profile[i] <= threshold:
             right_bound = i - 1
             break
-        right_bound = i
+        right_bound = min(len(profile) - 1, i)
     
     width = right_bound - left_bound + 1
-    if width < min_width:
-        expand = (min_width - width) // 2
-        left_bound = max(0, left_bound - expand)
-        right_bound = min(len(profile) - 1, right_bound + expand)
+    print(f"   Result: [{left_bound}:{right_bound}] = {width} points")
     
     return left_bound, right_bound
 
-from scipy.signal import find_peaks
-
-def has_clear_valleys(roi):
+def find_peak_bounds_intelligent(profile, peak_idx):
     """
-    Vérifie s'il y a des vallées significatives dans la région
-    """
-    
-    # Lisser légèrement
-    smooth_roi = gaussian_filter1d(roi, sigma=1)
-    
-    # Chercher des vallées (minima)
-    inverted = -smooth_roi
-    valleys, properties = find_peaks(inverted, prominence=np.std(roi) * 2)
-    
-    # Il y a des vallées claires si :
-    # 1. Au moins une vallée détectée
-    # 2. Prominence significative par rapport au bruit
-    return len(valleys) > 0 and np.max(properties['prominences']) > np.std(roi) * 1.5
-
-def valley_detection_in_roi(roi):
-    """
-    Applique valley detection dans la ROI seulement
-    """
-    from scipy.signal import find_peaks
-    
-    # Détecter toutes les vallées
-    inverted = -roi
-    valleys, _ = find_peaks(inverted, prominence=np.std(roi))
-    
-    # Trouver le pic principal dans la ROI
-    peak_idx_roi = np.argmax(roi)
-    
-    # Vallées à gauche et droite
-    left_valleys = valleys[valleys < peak_idx_roi]
-    right_valleys = valleys[valleys > peak_idx_roi]
-    
-    # Bornes = vallées les plus proches du pic
-    left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
-    right_bound = right_valleys[0] if len(right_valleys) > 0 else len(roi) - 1
-    
-    return left_bound, right_bound
-
-def chromatof_bounds_exact(profile, peak_idx, expected_width, snr):
-    """
-    Reproduction exacte de l'algorithme ChromaTOF LECO
+    Méthode intelligente qui s'adapte au type de pic
     """
     peak_intensity = profile[peak_idx]
-    # Fenêtre de recherche baseline (large)
-    search_window = expected_width * 3
-    start = max(0, peak_idx - search_window)
-    end = min(len(profile), peak_idx + search_window)
+    global_baseline = np.percentile(profile, 5)
+    peak_height = peak_intensity - global_baseline
     
-    # Baseline = minimum absolu dans la fenêtre
-    baseline = np.min(profile[start:end])
+    print(f"🧠 Intelligent Peak Analysis:")
+    print(f"   Peak: {peak_intensity:.0f}, Global baseline: {global_baseline:.0f}")
+    print(f"   Peak height: {peak_height:.0f}")
     
-    # Hauteur et seuil
-    peak_height = profile[peak_idx] - baseline
-    threshold = baseline + (peak_height / snr)
+    # === DIAGNOSTIC DU TYPE DE PIC ===
     
-    # Limites de recherche des bornes
-    max_left = max(0, peak_idx - expected_width)
-    max_right = min(len(profile) - 1, peak_idx + expected_width)
-
-    print(f"🔍 DEBUG ChromaTOF:")
-    print(f"   Peak: {peak_intensity:.0f}, Baseline: {baseline:.0f}")
-    print(f"   Threshold: {threshold:.0f} (SNR={snr})")
-    print(f"   Search zone: [{max_left}:{max_right}] (±{expected_width})")
-    print(f"   Profile in zone: {profile[max_left:max_right+1]}")
+    # 1. Tester d'abord avec percentage standard (5%)
+    threshold_low = global_baseline + peak_height * 0.05
     
-    # Recherche borne gauche
-    left_bound = peak_idx
-    for i in range(peak_idx, max_left - 1, -1):
-        if profile[i] <= threshold:
-            left_bound = i + 1
+    left_test = peak_idx
+    for i in range(peak_idx - 1, max(0, peak_idx - 100), -1):
+        if profile[i] <= threshold_low:
+            left_test = i + 1
             break
-        left_bound = i
+        left_test = i
     
-    # Recherche borne droite
-    right_bound = peak_idx  
-    for i in range(peak_idx, max_right + 1):
-        if profile[i] <= threshold:
-            right_bound = i - 1
+    right_test = peak_idx
+    for i in range(peak_idx + 1, min(len(profile), peak_idx + 100)):
+        if profile[i] <= threshold_low:
+            right_test = i - 1
             break
-        right_bound = i
+        right_test = i
     
-    return left_bound, right_bound
+    width_low = right_test - left_test + 1
+    
+    print(f"   Test 5%: threshold={threshold_low:.0f} → width={width_low}")
+    
+    # 2. Détecter le type de pic
+    if width_low > 100:  # Pic problématique
+        print(f"   → PROBLEMATIC PEAK detected (width={width_low} > 100)")
+        
+        # Analyser la zone autour du pic pour baseline locale
+        window = 30
+        left_zone = max(0, peak_idx - window)
+        right_zone = min(len(profile), peak_idx + window)
+        
+        # Prendre les minima aux extrémités
+        left_min = np.min(profile[left_zone:peak_idx-10]) if peak_idx > 10 else global_baseline
+        right_min = np.min(profile[peak_idx+10:right_zone]) if peak_idx < len(profile)-10 else global_baseline
+        local_baseline = max(left_min, right_min, global_baseline)  # Le plus élevé des trois
+        
+        local_height = peak_intensity - local_baseline
+        
+        # Utiliser percentage élevé avec baseline locale
+        for pct in [0.30, 0.40, 0.50, 0.60]:
+            threshold = local_baseline + local_height * pct
+            
+            left_bound = peak_idx
+            for i in range(peak_idx - 1, -1, -1):
+                if profile[i] <= threshold:
+                    left_bound = i + 1
+                    break
+                left_bound = max(0, i)
+            
+            right_bound = peak_idx
+            for i in range(peak_idx + 1, len(profile)):
+                if profile[i] <= threshold:
+                    right_bound = i - 1
+                    break
+                right_bound = min(len(profile) - 1, i)
+            
+            width = right_bound - left_bound + 1
+            
+            if 15 <= width <= 60:  # Largeur acceptable
+                print(f"   → Using {pct*100}% with local baseline: [{left_bound}:{right_bound}] = {width}")
+                return left_bound, right_bound
+        
+        # Fallback si rien ne marche
+        left_bound = max(0, peak_idx - 25)
+        right_bound = min(len(profile) - 1, peak_idx + 25)
+        print(f"   → Forcing fixed width: [{left_bound}:{right_bound}]")
+        return left_bound, right_bound
+        
+    else:  # Pic normal
+        print(f"   → NORMAL PEAK detected (width={width_low} ≤ 100)")
+        
+        # Utiliser percentage standard optimisé
+        if 10 <= width_low <= 60:
+            print(f"   → Using 5%: [{left_test}:{right_test}] = {width_low}")
+            return left_test, right_test
+        else:
+            # Ajuster légèrement le percentage
+            for pct in [0.08, 0.10, 0.12, 0.15]:
+                threshold = global_baseline + peak_height * pct
+                
+                left_bound = peak_idx
+                for i in range(peak_idx - 1, -1, -1):
+                    if profile[i] <= threshold:
+                        left_bound = i + 1
+                        break
+                    left_bound = max(0, i)
+                
+                right_bound = peak_idx
+                for i in range(peak_idx + 1, len(profile)):
+                    if profile[i] <= threshold:
+                        right_bound = i - 1
+                        break
+                    right_bound = min(len(profile) - 1, i)
+                
+                width = right_bound - left_bound + 1
+                
+                if 10 <= width <= 50:
+                    print(f"   → Using {pct*100}%: [{left_bound}:{right_bound}] = {width}")
+                    return left_bound, right_bound
+            
+            # Fallback
+            print(f"   → Using original 5% result: [{left_test}:{right_test}]")
+            return left_test, right_test
 
-def method_chromatof_valley(profile, peak_idx, expected_width, snr=2):
-    """
-    Hybride optimisé : ChromaTOF + validation valley
-    """
-    
-    # 1. Essayer ChromaTOF d'abord (rapide)
-    left_chr, right_chr = chromatof_bounds_exact(profile, peak_idx, expected_width, snr)
-    
-    # 2. Vérifier s'il y a des vallées dans cette zone
-    roi = profile[max(0, left_chr-2):min(len(profile), right_chr+3)]
-    if has_clear_valleys(roi):
-        print("   ⚠️ Vallées détectées, ajustement des bornes...")
-        # Affiner avec valley detection locale
-        left_val, right_val = valley_detection_in_roi(roi)
-        return left_chr + left_val, left_chr + right_val
-    else:
-        # Garder le résultat ChromaTOF
-        return left_chr, right_chr
 
-import matplotlib.pyplot as plt
-def visualize_integration_methods(chromato_m, coord, mod_time, FWHM=0.02, peak_name="Peak", FWHM_FACTOR=0.6):
-    """
-    Visualise les deux méthodes d'intégration sur le même graphique
-    
-    Parameters:
-    -----------
-    chromato_m : ndarray
-        Chromatogramme 2D
-    coord : tuple
-        (rt1_idx, rt2_idx) position du pic
-    mod_time : float
-        Temps de modulation
-    FWHM : float
-        Largeur à mi-hauteur 
-    peak_name : str
-        Nom du pic pour le titre
-    """
-    
-    # Extraire le profil RT2
-    profile = chromato_m[coord[0], :]
-    peak_idx = coord[1]
-    
-    # Paramètres ChromaTOF
-    rt2_hz = len(profile) / mod_time  # ou chromato.shape[1] / mod_time
-    baseline_width_sec = FWHM * 2.35
-    expected_width = int(baseline_width_sec * rt2_hz)
-    
-    # === MÉTHODE 1: ChromaTOF ===
-    left_chr, right_chr = method_chromatof_valley(profile, peak_idx, expected_width, snr=2)
-    area_chromatof = np.sum(profile[left_chr:right_chr+1])
-    
-    # === MÉTHODE 2: Robuste ===
-   
-    left_rob, right_rob = find_peak_bounds_robust(profile, peak_idx, fwhm_factor=FWHM_FACTOR)
-    area_robust = np.sum(profile[left_rob:right_rob+1])
-    
-    # === VISUALISATION ===
-    plt.figure(figsize=(14, 8))
-    
-    # Graphique principal
-    plt.subplot(2, 2, (1, 2))  # Large plot en haut
-    
-    # Profil complet
-    x_axis = np.arange(len(profile))
-    plt.plot(x_axis, profile, 'b-', linewidth=2, label='Profil RT2', alpha=0.7)
-    
-    # Peak apex
-    plt.scatter([peak_idx], [profile[peak_idx]], color='black', s=100, 
-                marker='x', linewidth=3, label=f'Apex (RT2={peak_idx})')
-    
-    # Bornes ChromaTOF
-    plt.axvline(left_chr, color='red', linestyle='--', linewidth=2, alpha=0.8)
-    plt.axvline(right_chr, color='red', linestyle='--', linewidth=2, alpha=0.8)
-    plt.fill_between(x_axis[left_chr:right_chr+1], 
-                     profile[left_chr:right_chr+1], 
-                     alpha=0.3, color='red', label=f'ChromaTOF: [{left_chr}:{right_chr}]')
-    
-    # Bornes Robuste
-    plt.axvline(left_rob, color='green', linestyle=':', linewidth=2, alpha=0.8)
-    plt.axvline(right_rob, color='green', linestyle=':', linewidth=2, alpha=0.8)
-    plt.fill_between(x_axis[left_rob:right_rob+1], 
-                     profile[left_rob:right_rob+1], 
-                     alpha=0.2, color='green', label=f'Robuste: [{left_rob}:{right_rob}]')
-    
-    plt.title(f'{peak_name} - Comparaison des Méthodes d\'Intégration\n'
-              f'Coord: {coord} | RT2: {rt2_hz:.0f} Hz | Expected width: {expected_width} pts')
-    plt.xlabel('RT2 Index')
-    plt.ylabel('Intensité')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    
-    # === ZOOM SUR LE PIC ===
-    plt.subplot(2, 2, 3)
-    
-    # Définir zone de zoom
-    zoom_left = max(0, min(left_chr, left_rob) - 5)
-    zoom_right = min(len(profile), max(right_chr, right_rob) + 5)
-    zoom_x = x_axis[zoom_left:zoom_right]
-    zoom_profile = profile[zoom_left:zoom_right]
-    
-    plt.plot(zoom_x, zoom_profile, 'b-', linewidth=2)
-    plt.scatter([peak_idx], [profile[peak_idx]], color='black', s=80, marker='x')
-    
-    # Bornes dans le zoom
-    plt.axvline(left_chr, color='red', linestyle='--', alpha=0.8)
-    plt.axvline(right_chr, color='red', linestyle='--', alpha=0.8)
-    plt.axvline(left_rob, color='green', linestyle=':', alpha=0.8)
-    plt.axvline(right_rob, color='green', linestyle=':', alpha=0.8)
-    
-    plt.title('Zoom sur le Pic')
-    plt.xlabel('RT2 Index')
-    plt.ylabel('Intensité')
-    plt.grid(True, alpha=0.3)
-    
-    # === STATISTIQUES ===
-    plt.subplot(2, 2, 4)
-    plt.axis('off')
-    
-    # Calculs comparatifs
-    width_chr = right_chr - left_chr + 1
-    width_rob = right_rob - left_rob + 1
-    diff_area = abs(area_chromatof - area_robust)
-    diff_percent = (diff_area / max(area_chromatof, area_robust)) * 100
-    
-    stats_text = f"""
-📊 STATISTIQUES COMPARATIVES
-
-🔴 ChromaTOF:
-   Bornes: [{left_chr}:{right_chr}]
-   Largeur: {width_chr} points
-   Aire: {area_chromatof:,.0f}
-
-🟢 Robuste:
-   Bornes: [{left_rob}:{right_rob}]
-   Largeur: {width_rob} points  
-   Aire: {area_robust:,.0f}
-
-📈 Différences:
-   Δ Aire: {diff_area:,.0f} ({diff_percent:.1f}%)
-   Δ Largeur: {width_chr - width_rob:+d} points
-
-⚙️ Paramètres:
-   FWHM: {FWHM} s
-   RT2 fréquence: {rt2_hz:.0f} Hz
-   Expected width: {expected_width} pts
-"""
-    
-    plt.text(0.1, 0.9, stats_text, transform=plt.gca().transAxes, 
-             fontsize=10, verticalalignment='top', fontfamily='monospace')
-    
-    plt.tight_layout()
-    plt.show()
-    
-    # Retourner les résultats pour usage ultérieur
-    return {
-        'chromatof': {'bounds': (left_chr, right_chr), 'area': area_chromatof},
-        'robust': {'bounds': (left_rob, right_rob), 'area': area_robust},
-        'parameters': {'rt2_hz': rt2_hz, 'expected_width': expected_width}
-    }
 
 def compute_matches_identification(matches, sepc_list, area,chromato, chromato_cube,time_rn,mod_time,
                                    mass_range, sample_name, formated_spectra,
@@ -499,18 +556,19 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             if isinstance(match[1], list) else [match[1]]
         
         coord = match[2]
-        spectrum_data=match[1][0]['spectra']
-        spec_deconvo= sepc_list[j]
-        majority_mass=np.argmax(spec_deconvo)
+        spectrum_data = match[1][0]['spectra']
+        spec_deconvo = sepc_list[j]
+        majority_mass = np.argmax(spec_deconvo)
         
-        if(quant=="mass"):
-            chromato_m = chromato_cube[majority_mass,:,:] ## pas sur le chromato mais sur la masse majoritaire 
+        if(quant == "mass"):
+            chromato_m = chromato_cube[majority_mass,: ,: ] ## pas sur le chromato mais sur la masse majoritaire 
         else: 
             chromato_m=chromato
         
         # TODO tester
-        FWHM = 0.02
-        FWHM_FACTOR = 0.5
+        FWHM = 0.04
+        FWHM_FACTOR = 0.85
+        SNR = 3
         if(integration_mod_max1):
             # print("methode nicolas")
             # blob = integration.peak_pool_similarity_check(
@@ -529,19 +587,20 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
     
             # print(f"🎯 RT2: {rt2_hz:.0f} Hz → Expected width: {expected_width} points")
             #snr =3 = standard chromatof
-            left, right = method_chromatof_valley(chromato_m[coord[0], :], coord[1], expected_width, snr=3)
+            left, right = method_chromatof(chromato_m[coord[0], :], coord[1], expected_width, snr=SNR)
             area_mod_max = np.sum(chromato_m[coord[0], left:right+1])
             # VISUALISATION (pour les premiers pics seulement)
-            if j < 5:  # Afficher seulement les 5 premiers pics
-                results = visualize_integration_methods(
-                    chromato_m, coord, mod_time, FWHM, peak_name=f"Peak {j+1}", FWHM_FACTOR=FWHM_FACTOR
-                )
+            # if j < 20:  # Afficher seulement les 10 premiers pics
+            #     results = visualize_integration_methods(
+            #         chromato_m, coord, mod_time, FWHM, peak_name=f"Peak {j+1}", FWHM_FACTOR=FWHM_FACTOR, SNR=SNR
+            #     )
             print(f"Peak at {coord} → Bounds: ({left}, {right}), Area: {area_mod_max}")
 
         #TODO    
         elif integration_mod_max2:
             print("methode valley")
-            left_bound, right_bound = find_peak_bounds_robust(chromato_m[coord[0], :], coord[1], fwhm_factor=FWHM_FACTOR)
+            left_bound, right_bound = find_peak_bounds_simple_percentage(chromato_m[coord[0], :], coord[1])
+            # left_bound, right_bound = find_peak_bounds_robust(chromato_m[coord[0], :], coord[1], fwhm_factor=FWHM_FACTOR)
             area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound+1])
             # VISUALISATION
             # if j < 5:  # Afficher seulement les 5 premiers pics
