@@ -366,7 +366,7 @@ def find_peak_bounds_intelligent(profile, peak_idx):
     
     # 1. Tester d'abord avec percentage standard (5%)
     threshold_low = global_baseline + peak_height * 0.05
-    
+
     left_test = peak_idx
     for i in range(peak_idx - 1, max(0, peak_idx - 100), -1):
         if profile[i] <= threshold_low:
@@ -402,33 +402,67 @@ def find_peak_bounds_intelligent(profile, peak_idx):
         local_height = peak_intensity - local_baseline
         
         # Utiliser percentage élevé avec baseline locale
-        for pct in [0.30, 0.40, 0.50, 0.60]:
-            threshold = local_baseline + local_height * pct
+        # for pct in [0.30, 0.40, 0.50, 0.60]:
+        #     threshold = local_baseline + local_height * pct
             
+        #     left_bound = peak_idx
+            # for i in range(peak_idx - 1, -1, -1):
+            #     if profile[i] <= threshold:
+            #         left_bound = i + 1
+            #         break
+            #     left_bound = max(0, i)
+            
+            # right_bound = peak_idx
+            # for i in range(peak_idx + 1, len(profile)):
+            #     if profile[i] <= threshold:
+            #         right_bound = i - 1
+            #         break
+            #     right_bound = min(len(profile) - 1, i)
+            
+            # width = right_bound - left_bound + 1
+
+            # aire = np.trapz(profile[left_bound:right_bound+1])
+            # aire_ref = np.trapz(profile[max(0,peak_idx-40):min(len(profile), peak_idx+40)])
+            
+            # if 15 <= width <= 60:  # Largeur acceptable
+            #     print(f"   → Using {pct*100}% with local baseline: [{left_bound}:{right_bound}] = {width}")
+            #     return left_bound, right_bound
+        best = None
+        for pct in [0.30, 0.20, 0.10, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0]:
+            threshold = local_baseline + local_height * pct
             left_bound = peak_idx
             for i in range(peak_idx - 1, -1, -1):
                 if profile[i] <= threshold:
                     left_bound = i + 1
                     break
                 left_bound = max(0, i)
-            
+
             right_bound = peak_idx
             for i in range(peak_idx + 1, len(profile)):
                 if profile[i] <= threshold:
                     right_bound = i - 1
                     break
                 right_bound = min(len(profile) - 1, i)
-            
+
+            # calcul des bornes comme déjà
             width = right_bound - left_bound + 1
-            
-            if 15 <= width <= 60:  # Largeur acceptable
-                print(f"   → Using {pct*100}% with local baseline: [{left_bound}:{right_bound}] = {width}")
+            if best is not None and best[2] < 0.75*width:
+                print(f"→ Fallback: étend forçage de la fenêtre [-80, +80] ind autour du pic")
+                left_bound = max(0, peak_idx-80)
+                right_bound = min(len(profile)-1, peak_idx+80)
+                print(f"→ Fallback: utilise la largeur visuelle à 5% → [{left_test}:{right_test}]")
                 return left_bound, right_bound
+            if best is not None:
+                print(f"→ Using {best[4]*100:.3f}% best matching: [{best[0]}:{best[1]}] = {best[2]}, aire={best[3]:.1f}")
+                return best[0], best[1]
         
         # Fallback si rien ne marche
-        left_bound = max(0, peak_idx - 25)
-        right_bound = min(len(profile) - 1, peak_idx + 25)
+        n= 80
+        left_bound = max(0, peak_idx - n)
+        right_bound = min(len(profile) - 1, peak_idx + n)
         print(f"   → Forcing fixed width: [{left_bound}:{right_bound}]")
+        print(f"Test pct={pct}: width={width}")
+        print(f"Largeur base visuelle (5%): {width_low}")
         return left_bound, right_bound
         
     else:  # Pic normal
@@ -566,9 +600,9 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             chromato_m=chromato
         
         # TODO tester
-        FWHM = 0.04
-        FWHM_FACTOR = 0.85
-        SNR = 3
+        # FWHM = 0.04
+        # FWHM_FACTOR = 0.85
+        SNR = 2
         if(integration_mod_max1):
             # print("methode nicolas")
             # blob = integration.peak_pool_similarity_check(
@@ -580,15 +614,15 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             # mask = np.zeros_like(blob)
             # mask[coord[0],: ] = blob[coord[0],:]
             # area_mod_max = integration.compute_area(chromato_m, mask)
-            print("methode chromatof_valley")
-            rt2_hz = chromato.shape[1] / mod_time                    # Fréquence RT2
-            baseline_width_sec = FWHM * 2.35                  # Largeur de base en secondes
-            expected_width = int(baseline_width_sec * rt2_hz)        # Points attendus
+            # print("methode chromatof_valley")
+            # rt2_hz = chromato.shape[1] / mod_time                    # Fréquence RT2
+            # baseline_width_sec = FWHM * 2.35                  # Largeur de base en secondes
+            # expected_width = int(baseline_width_sec * rt2_hz)        # Points attendus
     
-            # print(f"🎯 RT2: {rt2_hz:.0f} Hz → Expected width: {expected_width} points")
-            #snr =3 = standard chromatof
-            left, right = method_chromatof(chromato_m[coord[0], :], coord[1], expected_width, snr=SNR)
-            area_mod_max = np.sum(chromato_m[coord[0], left:right+1])
+            # # print(f"🎯 RT2: {rt2_hz:.0f} Hz → Expected width: {expected_width} points")
+            # #snr =3 = standard chromatof
+            # left, right = method_chromatof(chromato_m[coord[0], :], coord[1], expected_width, snr=SNR)
+            # area_mod_max = np.sum(chromato_m[coord[0], left:right+1])
             # VISUALISATION (pour les premiers pics seulement)
             # if j < 20:  # Afficher seulement les 10 premiers pics
             #     results = visualize_integration_methods(
