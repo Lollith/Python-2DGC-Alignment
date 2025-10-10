@@ -457,7 +457,7 @@ def find_peak_bounds_intelligent(profile, peak_idx):
                 return best[0], best[1]
         
         # Fallback si rien ne marche
-        n= 80
+        n = int(width_low / 2)
         left_bound = max(0, peak_idx - n)
         right_bound = min(len(profile) - 1, peak_idx + n)
         print(f"   → Forcing fixed width: [{left_bound}:{right_bound}]")
