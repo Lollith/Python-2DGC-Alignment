@@ -17,8 +17,6 @@ import h5py
 import imagepers
 from projection import chromato_to_matrix, matrix_to_chromato
 import uuid
-# from scipy.signal import find_peaks
-# from scipy.ndimage import gaussian_filter1d
 
 
 def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
@@ -72,283 +70,6 @@ def mass_spectra_format(mass_range, int_values):
     return formatted_spectrum
 
 
-# def find_peak_bounds_valley_detection(profile, peak_idx):
-#     """
-#     Valley detection avec validation du ratio baseline/peak
-#     """
-#     peak_intensity = profile[peak_idx]
-#     baseline = np.percentile(profile, 10)
-#     peak_height = peak_intensity - baseline
-    
-#     # Valley detection classique
-#     min_prominence = peak_height * 0.25
-#     smooth_profile = gaussian_filter1d(profile, sigma=1)
-#     inverted = -smooth_profile
-#     valleys, _ = find_peaks(inverted, prominence=min_prominence)
-    
-#     # Trouver vallées proches
-#     left_valleys = valleys[valleys < peak_idx]
-#     right_valleys = valleys[valleys > peak_idx]
-    
-#     # VALIDATION : Vérifier que les zones entre vallées ne contiennent pas d'autres gros pics
-#     left_bound = left_valleys[-1] if len(left_valleys) > 0 else max(0, peak_idx - 20)
-#     right_bound = right_valleys[0] if len(right_valleys) > 0 else min(len(profile) - 1, peak_idx + 20)
-    
-#     # Extraire la région entre les bornes
-#     region = profile[left_bound:right_bound+1]
-#     region_max = np.max(region)
-#     region_median = np.median(region)
-    
-#     print(f"🔍 Valley Validation:")
-#     print(f"   Region max: {region_max:.0f}")
-#     print(f"   Region median: {region_median:.0f}")
-#     print(f"   Peak: {peak_intensity:.0f}")
-    
-#     # Si la région contient des intensités très élevées en dehors du pic principal, c'est suspect
-#     region_without_peak = np.concatenate([
-#         region[:peak_idx-left_bound], 
-#         region[peak_idx-left_bound+1:]
-#     ])
-    
-#     if len(region_without_peak) > 0:
-#         second_highest = np.max(region_without_peak)
-#         ratio = second_highest / peak_intensity
-        
-#         print(f"   Second highest in region: {second_highest:.0f} (ratio: {ratio:.2f})")
-        
-#         # Si il y a un autre pic > 60% du pic principal, rejeter
-#         if ratio > 0.6:
-#             print(f"   ❌ Multi-peak detected - ratio {ratio:.2f} > 0.6")
-#             raise ValueError("Multiple peaks in region")
-    
-#     return left_bound, right_bound
-
-# def find_peak_bounds_valley_detection(profile, peak_idx, min_prominence=0.3):
-#     """
-#     Trouve les bornes en dÃ©tectant les vallÃ©es autour du pic
-    
-#     Parameters:
-#     -----------
-#     profile : array
-#         Profil d'intensitÃ© 1D
-#     peak_idx : int
-#         Index du maximum du pic
-#     min_prominence : float
-#         Prominence minimale pour dÃ©tecter une vallÃ©e
-        
-#     Returns:
-#     --------
-#     left_bound, right_bound : int, int
-#     """
-
-#     peak_intensity = profile[peak_idx]
-#     baseline = np.percentile(profile, 10)
-#     peak_height = peak_intensity - baseline
-    
-#     # PROMINENCE ADAPTÉE au pic (pas fixe !)
-#     min_prominence = peak_height * min_prominence  # 30% de la hauteur du pic
-    
-#     print(f"🔍 Valley Detection Fixed:")
-#     print(f"   Peak height: {peak_height:.0f}")
-#     print(f"   Min prominence: {min_prominence:.0f} ({min_prominence*100}%)")
-    
-#     # Lisser lÃ©gÃ¨rement pour Ã©viter les micro-oscillations
-#     smooth_profile = gaussian_filter1d(profile, sigma=1)
-    
-#     # Inverser le signal pour dÃ©tecter les minima comme des maxima
-#     inverted = -smooth_profile
-    
-#     # DÃ©tecter tous les minima (vallÃ©es)
-#     valleys, _ = find_peaks(inverted, prominence=min_prominence)
-#     if len(valleys) == 0:
-#         raise ValueError("No valleys found")
-    
-#     # Trouver la vallÃ©e la plus proche Ã  gauche
-#     left_valleys = valleys[valleys < peak_idx]
-#     left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
-    
-#     # Trouver la vallÃ©e la plus proche Ã  droite  
-#     right_valleys = valleys[valleys > peak_idx]
-#     right_bound = right_valleys[0] if len(right_valleys) > 0 else len(profile) - 1
-    
-#     return left_bound, right_bound
-
-# def find_peak_bounds_robust(profile, peak_idx, 
-#                            fwhm_factor=0.6, min_width=5):
-#     """
-#     MÃ©thode hybride combinant plusieurs approches
-    
-#     1. Valley detection (prioritaire)
-#     2. Baseline threshold (fallback)
-
-#     """
-#     peak_intensity = profile[peak_idx]
-    
-#     # === MÃ‰THODE 1: Valley Detection ===
-#     try:
-#         left_valley, right_valley = find_peak_bounds_valley_detection(profile, peak_idx)
-        
-#         # VÃ©rifier que les bornes sont raisonnables
-#         width = right_valley - left_valley
-#         if width >= min_width and width <= len(profile) // 2:
-#             return left_valley, right_valley
-#     except:
-#         pass
-    
-#     # === MÃ‰THODE 2: Baseline Threshold (Fallback) ===
-#     print("   ⚠️ Valley detection failed or unreasonable, using baseline threshold...")
-#     baseline = np.percentile(profile, 10)  # 10% percentile comme baseline
-#     half_height = baseline + (peak_intensity - baseline) / 2
-#     threshold = half_height * (1 - fwhm_factor)
-    
-#     # Borne gauche
-#     left_bound = peak_idx
-#     for i in range(peak_idx - 1, -1, -1):
-#         if profile[i] <= threshold:
-#             left_bound = i + 1
-#             break
-#         left_bound = i
-    
-#     # Borne droite
-#     right_bound = peak_idx  
-#     for i in range(peak_idx + 1, len(profile)):
-#         if profile[i] <= threshold:
-#             right_bound = i - 1
-#             break
-#         right_bound = i
-    
-#     width = right_bound - left_bound + 1
-#     if width < min_width:
-#         expand = (min_width - width) // 2
-#         left_bound = max(0, left_bound - expand)
-#         right_bound = min(len(profile) - 1, right_bound + expand)
-    
-#     return left_bound, right_bound
-
-
-# def has_clear_valleys(roi):
-#     """
-#     Vérifie s'il y a des vallées significatives dans la région
-#     """
-    
-#     # Lisser légèrement
-#     smooth_roi = gaussian_filter1d(roi, sigma=1)
-    
-#     # Chercher des vallées (minima)
-#     inverted = -smooth_roi
-#     valleys, properties = find_peaks(inverted, prominence=np.std(roi) * 2)
-    
-#     # Il y a des vallées claires si :
-#     # 1. Au moins une vallée détectée
-#     # 2. Prominence significative par rapport au bruit
-#     return len(valleys) > 0 and np.max(properties['prominences']) > np.std(roi) * 1.5
-
-# def valley_detection_in_roi(roi):
-#     """
-#     Applique valley detection dans la ROI seulement
-#     """
-#     from scipy.signal import find_peaks
-    
-#     # Détecter toutes les vallées
-#     inverted = -roi
-#     valleys, _ = find_peaks(inverted, prominence=np.std(roi))
-    
-#     # Trouver le pic principal dans la ROI
-#     peak_idx_roi = np.argmax(roi)
-    
-#     # Vallées à gauche et droite
-#     left_valleys = valleys[valleys < peak_idx_roi]
-#     right_valleys = valleys[valleys > peak_idx_roi]
-    
-#     # Bornes = vallées les plus proches du pic
-#     left_bound = left_valleys[-1] if len(left_valleys) > 0 else 0
-#     right_bound = right_valleys[0] if len(right_valleys) > 0 else len(roi) - 1
-    
-#     return left_bound, right_bound
-
-# def chromatof_bounds_exact(profile, peak_idx, expected_width, snr):
-#     """
-#     Reproduction exacte de l'algorithme ChromaTOF LECO
-#     """
-#     peak_intensity = profile[peak_idx]
-#     # Fenêtre de recherche baseline (large)
-#     search_window = expected_width * 3
-#     start = max(0, peak_idx - search_window)
-#     end = min(len(profile), peak_idx + search_window)
-    
-#     # Baseline = minimum absolu dans la fenêtre
-#     baseline = np.min(profile[start:end])
-    
-#     # Hauteur et seuil
-#     peak_height = profile[peak_idx] - baseline
-#     threshold = baseline + (peak_height / snr)
-    
-#     # Limites de recherche des bornes
-#     max_left = max(0, peak_idx - expected_width)
-#     max_right = min(len(profile) - 1, peak_idx + expected_width)
-
-#     print(f"🔍 DEBUG ChromaTOF:")
-#     print(f"   Peak: {peak_intensity:.0f}, Baseline: {baseline:.0f}")
-#     print(f"   Threshold: {threshold:.0f} (SNR={snr})")
-#     print(f"   Search zone: [{max_left}:{max_right}] (±{expected_width})")
-#     print(f"   Profile in zone: {profile[max_left:max_right+1]}")
-    
-#     # Recherche borne gauche
-#     left_bound = peak_idx
-#     for i in range(peak_idx, max_left - 1, -1):
-#         if profile[i] <= threshold:
-#             left_bound = i + 1
-#             break
-#         left_bound = i
-    
-#     # Recherche borne droite
-#     right_bound = peak_idx  
-#     for i in range(peak_idx, max_right + 1):
-#         if profile[i] <= threshold:
-#             right_bound = i - 1
-#             break
-#         right_bound = i
-    
-#     return left_bound, right_bound
-
-def method_chromatof(profile, peak_idx, snr=2):
-    """
-    ChromaTOF SANS contrainte d'expected_width
-    """
-    peak_intensity = profile[peak_idx]
-    
-    # Baseline sur une grande fenêtre
-    search_window = 50
-    start = max(0, peak_idx - search_window)
-    end = min(len(profile), peak_idx + search_window)
-    baseline = np.percentile(profile[start:end], 5)
-    
-    peak_height = peak_intensity - baseline
-    threshold = baseline + (peak_height / snr)
-    
-    print(f"🔧 ChromaTOF Unconstrained:")
-    print(f"   Peak: {peak_intensity:.0f}, Baseline: {baseline:.0f}")
-    print(f"   SNR: {snr} → Threshold: {threshold:.0f}")
-    print(f"   Threshold is {threshold/peak_intensity*100:.1f}% of peak")
-    
-    left_bound = peak_idx
-    for i in range(peak_idx - 1, -1, -1):
-        if profile[i] <= threshold:
-            left_bound = i + 1
-            break
-        left_bound = max(0, i)
-    
-    right_bound = peak_idx
-    for i in range(peak_idx + 1, len(profile)):
-        if profile[i] <= threshold:
-            right_bound = i - 1
-            break
-        right_bound = min(len(profile) - 1, i)
-    
-    width = right_bound - left_bound + 1
-    print(f"   Result: [{left_bound}:{right_bound}] = {width} points")
-    
-    return left_bound, right_bound
 
 def find_peak_bounds_intelligent(profile, peak_idx):
     """
@@ -363,7 +84,6 @@ def find_peak_bounds_intelligent(profile, peak_idx):
     print(f"   Peak height: {peak_height:.0f}")
     
     # === DIAGNOSTIC DU TYPE DE PIC ===
-    
     # 1. Tester d'abord avec percentage standard (5%)
     threshold_low = global_baseline + peak_height * 0.05
 
@@ -401,32 +121,6 @@ def find_peak_bounds_intelligent(profile, peak_idx):
         
         local_height = peak_intensity - local_baseline
         
-        # Utiliser percentage élevé avec baseline locale
-        # for pct in [0.30, 0.40, 0.50, 0.60]:
-        #     threshold = local_baseline + local_height * pct
-            
-        #     left_bound = peak_idx
-            # for i in range(peak_idx - 1, -1, -1):
-            #     if profile[i] <= threshold:
-            #         left_bound = i + 1
-            #         break
-            #     left_bound = max(0, i)
-            
-            # right_bound = peak_idx
-            # for i in range(peak_idx + 1, len(profile)):
-            #     if profile[i] <= threshold:
-            #         right_bound = i - 1
-            #         break
-            #     right_bound = min(len(profile) - 1, i)
-            
-            # width = right_bound - left_bound + 1
-
-            # aire = np.trapz(profile[left_bound:right_bound+1])
-            # aire_ref = np.trapz(profile[max(0,peak_idx-40):min(len(profile), peak_idx+40)])
-            
-            # if 15 <= width <= 60:  # Largeur acceptable
-            #     print(f"   → Using {pct*100}% with local baseline: [{left_bound}:{right_bound}] = {width}")
-            #     return left_bound, right_bound
         best = None
         for pct in [0.30, 0.20, 0.10, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0]:
             threshold = local_baseline + local_height * pct
@@ -502,12 +196,13 @@ def find_peak_bounds_intelligent(profile, peak_idx):
             return left_test, right_test
 
 
-
-def compute_matches_identification(matches, sepc_list, area,chromato, chromato_cube,time_rn,mod_time,
+def compute_matches_identification(matches, sepc_list, area, chromato,
+                                   chromato_cube, time_rn, mod_time,
                                    mass_range, sample_name, formated_spectra,
-                                   quant="mass",extract_patch=False,output_hdf5_file=None,
-                                   integration_mod_max1=True, integration_mod_max2=False,
-                                   similarity_threshold=0.001
+                                   quant="mass", extract_patch=False,
+                                   output_hdf5_file=None,
+                                   is_area_mod_max=True,
+                                #    similarity_threshold=0.001
                                    ):
     """
     Computes the identification data for each match in a list of matches,
@@ -572,8 +267,9 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
     sample_metadata_list =[]
     max_len = max(len(match) for match in matches)
 
-    # ComplÃ©ter les lignes plus courtes ou tronquer les lignes trop longues
-    matches = [match + [None] * (max_len - len(match)) if len(match) < max_len else match[:max_len] for match in matches]
+    # Compléter les lignes plus courtes ou tronquer les lignes trop longues
+    matches = [match + [None] * (max_len - len(match)) if len(match) < max_len
+               else match[:max_len] for match in matches]
     matches = np.array(matches, dtype=object)
     min_mz, max_mz = int(mass_range[0]), int(mass_range[1])
     canonical_length = max_mz - min_mz + 1
@@ -594,53 +290,14 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
         spec_deconvo = sepc_list[j]
         majority_mass = np.argmax(spec_deconvo)
         
-        if(quant == "mass"):
-            chromato_m = chromato_cube[majority_mass,: ,: ] ## pas sur le chromato mais sur la masse majoritaire 
-        else: 
-            chromato_m=chromato
-        
-        # TODO tester
-        # FWHM = 0.04
-        # FWHM_FACTOR = 0.85
-        SNR = 2
-        if(integration_mod_max1):
-            # print("methode nicolas")
-            # blob = integration.peak_pool_similarity_check(
-            #         chromato_m, np.stack(matches[:, 2]), coord, chromato_cube,
-            #         threshold=0.01, plot_labels=True,
-            #         similarity_threshold=similarity_threshold)                
-            # area_total = integration.compute_area(chromato_m, blob) 
+        if (quant == "mass"):
+            chromato_m = chromato_cube[majority_mass, :, :] ## pas sur le chromato mais sur la masse majoritaire
+        else:
+            chromato_m = chromato
 
-            # mask = np.zeros_like(blob)
-            # mask[coord[0],: ] = blob[coord[0],:]
-            # area_mod_max = integration.compute_area(chromato_m, mask)
-            # print("methode chromatof_valley")
-            # rt2_hz = chromato.shape[1] / mod_time                    # Fréquence RT2
-            # baseline_width_sec = FWHM * 2.35                  # Largeur de base en secondes
-            # expected_width = int(baseline_width_sec * rt2_hz)        # Points attendus
-    
-            # # print(f"🎯 RT2: {rt2_hz:.0f} Hz → Expected width: {expected_width} points")
-            # #snr =3 = standard chromatof
-            # left, right = method_chromatof(chromato_m[coord[0], :], coord[1], expected_width, snr=SNR)
-            # area_mod_max = np.sum(chromato_m[coord[0], left:right+1])
-            # VISUALISATION (pour les premiers pics seulement)
-            # if j < 20:  # Afficher seulement les 10 premiers pics
-            #     results = visualize_integration_methods(
-            #         chromato_m, coord, mod_time, FWHM, peak_name=f"Peak {j+1}", FWHM_FACTOR=FWHM_FACTOR, SNR=SNR
-            #     )
-            print(f"Peak at {coord} → Bounds: ({left}, {right}), Area: {area_mod_max}")
-
-        #TODO    
-        elif integration_mod_max2:
-            print("methode valley")
-            left_bound, right_bound = find_peak_bounds_simple_percentage(chromato_m[coord[0], :], coord[1])
-            # left_bound, right_bound = find_peak_bounds_robust(chromato_m[coord[0], :], coord[1], fwhm_factor=FWHM_FACTOR)
+        if is_area_mod_max:
+            left_bound, right_bound = find_peak_bounds_intelligent(chromato_m[coord[0], :], coord[1])
             area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound+1])
-            # VISUALISATION
-            # if j < 5:  # Afficher seulement les 5 premiers pics
-            #     results = visualize_integration_methods(
-            #         chromato_m, coord, mod_time, FWHM=0.04, peak_name=f"Peak {j+1}"
-            #     )
             print(f"Peak at {coord} → Bounds: ({left_bound}, {right_bound}), Area: {area_mod_max}")
 
         else:
@@ -687,13 +344,14 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
                         spectrum_data = spectrum_data[:canonical_length]
                       # Verify final length
                 if len(spectrum_data) != canonical_length:
-                           raise RuntimeError(f"Spectrum length adjustment failed! Got {len(spectrum_data)}, expected {canonical_length}")
-            else: print("Warning: Spectrum extraction returned None.")
+                    raise RuntimeError(f"Spectrum length adjustment failed! Got {len(spectrum_data)}, expected {canonical_length}")
+            else:
+                print("Warning: Spectrum extraction returned None.")
             
-            context_patch={'rt1_window_minutes': 0.5,
-                       'rt2_window_seconds': 0.2}
+            context_patch = {'rt1_window_minutes': 0.5,
+                             'rt2_window_seconds': 0.2}
             
-            chromato_shape=chromato.shape
+            chromato_shape = chromato.shape
             context_patch_data = np.array([]) # Init empty 
             rt1_min = identification_data_dict["rt1"] - context_patch['rt1_window_minutes']; rt1_max = identification_data_dict["rt1"] + context_patch['rt1_window_minutes']
             rt2_min = identification_data_dict["rt2"] - context_patch['rt2_window_seconds']; rt2_max = identification_data_dict["rt2"] + context_patch['rt2_window_seconds']
@@ -708,8 +366,8 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
             x_max = int(min(np.ceil(window_idx[1][0]), chromato_shape[0])); y_max = int(min(np.ceil(window_idx[1][1]), chromato_shape[1]))
 
             # --- Calculate mass_index using range_min ---
-            mass=majority_mass+ mass_range[0]
-            mass_index = majority_mass # Index relative to the start of cube's axis
+            mass = majority_mass + mass_range[0]
+            mass_index = majority_mass  # Index relative to the start of cube's axis
  
             if mass_index < 0 or mass_index >= chromato_cube.shape[0]:
                 raise ValueError(f"Mass index {mass_index} (mass {mass}, min_mz {mass_range[0]}) out of cube bounds[0]={chromato_cube.shape[0]}.")
@@ -719,10 +377,10 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
 
             full_patch = chromato_cube[mass_index, x_min:x_max, y_min:y_max]
             if full_patch.size == 0: print(f"Warning: Extracted full_patch empty [{x_min}:{x_max}, {y_min}:{y_max}].")
-            context_patch_data=full_patch
+            context_patch_data = full_patch
             identification_data_dict['context_patch'] = full_patch
             identification_data_dict['full_rt_bounds'] = full_rt_bounds
-            center_rt_corr =  match[0] 
+            center_rt_corr = match[0] 
             clipped_patch_data = clip_patch_by_rt(
                       context_patch_data, full_rt_bounds, center_rt_corr,
                       0.1, 0.1175 )
@@ -754,7 +412,7 @@ def compute_matches_identification(matches, sepc_list, area,chromato, chromato_c
                     # --- End Metadata ---
 
         matches_identification.append(identification_data_dict)
-    return matches_identification , sample_metadata_list
+    return matches_identification, sample_metadata_list
 
 def identification(filename,
                    output_path,
@@ -765,7 +423,9 @@ def identification(filename,
                    num_sigma, formated_spectra, match_factor_min,
                    min_persistence, overlap, eps, min_samples,
                    nist, quant, extract_patch, output_hdf5_file,
-                   method_baseline, plot_):
+                   method_baseline, plot_,
+                   is_area_deconvolution,
+                   ):
     r"""Takes a chromatogram as file and returns identified compounds.
 
     Parameters
@@ -815,10 +475,13 @@ def identification(filename,
         read_chroma.read_chromato_and_chromato_cube(filename,
                                                     output_path,
                                                     mod_time,
-                                                    pre_process=False, plot_=plot_
+                                                    pre_process=False,
+                                                    plot_=plot_
                                                     ))
 
-    baseline_cube = np.array(baseline_correction.chromato_cube_corrected_baseline(chromato_cube, method=method_baseline))
+    baseline_cube = np.array(
+        baseline_correction.chromato_cube_corrected_baseline(
+            chromato_cube, method=method_baseline))
 
     if (mode == "mass_per_mass") & (method == "DoG"):
         print(f"Peak detection with mode {mode} and method {method}")
@@ -839,7 +502,9 @@ def identification(filename,
             min_size_cluster_mass=3,
             thr_debscan=0.04,
             multi_processing=True,
-            cleaning_close_peak=True,)
+            cleaning_close_peak=True,
+            is_area_deconvolution=True,
+        )
 
         print("Peaks number: ", len(coordinates))
         if (plot_):
@@ -860,40 +525,41 @@ def identification(filename,
         print("Matches found: ", len(matches))
 
         matches_identification, sample_metadata_list = compute_matches_identification(
-                matches, spec_list, area, chromato_tic, baseline_cube,time_rn,mod_time, mass_range,base_name,
+                matches, spec_list, area, chromato_tic, baseline_cube,
+                time_rn, mod_time, mass_range, base_name,
                 formated_spectra, quant, extract_patch, output_hdf5_file)
 
         return matches_identification, sample_metadata_list
 
-    elif (mode == "tic") & (method == "persistent_homology"):
-        intensity_threshold = peak_detection.intensity_threshold_decision_rule(
-            abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
-        g0 = imagepers.persistence(chromato_tic)
-        pts = []
-        for i, homclass in enumerate(g0):
-            p_birth, birth_val, pers_val, p_death = homclass
-            x, y = p_birth
-            # Apply thresholds
-            max_peak_val = np.max(chromato_tic)
-            if chromato_tic[x, y] < intensity_threshold:
-                continue
-            if pers_val < min_persistence * max_peak_val:
-                continue
-            pts.append((x, y))
+    # elif (mode == "tic") & (method == "persistent_homology"):
+    #     intensity_threshold = peak_detection.intensity_threshold_decision_rule(
+    #         abs_threshold, rel_threshold, noise_factor, sigma, chromato_tic)
+    #     g0 = imagepers.persistence(chromato_tic)
+    #     pts = []
+    #     for i, homclass in enumerate(g0):
+    #         p_birth, birth_val, pers_val, p_death = homclass
+    #         x, y = p_birth
+    #         # Apply thresholds
+    #         max_peak_val = np.max(chromato_tic)
+    #         if chromato_tic[x, y] < intensity_threshold:
+    #             continue
+    #         if pers_val < min_persistence * max_peak_val:
+    #             continue
+    #         pts.append((x, y))
         
-        coordinates = np.array(pts)
-        print("Peaks number: ", len(coordinates))
+    #     coordinates = np.array(pts)
+    #     print("Peaks number: ", len(coordinates))
         
-        if plot_:
-            coordinates_in_chromato = projection.matrix_to_chromato(
-                    coordinates, time_rn, mod_time, chromato_tic.shape)
-            plot.visualizer((chromato_tic, time_rn), mod_time,
-                                title = f"peak detection with mode {mode} and method {method}",
-                                log_chromato = True, points=coordinates_in_chromato)
+    #     if plot_:
+    #         coordinates_in_chromato = projection.matrix_to_chromato(
+    #                 coordinates, time_rn, mod_time, chromato_tic.shape)
+    #         plot.visualizer((chromato_tic, time_rn), mod_time,
+    #                             title = f"peak detection with mode {mode} and method {method}",
+    #                             log_chromato = True, points=coordinates_in_chromato)
     
 
-        # return np.array(pts), []
-        return coordinates, "persistent_homology_mode"
+    #     # return np.array(pts), []
+    #     return coordinates, "persistent_homology_mode"
     else:
         print("Autres fonctions de detection ne fonctionnent pas pour le moment")
         return [], []
@@ -902,7 +568,9 @@ def identification(filename,
     
 
 
-def cohort_identification_to_csv(filename, matches_identification, PATH):
+def cohort_identification_to_csv(filename, 
+                                 matches_identification, PATH, 
+                                 is_area_deconvolution):
     r"""Generate csv (readable) peak table.
 
     Parameters
@@ -937,9 +605,14 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
         writer = csv.writer(f, delimiter=';')
 
         # header
-        writer.writerow(['Name', 'Casno', 'Formula', 'hit_prob',
-                         'match_factor', 'reverse_match_factor', 'rt1', 'rt2',
-                         'Area', 'Height'])
+        if is_area_deconvolution:
+            writer.writerow(['Name', 'Casno', 'Formula', 'hit_prob',
+                             'match_factor', 'reverse_match_factor', 'rt1', 'rt2',
+                             'Area_deconvo', 'Area_mod_max', 'Height'])
+        else:  # area = mod_max
+            writer.writerow(['Name', 'Casno', 'Formula', 'hit_prob',
+                            'match_factor', 'reverse_match_factor', 'rt1', 'rt2',
+                            'Area', 'Height'])
 
         for identification_data_dict in matches_identification:
             casno = identification_data_dict['casno']
@@ -951,10 +624,18 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
                 (identification_data_dict['reverse_match_factor'])
             rt1 = identification_data_dict['rt1']
             rt2 = identification_data_dict['rt2']
-            area = identification_data_dict['area']
             height = identification_data_dict['height']
-            row = [compound_name, casno, compound_formula, hit_prob,
-                   match_factor, reverse_match_factor, rt1, rt2, area, height]
+            if is_area_deconvolution:
+                area_deconvo = identification_data_dict['area']
+                area_mod_max = identification_data_dict['area_mod_max']
+                row = [compound_name, casno, compound_formula, hit_prob,
+                       match_factor, reverse_match_factor, rt1, rt2,
+                       area_deconvo, area_mod_max, height]
+            else:  # area = mod_max
+                area = identification_data_dict['area']
+                row = [compound_name, casno, compound_formula, hit_prob,
+                       match_factor, reverse_match_factor, rt1, rt2, area,
+                       height]
             writer.writerow(row)
 
 
@@ -1002,7 +683,7 @@ def cohort_identification_to_csv(filename, matches_identification, PATH):
 #             f.write(line)
 
 def cohort_identification_alignment_input_format_txt(
-        filename, matches_identification, PATH, deconvo=False):
+        filename, matches_identification, PATH, is_area_deconvolution=False):
     r"""Generate formatted peak table for alignment.
 
     Parameters
@@ -1015,7 +696,7 @@ def cohort_identification_alignment_input_format_txt(
     PATH : optional
         Path to the resulting formatted peak table.
     """
-    if deconvo:
+    if is_area_deconvolution:
         deconvo_dir = os.path.join(PATH, 'deconvolution')
         os.makedirs(deconvo_dir, exist_ok=True)
         name_file = os.path.join(deconvo_dir, filename + '#Dc.txt')
@@ -1029,10 +710,11 @@ def cohort_identification_alignment_input_format_txt(
             compound_name = identification_data_dict['compound_name']
             rt1 = identification_data_dict['rt1']
             rt2 = identification_data_dict['rt2']
-            area = identification_data_dict['area']
-            if deconvo:
+            if is_area_deconvolution:
+                area = identification_data_dict['area']
                 formatted_spectrum = identification_data_dict['spectra_deconvo']
             else:
+                area = identification_data_dict['area_mod_max']
                 formatted_spectrum = identification_data_dict['spectra']
             f.write(write_line(compound_name, rt1, rt2, area,
                                formatted_spectrum))
@@ -1052,7 +734,10 @@ def sample_identification(path, file, output_path,
                           overlap=0.5, eps=0.001, min_samples=1, nist=False,
                           method_baseline="als",
                           quant_method="mass", extract_patch=False,
-                          output_hdf5_file=None, plot_=True):
+                          output_hdf5_file=None, plot_=True,
+                          is_area_deconvolution=True,
+                        #   is_area_mod_max=False
+                        ):
     r"""Read sample chromatogram and generate the associated peak table.
     - identification()
 
@@ -1135,37 +820,39 @@ def sample_identification(path, file, output_path,
             extract_patch,
             output_hdf5_file,
             method_baseline,
-            plot_
+            plot_,
+            is_area_deconvolution=True,
         )
-        # VÃ©rifier le type de rÃ©sultat
+        # Vérifier le type de résultat
         if isinstance(result, tuple) and len(result) == 2:
             first, second = result
             if second == "persistent_homology_mode":
                 coordinates = first
-                return f"âœ… Peak detection completed: {len(coordinates)} peaks found"
+                return f"Peak detection completed: {len(coordinates)} peaks found"
             else:
                 # Cas normal
                 matches_identification, sample_metadata_list = result
 
-                 # VÃ©rifier si les rÃ©sultats sont vides
+                # Verifier si les résultats sont vides
                 if not matches_identification and not sample_metadata_list:
-                    return f"âŒ Aucune identification possible avec method='{method}' et mode='{mode}'"
+                    return f"Aucune identification possible avec method='{method}' et mode='{mode}'"
                 if not matches_identification:
-                    return f"âš ï¸ Aucun composÃ© identifiÃ© pour {file}"
-
+                    return f"Aucun composé identifié pour {file}"
+                
                 print("Identification done", time.time()-start_time, 's')
-
                 base_name = os.path.splitext(file)[0] + ('#Dt#N' if nist else '#Dt')
                 cohort_identification_alignment_input_format_txt(
                     base_name, matches_identification, output_path)
                 cohort_identification_alignment_input_format_txt(
-                    base_name, matches_identification, output_path, deconvo=True)
+                    base_name, matches_identification, output_path,
+                    is_area_deconvolution=True)
                 if (extract_patch):
                     cohort_identification_sample_metadata(
                         base_name, sample_metadata_list, output_path)
                 else:
                     cohort_identification_to_csv(
-                        base_name, matches_identification, output_path)
+                        base_name, matches_identification, output_path,
+                        is_area_deconvolution)
                 result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}#Dc.txt, {output_path + base_name}.csv created']
                 return result
         else:

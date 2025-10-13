@@ -44,7 +44,7 @@ def detection_mass_par_mass_Dog(chromato_cube,
                                 thr_debscan=0.02,
                                 multi_processing=True,
                                 cleaning_close_peak=True,
-                                is_deconvolution=True):
+                                is_area_deconvolution=True):
     r"""
     Detects chromatographic peaks in a 3D data cube (retention time 1 × retention time 2 × m/z)
     on a per-mass (m/z) basis using DoG method.
@@ -178,7 +178,7 @@ def detection_mass_par_mass_Dog(chromato_cube,
 
         print(str(len(coordinates)) + " detected peaks after filter") 
 
-    if is_deconvolution:
+    if is_area_deconvolution:
         spec_list, area = deconvolution.construct_spectrum(quanti_all_mass, label, chromato_cube.shape[0])
     else:
         spec_list, area = None, None
