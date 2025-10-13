@@ -95,6 +95,8 @@ def main():
     parser.add_argument("--min_samples", type=int, required=True)
     parser.add_argument("--nist", action="store_true")
     parser.add_argument("--mod_time", type=float, help="Manual modulation time in seconds (0 to auto-detect)", default=0)
+    parser.add_argument("--plot", action="store_true", help="Generate plots")
+    parser.add_argument("--is_area_deconvolution", action="store_true", help="Use area from deconvolution in addition to mod_max")
     args = parser.parse_args()
     
     if not args.input:
@@ -153,7 +155,9 @@ def main():
                 args.overlap,
                 args.eps,
                 args.min_samples,
-                args.nist
+                args.nist,
+                args.plot,
+                args.is_area_deconvolution
             )
             if isinstance(results, str) and (results.startswith("❌") or results.startswith("⚠️")):
                 print(results)  # Afficher le message d'erreur
