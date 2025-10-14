@@ -79,9 +79,9 @@ def find_peak_bounds_intelligent(profile, peak_idx):
     global_baseline = np.percentile(profile, 5)
     peak_height = peak_intensity - global_baseline
     
-    print(f"🧠 Intelligent Peak Analysis:")
-    print(f"   Peak: {peak_intensity:.0f}, Global baseline: {global_baseline:.0f}")
-    print(f"   Peak height: {peak_height:.0f}")
+    # print(f"🧠 Intelligent Peak Analysis:")
+    # print(f"   Peak: {peak_intensity:.0f}, Global baseline: {global_baseline:.0f}")
+    # print(f"   Peak height: {peak_height:.0f}")
     
     # === DIAGNOSTIC DU TYPE DE PIC ===
     # 1. Tester d'abord avec percentage standard (5%)
@@ -103,11 +103,11 @@ def find_peak_bounds_intelligent(profile, peak_idx):
     
     width_low = right_test - left_test + 1
     
-    print(f"   Test 5%: threshold={threshold_low:.0f} → width={width_low}")
+    # print(f"   Test 5%: threshold={threshold_low:.0f} → width={width_low}")
     
     # 2. Détecter le type de pic
     if width_low > 100:  # Pic problématique
-        print(f"   → PROBLEMATIC PEAK detected (width={width_low} > 100)")
+        # print(f"   → PROBLEMATIC PEAK detected (width={width_low} > 100)")
         
         # Analyser la zone autour du pic pour baseline locale
         window = 30
@@ -141,30 +141,30 @@ def find_peak_bounds_intelligent(profile, peak_idx):
             # calcul des bornes comme déjà
             width = right_bound - left_bound + 1
             if best is not None and best[2] < 0.75*width:
-                print(f"→ Fallback: étend forçage de la fenêtre [-80, +80] ind autour du pic")
+                # print(f"→ Fallback: étend forçage de la fenêtre [-80, +80] ind autour du pic")
                 left_bound = max(0, peak_idx-80)
                 right_bound = min(len(profile)-1, peak_idx+80)
-                print(f"→ Fallback: utilise la largeur visuelle à 5% → [{left_test}:{right_test}]")
+                # print(f"→ Fallback: utilise la largeur visuelle à 5% → [{left_test}:{right_test}]")
                 return left_bound, right_bound
             if best is not None:
-                print(f"→ Using {best[4]*100:.3f}% best matching: [{best[0]}:{best[1]}] = {best[2]}, aire={best[3]:.1f}")
+                # print(f"→ Using {best[4]*100:.3f}% best matching: [{best[0]}:{best[1]}] = {best[2]}, aire={best[3]:.1f}")
                 return best[0], best[1]
         
         # Fallback si rien ne marche
         n = int(width_low / 2)
         left_bound = max(0, peak_idx - n)
         right_bound = min(len(profile) - 1, peak_idx + n)
-        print(f"   → Forcing fixed width: [{left_bound}:{right_bound}]")
-        print(f"Test pct={pct}: width={width}")
-        print(f"Largeur base visuelle (5%): {width_low}")
+        # print(f"   → Forcing fixed width: [{left_bound}:{right_bound}]")
+        # print(f"Test pct={pct}: width={width}")
+        # print(f"Largeur base visuelle (5%): {width_low}")
         return left_bound, right_bound
         
     else:  # Pic normal
-        print(f"   → NORMAL PEAK detected (width={width_low} ≤ 100)")
+    #     print(f"   → NORMAL PEAK detected (width={width_low} ≤ 100)")
         
         # Utiliser percentage standard optimisé
         if 10 <= width_low <= 60:
-            print(f"   → Using 5%: [{left_test}:{right_test}] = {width_low}")
+            # print(f"   → Using 5%: [{left_test}:{right_test}] = {width_low}")
             return left_test, right_test
         else:
             # Ajuster légèrement le percentage
@@ -188,11 +188,11 @@ def find_peak_bounds_intelligent(profile, peak_idx):
                 width = right_bound - left_bound + 1
                 
                 if 10 <= width <= 50:
-                    print(f"   → Using {pct*100}%: [{left_bound}:{right_bound}] = {width}")
+                    # print(f"   → Using {pct*100}%: [{left_bound}:{right_bound}] = {width}")
                     return left_bound, right_bound
             
             # Fallback
-            print(f"   → Using original 5% result: [{left_test}:{right_test}]")
+            # print(f"   → Using original 5% result: [{left_test}:{right_test}]")
             return left_test, right_test
 
 
@@ -298,7 +298,7 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
         if is_area_mod_max:
             left_bound, right_bound = find_peak_bounds_intelligent(chromato_m[coord[0], :], coord[1])
             area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound+1])
-            print(f"Peak at {coord} → Bounds: ({left_bound}, {right_bound}), Area: {area_mod_max}")
+            # print(f"Peak at {coord} → Bounds: ({left_bound}, {right_bound}), Area: {area_mod_max}")
 
         else:
             area_mod_max = 0
@@ -473,8 +473,8 @@ def identification(filename,
 
     chromato_tic, time_rn, chromato_cube, sigma, mass_range = (
         read_chroma.read_chromato_and_chromato_cube(filename,
-                                                    output_path,
                                                     mod_time,
+                                                    output_path,
                                                     pre_process=False,
                                                     plot_=plot_
                                                     ))
@@ -700,7 +700,7 @@ def cohort_identification_alignment_input_format_txt(
         deconvo_dir = os.path.join(PATH, 'deconvolution')
         os.makedirs(deconvo_dir, exist_ok=True)
         name_file = os.path.join(deconvo_dir, filename + '#Dc.txt')
-        print("ðŸ“‚ /deconvolution directory created")
+        print("📂 Deconvolution directory created")
     else:
         name_file = PATH + filename + '.txt'
 
@@ -732,10 +732,11 @@ def sample_identification(path, file, output_path,
                           formated_spectra=True, match_factor_min=600,
                           min_persistence=0.0002,
                           overlap=0.5, eps=0.001, min_samples=1, nist=False,
-                          method_baseline="als",
-                          quant_method="mass", extract_patch=False,
-                          output_hdf5_file=None, plot_=True,
+                          plot_=True,
                           is_area_deconvolution=True,
+                          # parametres non remontes dans l'interface:
+                          quant_method="mass", extract_patch=False, output_hdf5_file=None,
+                          method_baseline="als",
                         #   is_area_mod_max=False
                         ):
     r"""Read sample chromatogram and generate the associated peak table.
@@ -784,7 +785,6 @@ def sample_identification(path, file, output_path,
     >>> sample_identification("/path/to/data/", "sample.cdf",
         OUTPUT_PATH="/path/to/results/")
     """
-
     #if os.path.exists(output_hdf5_file):
     #    raise FileExistsError(f"The file '{output_hdf5_file}' already exists.")
     if output_hdf5_file is None:
