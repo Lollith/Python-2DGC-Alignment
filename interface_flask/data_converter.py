@@ -78,6 +78,34 @@ class DataConverter:
         except Exception as e:
             print(f"❌ Erreur lors de l'écriture de {var_name} : {e}")
 
+    def verify_converted_file(self, hdf5_path):
+        """Vérifier l'intégrité du fichier H5 converti."""
+        try:
+            with h5py.File(hdf5_path, 'r') as h5f:
+                # Vérifier que toutes les variables existent
+                required_vars = ['scan_acquisition_time', 'mass_values', 'intensity_values', 
+                            'total_intensity', 'point_count']
+                
+                for var in required_vars:
+                    if var not in h5f:
+                        return False, f"Variable {var} manquante"
+                
+                # Vérifier la cohérence des tailles
+                point_count = h5f['point_count'][:]
+                expected_size = point_count.sum()
+                actual_mass_size = h5f['mass_values'].size
+                actual_intensity_size = h5f['intensity_values'].size
+                
+                if actual_mass_size != expected_size:
+                    return False, f"Incohérence tailles: {actual_mass_size} vs {expected_size}"
+
+                if actual_intensity_size != expected_size:
+                    return False, f"Incohérence intensity_values: {actual_intensity_size} vs {expected_size} attendu"                
+                return True, "OK"
+            
+        except Exception as e:
+            return False, f"Erreur lecture: {e}"
+
     def convert_single_file_optimized(self, file_info):
         """Convert a single CDF file to HDF5 with float32 optimization."""
         full_path, file_name, output_path, file_idx, total_files = file_info
@@ -87,25 +115,33 @@ class DataConverter:
             hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
             if os.path.exists(hdf5_path):
                 print(f"Le fichier {hdf5_path} existe déjà. Vérification...")
-                file_size = os.path.getsize(hdf5_path)
-                if file_size > 0:  # Fichier non vide
-                    messages.append(f"ℹ️ Fichier déjà créé: {file_name[:-4]}.h5 ({file_size // 1024 // 1024}MB)")
-                    messages.append(f"✅ [{file_idx+1}/{total_files}] {file_name} - Déjà converti")
-                    return True, messages, hdf5_path
+                h5_file_size = os.path.getsize(hdf5_path)
+
+                if h5_file_size > 0:  # Fichier non vide
+                    #Vérifier l'intégrité
+                    is_valid, integrity_msg = self.verify_converted_file(hdf5_path)
+                    if is_valid:
+                        #messages.append(f"ℹ️ Fichier déjà créé: {file_name[:-4]}.h5 ({h5_file_size // 1024 // 1024}MB)")
+                        messages.append(f"ℹ️ [{file_idx+1}/{total_files}] {file_name} - Déjà converti")
+                        return True, messages, hdf5_path
+                    else:
+                        messages.append(f"⚠️ Fichier corrompu détecté: {integrity_msg}")
+                        os.remove(hdf5_path)
+                        messages.append(f"🗑️ Fichier corrompu supprimé, reconversion...")
                 else:
                     # Fichier existe mais est vide, le supprimer
                     os.remove(hdf5_path)
                     messages.append(f"🗑️ Fichier vide supprimé: {file_name[:-4]}.h5")
 
             # Vérifier l'espace disque disponible
-            file_size = os.path.getsize(full_path)
-            if file_size == 0:
+            cdf_file_size = os.path.getsize(full_path)
+            if cdf_file_size == 0:
                 messages.append(f"❌ Fichier vide: {file_name}")
                 return False, messages, None
             
             free_space = self.get_free_space(output_path) 
-            if free_space < file_size * 2:  # Besoin d'au moins 2x la taille pour la conversion
-                messages.append(f"Erreur : Espace disque insuffisant pour {file_name} (besoin: {file_size*2//1024//1024}MB, disponible: {free_space//1024//1024}MB)")
+            if free_space < cdf_file_size * 2:  # Besoin d'au moins 2x la taille pour la conversion
+                messages.append(f"Erreur : Espace disque insuffisant pour {file_name} (besoin: {cdf_file_size*2//1024//1024}MB, disponible: {free_space//1024//1024}MB)")
                 return False, messages, None
 
             start_time = time.time()
@@ -127,11 +163,19 @@ class DataConverter:
                         size = dataset.dimensions['scan_number'].size
                         h5f.attrs['scan_number_size'] = size
 
+            # Vérifier après conversion
+            is_valid, integrity_msg = self.verify_converted_file(hdf5_path)
+            if not is_valid:
+                messages.append(f"❌ Fichier converti corrompu: {integrity_msg}")
+                if os.path.exists(hdf5_path): 
+                    os.remove(hdf5_path)
+                return False, messages, None
+
             gc.collect()
             conversion_time = time.time() - start_time
             output_size_mb = os.path.getsize(hdf5_path) // 1024 // 1024
             messages.append(f"✅ [{file_idx+1}/{total_files}] {file_name} terminé en {conversion_time:.1f}s")
-            messages.append(f"   📦 Taille: {file_size // 1024 // 1024}MB → {output_size_mb}MB") # (compression {compression_ratio:.1f}x)")
+            messages.append(f"   📦 Taille: {cdf_file_size // 1024 // 1024}MB → {output_size_mb}MB") # (compression {compression_ratio:.1f}x)")
             return True, messages, hdf5_path
 
         except MemoryError:
@@ -144,7 +188,7 @@ class DataConverter:
 
     def get_max_workers(self, files):
         cpu_count = os.cpu_count() or 1
-        max_allowed = min(2 * cpu_count, 32)
+        max_allowed = min(2 * cpu_count, 8)
         return min(len(files), max_allowed)
 
     def convert_cdf_to_hdf5_threaded(self, path, files_list, output_path):
