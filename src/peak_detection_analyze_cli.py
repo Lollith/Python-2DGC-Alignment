@@ -122,7 +122,7 @@ def main():
         else:
             display_path = f
 
-        print(f"  {i}. /{display_path}")
+        print(f"  {i}. {display_path}")
         try:
             path = os.path.dirname(f)
             file = os.path.basename(f)
@@ -171,7 +171,7 @@ def main():
                     display_path = args.output.replace(docker_volume_path, "")
                 else:
                     display_path = args.output
-                print(f"📂 Parameters saved to '/{display_path}analysis_parameters.params'")
+                print(f"📂 Parameters saved to '/{display_path}analysis.params'")
 
                 for result in results:
                     if result.startswith(docker_volume_path):

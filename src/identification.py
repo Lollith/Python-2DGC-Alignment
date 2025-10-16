@@ -476,7 +476,7 @@ def identification(filename,
                                                     mod_time,
                                                     output_path,
                                                     pre_process=False,
-                                                    plot_=plot_
+                                                    plot_=False # figure Tic toujours false, sinon =plot_
                                                     ))
 
     baseline_cube = np.array(
@@ -702,7 +702,11 @@ def cohort_identification_alignment_input_format_txt(
         name_file = os.path.join(deconvo_dir, filename + '#Dc.txt')
         print("📂 Deconvolution directory created")
     else:
-        name_file = PATH + filename + '.txt'
+        standard_dir = os.path.join(PATH, 'standard')
+        os.makedirs(standard_dir, exist_ok=True)
+        name_file = os.path.join(standard_dir, filename + '.txt')
+        print("📂 Standard directory created")
+        # name_file = PATH + filename + '.txt'
 
     with open(name_file, 'w', encoding='UTF8') as f:
         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
@@ -735,7 +739,8 @@ def sample_identification(path, file, output_path,
                           plot_=True,
                           is_area_deconvolution=True,
                           # parametres non remontes dans l'interface:
-                          quant_method="mass", extract_patch=False, output_hdf5_file=None,
+                          quant_method="mass", extract_patch=False,
+                          output_hdf5_file=None,
                           method_baseline="als",
                         #   is_area_mod_max=False
                         ):
