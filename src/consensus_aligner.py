@@ -566,14 +566,13 @@ class ChromatographicAligner:
             print("⏭️ NIST désactivé, pas d'identification", flush=True)
             return self.filtered_results
 
-        # print("🔍 NIST activé, initialisation...", flush=True)
         self.nist_api = nist_search.NISTSearchWrapper()
 
         if not self.nist_api.check_nist_health():
             print("⚠️ Service NIST indisponible")
             return self.filtered_results
 
-        print("✅ Service NIST actif, identification en cours...", flush=True)
+        print("🔍 Service NIST actif, identification en cours...", flush=True)
 
         # --- CAS 1 : résultats en mémoire ---
         if self.alignment_results is not None:

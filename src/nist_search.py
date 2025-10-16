@@ -102,10 +102,8 @@ class NISTSearchWrapper:
                     auth=(self.username, self.password)
                 )
                 res.raise_for_status()
-                # print("Réponse JSON brute :", res.json())
+                print("Réponse JSON brute :", res.json()["hits"])
                 return res.json()["hits"]
-                json_data = res.json()
-                hits = json_data.get("hits", [])
             
             except requests.exceptions.ConnectionError as e:
                 print(f"Erreur de connexion (tentative {retry_count + 1}/10): {e}")
