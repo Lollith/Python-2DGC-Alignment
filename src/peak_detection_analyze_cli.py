@@ -37,7 +37,7 @@ def save_parameters(selected_files, output_path, method, mode, noise_factor,
         "min_samples": min_samples,
         "nist": nist
     }
-    with open(os.path.join(output_path, 'analysis_parameters.params'), 'w') as f:
+    with open(os.path.join(output_path, 'analysis.params'), 'w') as f:
         for key, value in params.items():
             f.write(f"{key}: {value}\n")
 
