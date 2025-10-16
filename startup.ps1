@@ -1,3 +1,7 @@
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$env:PYTHONIOENCODING = "utf-8"
+
 # Chargement du fichier .env
 $envPath = ".env"
 if (Test-Path $envPath) {
@@ -65,6 +69,9 @@ if (Test-Path "$env:VENV_PATH\Scripts\Activate.ps1") {
     python app.py
 } else {
     Write-Host "Environnement virtuel non trouve a: $env:VENV_PATH" -ForegroundColor Yellow
+    # ? FORCER UTF-8 pour Python système aussi
+    $env:PYTHONIOENCODING = "utf-8"
+    $env:PYTHONLEGACYWINDOWSSTDIO = "utf-8"
     # Utiliser le Python système
     pip install -r requirements.txt
     python app.py

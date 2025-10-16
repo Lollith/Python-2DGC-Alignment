@@ -173,9 +173,10 @@ def read_chroma(filename, mod_time, max_val=None):
 
 
 def read_chromato_and_chromato_cube(filename,
-                                    output_path,
                                     mod_time,
-                                    pre_process=True,plot_=True):
+                                    output_path=None,
+                                    pre_process=False,
+                                    plot_=True):
     r"""Same as read_chromato_cube(Read chromatogram file and compute TIC
     chromatogram, 3D chromatogram and noise std.) but do not returns full
     spectra_obj (only range_min and range_max) because of RAM issue.
@@ -232,9 +233,9 @@ def read_chromato_and_chromato_cube(filename,
 
     # baseline correction
     if (pre_process):
-        tic_chromato = baseline_correction.baseline_correct_window(tic_chromato)
+        tic_chromato = baseline_correction.method_als(tic_chromato)
         chromato_cube = np.array(
-            baseline_correction.baseline_correct_window_cube(
+            baseline_correction.method_als(
                 chromato_cube))
         print("baseline corrected")
     sigma = skimage.restoration.estimate_sigma(tic_chromato, channel_axis=None)

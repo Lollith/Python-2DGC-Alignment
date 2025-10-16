@@ -3,8 +3,8 @@ import numpy as np
 
 
 # fichier = '/home/camille/Documents/app/data/input/G0/G0-1-120123.cdf'
-# fichier = '/home/camille/Documents/app/data/input/G0/G0-1-160123.cdf'
-fichier = '/media/camille/DATA2/cdf centroid/817831-blanc-piece-fin-210823.cdf'
+fichier = '/home/camille/Documents/app/data/cdf et h5/J-A-034-751325-Tedlar.cdf'
+# fichier = '/media/camille/DATA2/cdf centroid/817831-blanc-piece-fin-210823.cdf'
 
 
 def print_ctf_details():

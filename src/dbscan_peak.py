@@ -43,7 +43,8 @@ def detection_mass_par_mass_Dog(chromato_cube,
                                 min_size_cluster_mass=2,
                                 thr_debscan=0.02,
                                 multi_processing=True,
-                                cleaning_close_peak=True):
+                                cleaning_close_peak=True,
+                                is_area_deconvolution=True):
     r"""
     Detects chromatographic peaks in a 3D data cube (retention time 1 × retention time 2 × m/z)
     on a per-mass (m/z) basis using DoG method.
@@ -175,11 +176,14 @@ def detection_mass_par_mass_Dog(chromato_cube,
             # Concaténation sécurisée
             coordinates = np.concatenate((kept_coordinates, bound_cluster), axis=0)
 
-        print(str(len(coordinates)) + " detected peaks after filter")
+        print(str(len(coordinates)) + " detected peaks after filter") 
 
-    sepc_list, area = deconvolution.construct_spectrum(quanti_all_mass,label,chromato_cube.shape[0])
-
-    return coordinates, sepc_list, area
+    if is_area_deconvolution:
+        spec_list, area = deconvolution.construct_spectrum(quanti_all_mass, label, chromato_cube.shape[0])
+    else:
+        spec_list, area = None, None
+        
+    return coordinates, spec_list, area
 
 # def rt_penalty(rt_vals, rt1_delta=5, rt2_delta=0.1): # rt en seconde !! 
 #     rt1 = rt_vals[:, 0][:, None]

@@ -12,6 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 
 def main():
+    print("Starting Peak Precompressor ...", flush=True)
     parser = argparse.ArgumentParser(description="Peak Precompressor")
     parser.add_argument("--input", required=True, nargs='+', help="Input files")
     parser.add_argument('--output_dir', type=str, required=True, help="Output directory")
@@ -33,11 +34,21 @@ def main():
             # common_ions=args.common_ions,
             quant_method=args.quant_method,
         )
+        print(f"🔍 Starting analysis of {len(args.input)} files: {args.input}...", flush=True)
+        print(f"\n{'='*60}", flush=True)
+        for i, f in enumerate(args.input, 1):
+            if f.startswith(precompressedFiles.docker_volume_path):
+                display_path = f.replace(precompressedFiles.docker_volume_path, "")
+            else:
+                display_path = f
+            print(f"  {i}. /{display_path}")
         precompressedFiles.precompress_files(args.input, args.output_dir)
-        print(f"✅ Analysis completed successfully!")
+
+        print(f"✅ Analysis completed successfully!", flush=True)
     except Exception as e:
         print(f"Error occurred: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

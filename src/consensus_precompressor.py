@@ -3,6 +3,7 @@ from multiprocessing import Pool, cpu_count
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 import numpy as np
+import os
 
 class PeakPrecompressor:
     """This Class is an optional pre-processing step before running consensus
@@ -26,6 +27,7 @@ class PeakPrecompressor:
         self.common_ions = common_ions
         self.quant_method = quant_method
         # self.output_files = output_files
+        self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
     def importFile(self, file):
         """Import and process chromatographic data file

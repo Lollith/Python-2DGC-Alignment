@@ -10,9 +10,11 @@ from identification import sample_identification
 docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
 
-def save_parameters(selected_files, output_path, method, mode, noise_factor, min_persistence, abs_threshold, rel_threshold,
-                        cluster, min_distance, min_sigma, max_sigma, sigma_ratio, num_sigma,
-                        formated_spectra, match_factor_min, overlap, eps, min_samples, nist, mod_time):
+def save_parameters(selected_files, output_path, method, mode, noise_factor,
+                    min_persistence, abs_threshold, rel_threshold, cluster,
+                    min_distance, min_sigma, max_sigma, sigma_ratio, num_sigma,
+                    formated_spectra, match_factor_min, overlap, eps,
+                    min_samples, nist):
     """Save the analysis parameters to a file."""
     params = {
         "selected_files": selected_files,
@@ -33,8 +35,7 @@ def save_parameters(selected_files, output_path, method, mode, noise_factor, min
         "overlap": overlap,
         "eps": eps,
         "min_samples": min_samples,
-        "nist": nist,
-        "mod_time": mod_time
+        "nist": nist
     }
     with open(os.path.join(output_path, 'analysis_parameters.params'), 'w') as f:
         for key, value in params.items():
@@ -95,16 +96,20 @@ def main():
     parser.add_argument("--min_samples", type=int, required=True)
     parser.add_argument("--nist", action="store_true")
     parser.add_argument("--mod_time", type=float, help="Manual modulation time in seconds (0 to auto-detect)", default=0)
+    parser.add_argument("--plot", action="store_true", help="Generate plots")
+    parser.add_argument("--is_area_deconvolution", action="store_true", help="Use area from deconvolution in addition to mod_max")
     args = parser.parse_args()
     
     if not args.input:
         print("❌ Error: No files selected for analysis.")
         return
     save_parameters(
-            args.input, args.output, args.method, args.mode, args.noise_factor, args.min_persistence,
-            args.abs_threshold, args.rel_threshold, args.cluster, args.min_distance, args.min_sigma,
-            args.max_sigma, args.sigma_ratio, args.num_sigma, args.formated_spectra, args.match_factor_min,
-            args.overlap, args.eps, args.min_samples, args.nist, args.mod_time
+            args.input, args.output, args.method, args.mode, args.noise_factor,
+            args.min_persistence, args.abs_threshold, args.rel_threshold,
+            args.cluster, args.min_distance, args.min_sigma, args.max_sigma,
+            args.sigma_ratio, args.num_sigma, args.formated_spectra,
+            args.match_factor_min, args.overlap, args.eps, args.min_samples,
+            args.nist
         )
     successful_analyses = 0
     failed_analyses = 0
@@ -116,7 +121,7 @@ def main():
             display_path = f.replace(docker_volume_path, "")
         else:
             display_path = f
-        # display_path = display_path
+
         print(f"  {i}. /{display_path}")
         try:
             path = os.path.dirname(f)
@@ -131,7 +136,7 @@ def main():
                     print("   ⚠️ Modulation time not specified, using default value of 1.25 seconds")
                     mod_time = 1.25
                 print(f"⏱️  Modulation time: {mod_time} seconds")
-                    
+
             results = sample_identification(
                 path,
                 file,
@@ -153,7 +158,9 @@ def main():
                 args.overlap,
                 args.eps,
                 args.min_samples,
-                args.nist
+                args.nist,
+                args.plot,
+                args.is_area_deconvolution
             )
             if isinstance(results, str) and (results.startswith("❌") or results.startswith("⚠️")):
                 print(results)  # Afficher le message d'erreur
