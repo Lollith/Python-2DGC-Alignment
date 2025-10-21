@@ -795,7 +795,7 @@ def sample_identification(path, file, output_path,
     if output_hdf5_file is None:
         output_hdf5_file = os.path.join(output_path, "data_set.h5")
 
-    print('Identification started\n')
+    print('Peak detection started\n')
     start_time = time.time()
     try:
         full_filename = path + "/" + file
@@ -844,7 +844,7 @@ def sample_identification(path, file, output_path,
                 if not matches_identification:
                     return f"Aucun composé identifié pour {file}"
                 
-                print("Identification done", time.time()-start_time, 's')
+                print("Peak detection done", time.time()-start_time, 's')
                 base_name = os.path.splitext(file)[0] + ('#Dt#N' if nist else '#Dt')
                 cohort_identification_alignment_input_format_txt(
                     base_name, matches_identification, output_path)
