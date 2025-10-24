@@ -15,11 +15,13 @@ function fillDefaultPaths() {
     const inputPath = document.getElementById('inputPath');
     const outputPath = document.getElementById('outputPath');
     const analysisPath = document.getElementById('analysisPath');
-     const cleanupPath = document.getElementById('cleanupPath');
+    const identificationPath = document.getElementById('identificationPath');
+    const cleanupPath = document.getElementById('cleanupPath');
     
     if (inputPath) inputPath.value = dockerPath;
-    if (outputPath) outputPath.value = dockerPath ;
-    if (analysisPath) analysisPath.value = dockerPath ;
+    if (outputPath) outputPath.value = dockerPath;
+    if (analysisPath) analysisPath.value = dockerPath;
+    if (identificationPath) identificationPath.value = dockerPath;
     if (cleanupPath) cleanupPath.value = dockerPath ;
     
     displayMessage('Chemins par défaut remplis', 'info');
@@ -423,10 +425,9 @@ function initializeApp() {
             }
         });
     }
-
-
     initializeAnalysisTab();
     displayMessage('🚀 Interface DataLab 2DGC initialisée', 'success');
+    initializeIdentificationTab();
 }
 
 //----------Initialisation l'onglet Analysis-----------------
@@ -700,6 +701,111 @@ document.getElementById('refreshStatusBtn')?.addEventListener('click', refreshAl
             });
         });
     }
+
+
+    //----------onglet Identification-----------------
+function initializeIdentificationTab() {
+    const listCsvBtn = document.getElementById('listCsvBtn');
+    const identificationForm = document.getElementById('identificationForm');
+    const csvFilesSelect = document.getElementById('csvFiles');
+
+
+    listCsvBtn.addEventListener('click', async function() {
+            const identificationPath = document.getElementById('identificationPath').value;
+            
+            if (!identificationPath.trim()) {
+                displayMessage('Veuillez spécifier un chemin pour les fichiers .csv', 'error');
+                return;
+            }
+            listCsvBtn.disabled = true;
+            listCsvBtn.textContent = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch('/api/list_files', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ path: identificationPath, extension: '.csv' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    csvFilesSelect.innerHTML = '';
+                    if (data.files.length > 0) {
+                        data.files.forEach(file => {
+                            const option = document.createElement('option');
+                            option.value = file;
+                            option.textContent = file;
+                            csvFilesSelect.appendChild(option);
+                        });
+                        displayMessage(`${data.files.length} fichier(s) .csv trouvé(s)`);
+                    } else {
+                        const option = document.createElement('option');
+                        option.textContent = 'Aucun fichier .csv trouvé';
+                        option.disabled = true;
+                        csvFilesSelect.appendChild(option);
+                        displayMessage('Aucun fichier .csv trouvé', 'error');
+                    }
+                } else {
+                    displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
+                }
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                listCsvBtn.disabled = false;
+                listCsvBtn.textContent = '📋 Lister fichiers CSV';
+            }
+        });
+   
+
+// Lancer l'analyse
+        identificationForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const identificationPath = document.getElementById('identificationPath').value;
+            const selectedFiles = Array.from(csvFilesSelect.selectedOptions).map(option => option.value);
+            loadingDiv.style.display = 'block';
+
+            
+            const data = {
+                identification_path: identificationPath,
+                selected_files: selectedFiles
+            };
+
+            //TODO check nist
+
+            //TODO changer ici
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                // Afficher tous les messages
+                result.messages.forEach(msg => {
+                    const isError = msg.toLowerCase().includes('erreur');
+                    displayMessage(msg, isError ? 'error' : 'success');
+                });
+            } catch (error) {
+                displayMessage('Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+    }
+
+
+       
+
+
+
 
 
 // // ---------------------Onglet Monitoring--------------------

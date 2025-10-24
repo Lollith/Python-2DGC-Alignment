@@ -12,21 +12,10 @@
 </head>
 <body>
      <div class="modal fade" id="fileExplorerModal" tabindex="-1">
-
-
-
         <div class="modal-dialog modal-lg">
-
-
             <div class="modal-content">
-
-
                 <div class="modal-header">
-
-
                     <h5 class="modal-title">Explorateur de fichiers</h5>
-
-
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -55,6 +44,9 @@
                 </button>
                 <button class="tab" onclick="showTab('analysis')">
                     🔬 <span>Analyses</span>
+                </button>
+                <button class="tab" onclick="showTab('identification')">
+                    🆔 <span>Identification</span>
                 </button>
                 <button class="tab" onclick="showTab('monitoring')">
                     📊 <span>Monitoring</span>
@@ -171,9 +163,6 @@
                             <select id="h5Files" name="h5Files" multiple size="8">
                                 <option value="">Cliquez sur "Lister fichiers HDF5" pour voir les fichiers disponibles</option>
                             </select>
-                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 8px; display: block;">
-                                Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers
-                            </small>
                         </div>
                         <div class="button-group">
                             <button type="button" id="listH5Btn" class="btn btn-secondary">
@@ -182,6 +171,43 @@
                            
                             <button type="submit" id="analyzeBtn" class="btn btn-primary">
                                 🔬 <span>Jupyter Lab</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tab Identification -->
+            <div id="identification" class="tab-content">
+                <div class="form-card">
+                    <form id="identificationForm">
+                        <div class="form-group">
+                            <label for="identificationPath">📁 Chemin des fichiers</label>
+                            <div class="input-group">
+                                <span class="input-icon">📂</span>
+                                <input type="text" id="identificationPath" name="identification_path" class="form-control" placeholder="Exemple: /mon/chemin">
+                                <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('identificationPath')">
+                                    📁 Parcourir
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="csvFiles">📊 Fichiers .csv à identifier</label>
+                            <select id="csvFiles" name="csvFiles" multiple size="8">
+                                <option value="">Cliquez sur "Lister fichiers CSV" pour voir les fichiers disponibles</option>
+                            </select>
+                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 8px; display: block;">
+                                Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers
+                            </small>
+                        </div>
+                        <div class="button-group">
+                            <button type="button" id="listCsvBtn" class="btn btn-secondary">
+                                📋 <span>Lister fichiers .csv</span>
+                            </button>
+                           
+                            <button type="submit" id="identificationBtn" class="btn btn-primary">
+                                🔬 <span>Identification</span>
                             </button>
                         </div>
                     </form>

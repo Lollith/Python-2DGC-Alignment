@@ -101,8 +101,8 @@ def list_files():
     """API pour lister les fichiers avec extension spécifiée dans un dossier."""
     data = request.get_json()
     path = data.get('path', '')
-    extension = data.get('extension', '.cdf')  # Extension par défaut
-
+    extension = data.get('extension', '.cdf')  # .cdf: Extension par défaut
+    
     if not path or not os.path.isdir(path):
         return jsonify({'success': False, 'message': 'Chemin invalide'})
 
