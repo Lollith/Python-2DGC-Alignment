@@ -576,11 +576,7 @@ class ChromatographicAligner:
 
         # --- CAS 1 : résultats en mémoire ---
         if self.alignment_results is not None:
-            print("👉 Cas 1 : résultats en mémoire, identification directement")
-            spectra_group = self.filtered_results["spectra_group"]
-            identifications = self._run_nist_on_spectra(spectra_group, 
-                                                        match_factor_min)
-            # Mettre à jour résultats en mémoire
+            identifications = self._run_nist(match_factor_min)
             self._update_peak_info(identifications)
 
             # pour mise a jour des csv rt group et alignment matrix si besoin:
@@ -588,37 +584,37 @@ class ChromatographicAligner:
             # self._update_alignment_matrix(identifications)
 
         # --- CAS 2 ou 3 : résultats déjà sauvegardés ---
-        elif self._csv_results_exist():
-            print("👉 Cas 2/3 : résultats chargés depuis CSV")
+        # elif self._csv_results_exist():
+        #     print("👉 Cas 2/3 : résultats chargés depuis CSV")
 
-            alignment_matrix, peak_info, rt_group, spectra_group = self._load_csv_results()
-            identifications_exist = "Compounds" in peak_info.columns
-            if identifications_exist: # and not nist:
-                print("✅ Identifications déjà présentes, rien à faire.")
-                return {
-                    "Alignment_Matrix": alignment_matrix,
-                    "Peak_Info": peak_info,
-                    "RT_group": rt_group,
-                    "spectra_group": spectra_group,
-                }
+        #     alignment_matrix, peak_info, rt_group, spectra_group = self._load_csv_results()
+        #     identifications_exist = "Compounds" in peak_info.columns
+        #     if identifications_exist: # and not nist:
+        #         print("✅ Identifications déjà présentes, rien à faire.")
+        #         return {
+        #             "Alignment_Matrix": alignment_matrix,
+        #             "Peak_Info": peak_info,
+        #             "RT_group": rt_group,
+        #             "spectra_group": spectra_group,
+        #         }
 
-            # Relancer identifications (cas 2, ou cas 3 avec nist=True)
-            identifications = self._run_nist_on_spectra(spectra_group,
-                                                        #True,
-                                                        match_factor_min)
+        #     # Relancer identifications (cas 2, ou cas 3 avec nist=True)
+        #     identifications = self._run_nist_on_spectra(spectra_group,
+        #                                                 #True,
+        #                                                 match_factor_min)
 
-            # Mettre à jour les CSV
-            self._update_csv_results_with_identifications(
-                alignment_matrix, peak_info, rt_group, spectra_group, identifications
-            )
-            print("✅ Identifications NIST ajoutées aux CSV.")
+        #     # Mettre à jour les CSV
+        #     self._update_csv_results_with_identifications(
+        #         alignment_matrix, peak_info, rt_group, spectra_group, identifications
+        #     )
+        #     print("✅ Identifications NIST ajoutées aux CSV.")
 
-            return {
-                "Alignment_Matrix": alignment_matrix,
-                "Peak_Info": peak_info,
-                "RT_group": rt_group,
-                "spectra_group": spectra_group,
-            }
+            # return {
+            #     "Alignment_Matrix": alignment_matrix,
+            #     "Peak_Info": peak_info,
+            #     "RT_group": rt_group,
+            #     "spectra_group": spectra_group,
+            # }
 
         else:
             raise ValueError("❌ No alignment results available. Run alignment first.")
@@ -642,26 +638,25 @@ class ChromatographicAligner:
                     int_list.append(float(inten))
         return mz_list, int_list
     
-    def _run_nist_on_spectra(self, spectra_group, match_factor_min=700):
+    def _run_nist(self, match_factor_min=700):
         """
-        Applique la recherche NIST sur chaque spectre du DataFrame spectra_group.
+        Applique la recherche NIST sur le spectre du seedsample(peakInfo).
         Retourne un DataFrame indexé par l'AnalyteID d'origine, avec colonnes 'Compounds', 'Scores'.
         """
         start = time.time()
         mapping = []
         peak_counter = 1
 
-        for analyte_id, row in spectra_group.iterrows():
+        spectra_ref = self.alignment_results['Peak_Info']
+        for _, row in spectra_ref.iterrows():
+            analyte_id = row['Name']
+            spectrum = row['Spectra']
             compounds, casnos, formulas, scores = [], [], [], []
 
-            for spec in row:
-                mz_list, int_list = (
-                    self._parse_spectrum_string(spec)
-                    if (spec and isinstance(spec, str))
-                    else ([], [])
-                )
-                if mz_list and int_list:
-                    try:
+            if spectrum:
+                try:
+                    mz_list, int_list = self._parse_spectrum_string(spectrum)
+                    if mz_list and int_list:
                         serialized_spectrum = {"mass": mz_list, "intensity": int_list}
                         results = self.nist_api.nist_single_search(serialized_spectrum)
                         list_hits = self.nist_api.hit_list_from_nist_api(results)
@@ -669,15 +664,15 @@ class ChromatographicAligner:
 
                         if top_hits:
                             for j, hit in enumerate(top_hits):
-                                search_result, ref_data = hit
+                                search_result = hit
                                 compounds.append(getattr(search_result, "name", "NA"))
                                 casnos.append(getattr(search_result, "cas", "NA"))
-                                formulas.append(getattr(ref_data, "formula", "NA"))
+                                formulas.append(getattr(search_result, "formula", "NA"))
                                 scores.append(str(getattr(search_result, "match_factor", -1)))
                             
-                    except Exception as e:
-                        print(f"Warning; Nist search failed for {analyte_id}: {e}")
-                        continue
+                except Exception as e:
+                    print(f"Warning; Nist search failed for {analyte_id}: {e}")
+                    continue
 
             if compounds:
                 mapping.append(

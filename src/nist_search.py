@@ -5,7 +5,8 @@ from pyms_nist_search.search_result import SearchResult
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-from nist_utils.reference_data import ReferenceData
+# from nist_utils.reference_data import ReferenceData
+from nist_utils.search_result import SearchResult
 import requests
 from dotenv import load_dotenv
 
@@ -69,8 +70,6 @@ class NISTSearchWrapper:
         Transforme le résultat JSON de l'API Flask NIST en liste de tuples
         (SearchResult, ReferenceData)
         """
-        # for hit in result_json:
-            # print("type(hit) =", type(hit), "value =", hit)  # <--- debug i
         hit_list = []
         for hit in result_json:
             search_result = SearchResult(
@@ -79,12 +78,10 @@ class NISTSearchWrapper:
                 reverse_match_factor=hit.get("reverse_match"),
                 hit_prob=hit.get("hit_prob"),
                 cas=hit.get("cas_number"),
-                spec_loc=hit.get("spec_loc")
-            )
-            ref_data = ReferenceData(
+                spec_loc=hit.get("spec_loc"),
                 formula=hit.get("formula"),
             )
-            hit_list.append((search_result, ref_data))
+            hit_list.append((search_result))
         return hit_list
     
     def nist_single_search(self, serialized_spectrum):
@@ -92,7 +89,6 @@ class NISTSearchWrapper:
         Envoie un seul spectre à l'API Flask NIST pour identification.
         """
         endpoint = f'{self.url}nist/search'
-        # print(f"Requête vers {endpoint}")
         
         retry_count = 0
         while retry_count < 10:
@@ -102,7 +98,6 @@ class NISTSearchWrapper:
                     auth=(self.username, self.password)
                 )
                 res.raise_for_status()
-                print("Réponse JSON brute :", res.json()["hits"])
                 return res.json()["hits"]
             
             except requests.exceptions.ConnectionError as e:

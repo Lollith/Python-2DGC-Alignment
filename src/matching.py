@@ -112,15 +112,14 @@ cache = {}
 
 
 def filter_best_hits(list_hits, match_factor_min):
-    match_factors = [hit[0].match_factor for hit in list_hits]
+    match_factors = [hit.match_factor for hit in list_hits]
     max_match_factor = max(match_factors)
 
     filtered_hits = [
         hit for hit in list_hits
-        if hit[0].match_factor >= max_match_factor - 100
-        and hit[0].match_factor >= match_factor_min
+        if hit.match_factor >= max_match_factor - 100
+        and hit.match_factor >= match_factor_min
     ]
-    print("filtered_hits", filtered_hits)
     return filtered_hits
 
 import hashlib
@@ -186,8 +185,6 @@ def matching_nist_lib_from_chromato_cube(
 
     matches = []
     nb_analyte = 0
-    # top_hits = []
-    # serialized_spectra = []
     nist_api = nist_search.NISTSearchWrapper() if nist else None
     if nist:
         print("NIST API is enabled for matching.")
@@ -206,7 +203,6 @@ def matching_nist_lib_from_chromato_cube(
                 top_hits = cache[spectrum_hash]
                 print(f"Cache hit for peak {i + 1}")
             else:
-                # print("Matching with NIST library...")
                 serialized_spectrum = {
                     "mass": [float(m) for m in mass_values],
                     "intensity": [float(i) for i in int_values]
@@ -222,15 +218,12 @@ def matching_nist_lib_from_chromato_cube(
         match_results = []
         if top_hits:
             for j, hit in enumerate(top_hits):
-                search_result, ref_data = hit
-                # print(f"hit {j}: {search_result.name}: {search_result.cas}, "
-                #       f"with match_factor:{search_result.match_factor}.")
-
+                search_result = hit
                 match_data = {
                     'number': j,
                     'casno': search_result.cas,
                     'compound_name': search_result.name,
-                    'compound_formula': ref_data.formula,
+                    'compound_formula': search_result.formula,
                     'hit_prob': search_result.hit_prob,
                     'match_factor': search_result.match_factor,
                     'reverse_match_factor': search_result.reverse_match_factor,
