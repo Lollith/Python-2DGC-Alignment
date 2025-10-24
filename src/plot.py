@@ -497,7 +497,7 @@ def visualizer(
             display_dir_save = dir_save.replace(docker_volume_path, "")
         else:
             display_dir_save = dir_save
-        print(f"📂 Figure saved in {display_dir_save}figures/" + title + ".png")
+        print(f"📂 Figures saved in {display_dir_save}figures/" + title + ".png")
 
     # plt.show(block=False)
     if (plotly):

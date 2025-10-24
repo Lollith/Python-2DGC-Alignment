@@ -120,6 +120,7 @@ def filter_best_hits(list_hits, match_factor_min):
         if hit[0].match_factor >= max_match_factor - 100
         and hit[0].match_factor >= match_factor_min
     ]
+    print("filtered_hits", filtered_hits)
     return filtered_hits
 
 import hashlib

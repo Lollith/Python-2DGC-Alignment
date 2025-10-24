@@ -37,7 +37,7 @@ def save_parameters(selected_files, output_path, method, mode, noise_factor,
         "min_samples": min_samples,
         "nist": nist
     }
-    with open(os.path.join(output_path, 'analysis_parameters.params'), 'w') as f:
+    with open(os.path.join(output_path, 'analysis.params'), 'w') as f:
         for key, value in params.items():
             f.write(f"{key}: {value}\n")
 
@@ -122,7 +122,7 @@ def main():
         else:
             display_path = f
 
-        print(f"  {i}. /{display_path}")
+        print(f"  {i}. {display_path}")
         try:
             path = os.path.dirname(f)
             file = os.path.basename(f)
@@ -171,7 +171,7 @@ def main():
                     display_path = args.output.replace(docker_volume_path, "")
                 else:
                     display_path = args.output
-                print(f"📂 Parameters saved to '/{display_path}analysis_parameters.params'")
+                print(f"📂 Parameters saved to '/{display_path}analysis.params'")
 
                 for result in results:
                     if result.startswith(docker_volume_path):
