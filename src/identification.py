@@ -802,6 +802,13 @@ def sample_identification(path, file, output_path,
                 
                 print("Peak detection done", time.time()-start_time, 's')
                 base_name = os.path.splitext(file)[0] + ('#Dt#N' if nist else '#Dt')
+                if (extract_patch):
+                    cohort_identification_sample_metadata(
+                        base_name, sample_metadata_list, output_path)
+                else:
+                    cohort_identification_to_csv(
+                        base_name, matches_identification, output_path,
+                        is_area_deconvolution)
                 if is_area_deconvolution:  # actuellement on fait toujours la deconvolution
                     cohort_identification_alignment_input_format_txt(
                         base_name, matches_identification, output_path,
@@ -810,13 +817,7 @@ def sample_identification(path, file, output_path,
                 cohort_identification_alignment_input_format_txt(
                     base_name, matches_identification, output_path,
                     is_area_deconvolution=is_area_deconvolution)
-                if (extract_patch):
-                    cohort_identification_sample_metadata(
-                        base_name, sample_metadata_list, output_path)
-                else:
-                    cohort_identification_to_csv(
-                        base_name, matches_identification, output_path,
-                        is_area_deconvolution)
+                
                 result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}#Dc.txt, {output_path + base_name}.csv created']
                 return result
         else:
