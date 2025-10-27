@@ -19,9 +19,9 @@ from projection import chromato_to_matrix, matrix_to_chromato
 import uuid
 
 
-def write_line(compound_name, rt1, rt2, area, formatted_spectrum):
+def write_line(compound_name, rt1, rt2, area_deconvo, area_mod_max, formatted_spectrum):
     return (compound_name + "\t" + "\"" + str(rt1 * 60) + " , " + str(rt2)
-            + "\"" + "\t" + str(area) + "\t" + "T" + "\t" + formatted_spectrum
+            + "\"" + "\t" + str(area_deconvo) + "\t" + str(area_mod_max) + "\t" + "T" + "\t" + formatted_spectrum
             + "\n")
 
 
@@ -304,7 +304,6 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
 
         height = chromato_m[coord[0], coord[1]]
         area_j = area[j]
-        print("area_j is none ?: ", area_j)
 
         def join_field(field):
             return '/'.join(str(m.get(field, '')) for m in match_data_list)
@@ -475,7 +474,7 @@ def identification(filename,
                                                     mod_time,
                                                     output_path,
                                                     pre_process=False,
-                                                    plot_=False # figure Tic toujours false, sinon =plot_
+                                                    plot_=False  # figure Tic toujours false, sinon =plot_
                                                     ))
 
     baseline_cube = np.array(
@@ -502,7 +501,7 @@ def identification(filename,
             thr_debscan=0.04,
             multi_processing=True,
             cleaning_close_peak=True,
-            is_area_deconvolution=True,
+            is_area_deconvolution=is_area_deconvolution,
         )
 
         print("Peaks number: ", len(coordinates))
@@ -564,8 +563,6 @@ def identification(filename,
         return [], []
         # coordinates = peak_detection.peak_detection()
 
-    
-
 
 def cohort_identification_to_csv(filename, 
                                  matches_identification, PATH, 
@@ -599,7 +596,6 @@ def cohort_identification_to_csv(filename,
         - Area : Peak area (proportional to the compound abundance)
         - Height : Peak height (related to concentration)
     """
-
     with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
 
@@ -630,7 +626,7 @@ def cohort_identification_to_csv(filename,
                 row = [compound_name, casno, compound_formula, hit_prob,
                        match_factor, reverse_match_factor, rt1, rt2,
                        area_deconvo, area_mod_max, height]
-            else:  # area = mod_max
+            else:  # area = mod_max uniquement
                 area = identification_data_dict['area_mod_max']
                 row = [compound_name, casno, compound_formula, hit_prob,
                        match_factor, reverse_match_factor, rt1, rt2, area,
@@ -639,7 +635,7 @@ def cohort_identification_to_csv(filename,
 
 
 def cohort_identification_alignment_input_format_txt(
-        filename, matches_identification, PATH, is_area_deconvolution=False):
+        filename, matches_identification, PATH, is_area_deconvolution):
     r"""Generate formatted peak table for alignment.
 
     Parameters
@@ -665,19 +661,23 @@ def cohort_identification_alignment_input_format_txt(
         # name_file = PATH + filename + '.txt'
 
     with open(name_file, 'w', encoding='UTF8') as f:
-        f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
+        f.write("Name\tR.T...s.\tArea.Deconv\tArea.Mod.Max\tQuant.Masses\tSpectra\n")
         for identification_data_dict in matches_identification:
             compound_name = identification_data_dict['compound_name']
             rt1 = identification_data_dict['rt1']
             rt2 = identification_data_dict['rt2']
             if is_area_deconvolution:
-                area = identification_data_dict['area_deconvo']
+                area_deconvo = identification_data_dict['area_deconvo']
+                area_mod_max = identification_data_dict['area_mod_max']
                 formatted_spectrum = identification_data_dict['spectra_deconvo']
-            else:
-                area = identification_data_dict['area_mod_max']
+    
+            else:  # area = mod_max seulement
+                area_deconvo = identification_data_dict['area_deconvo']
+                # on affiche les 2 ici(mod max et deconvo), ms mod max peut etre supprimee
+                area_mod_max = identification_data_dict['area_mod_max']
                 formatted_spectrum = identification_data_dict['spectra']
-            f.write(write_line(compound_name, rt1, rt2, area,
-                               formatted_spectrum))
+            f.write(write_line(compound_name, rt1, rt2, area_deconvo,
+                               area_mod_max, formatted_spectrum))
 
 
 def sample_identification(path, file, output_path,
@@ -782,7 +782,7 @@ def sample_identification(path, file, output_path,
             output_hdf5_file,
             method_baseline,
             plot_,
-            is_area_deconvolution=True,
+            is_area_deconvolution,
         )
         # Vérifier le type de résultat
         if isinstance(result, tuple) and len(result) == 2:
@@ -802,11 +802,14 @@ def sample_identification(path, file, output_path,
                 
                 print("Peak detection done", time.time()-start_time, 's')
                 base_name = os.path.splitext(file)[0] + ('#Dt#N' if nist else '#Dt')
-                cohort_identification_alignment_input_format_txt(
-                    base_name, matches_identification, output_path)
+                if is_area_deconvolution:  # actuellement on fait toujours la deconvolution
+                    cohort_identification_alignment_input_format_txt(
+                        base_name, matches_identification, output_path,
+                        is_area_deconvolution=is_area_deconvolution)
+                is_area_deconvolution = False  # sans deconvolution pour spectre standard ds dossier standard
                 cohort_identification_alignment_input_format_txt(
                     base_name, matches_identification, output_path,
-                    is_area_deconvolution=True)
+                    is_area_deconvolution=is_area_deconvolution)
                 if (extract_patch):
                     cohort_identification_sample_metadata(
                         base_name, sample_metadata_list, output_path)
@@ -817,7 +820,7 @@ def sample_identification(path, file, output_path,
                 result = [f'{output_path + base_name}.txt, {output_path + "deconvolution/" + base_name}#Dc.txt, {output_path + base_name}.csv created']
                 return result
         else:
-            return "âŒ Erreur inattendue lors de l'identification/peak detection."
+            return "Erreur inattendue lors de l'identification/peak detection."
 
     except Exception as e:
         traceback.print_exc()
