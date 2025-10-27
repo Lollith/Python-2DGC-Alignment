@@ -264,7 +264,7 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
     """
     # print("compute matches , chromatocube shape:", chromato_cube.shape)
     matches_identification = []
-    sample_metadata_list =[]
+    sample_metadata_list = []
     max_len = max(len(match) for match in matches)
 
     # Compléter les lignes plus courtes ou tronquer les lignes trop longues
@@ -275,21 +275,20 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
     canonical_length = max_mz - min_mz + 1
     basename = os.path.splitext(sample_name)[0]
     sample_name_group = basename
-    if extract_patch: 
+    if extract_patch:
         with h5py.File(output_hdf5_file, "a") as h5_file:
             if sample_name_group not in h5_file:
                 sample_group_h5 = h5_file.create_group(sample_name_group)
 
     for j, match in enumerate(matches):
-        
         match_data_list = match[1] \
             if isinstance(match[1], list) else [match[1]]
-        
+
         coord = match[2]
         spectrum_data = match[1][0]['spectra']
         spec_deconvo = sepc_list[j]
         majority_mass = np.argmax(spec_deconvo)
-        
+
         if (quant == "mass"):
             chromato_m = chromato_cube[majority_mass, :, :] ## pas sur le chromato mais sur la masse majoritaire
         else:
@@ -297,7 +296,7 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
 
         if is_area_mod_max:
             left_bound, right_bound = find_peak_bounds_intelligent(chromato_m[coord[0], :], coord[1])
-            area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound+1])
+            area_mod_max = np.sum(chromato_m[coord[0], left_bound:right_bound + 1])
             # print(f"Peak at {coord} → Bounds: ({left_bound}, {right_bound}), Area: {area_mod_max}")
 
         else:
@@ -305,6 +304,7 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
 
         height = chromato_m[coord[0], coord[1]]
         area_j = area[j]
+        print("area_j is none ?: ", area_j)
 
         def join_field(field):
             return '/'.join(str(m.get(field, '')) for m in match_data_list)
@@ -318,10 +318,10 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
             'reverse_match_factor': join_field('reverse_match_factor'),
             'rt1': match[0][0],
             'rt2': match[0][1],
-            'area': area_j,
-            'area_mod_max':area_mod_max,
+            'area_deconvo': area_j,
+            'area_mod_max': area_mod_max,
             'height': height,
-            "quant_mass":majority_mass + mass_range[0]
+            "quant_mass": majority_mass + mass_range[0]
         }
 
         if formated_spectra:
@@ -329,7 +329,6 @@ def compute_matches_identification(matches, sepc_list, area, chromato,
             # print("match[1] =", match[1], type(match[1]))
             sample_spectra = match[1][0].get('spectra', None) 
             identification_data_dict['spectra'] = mass_spectra_format(mass_range, sample_spectra)
-
             identification_data_dict['spectra_deconvo'] = mass_spectra_format(mass_range, spec_deconvo)
 
         if extract_patch:
@@ -609,10 +608,10 @@ def cohort_identification_to_csv(filename,
             writer.writerow(['Name', 'Casno', 'Formula', 'hit_prob',
                              'match_factor', 'reverse_match_factor', 'rt1', 'rt2',
                              'Area_deconvo', 'Area_mod_max', 'Height'])
-        else:  # area = mod_max
+        else:  # area = mod_max seulement
             writer.writerow(['Name', 'Casno', 'Formula', 'hit_prob',
                             'match_factor', 'reverse_match_factor', 'rt1', 'rt2',
-                            'Area', 'Height'])
+                            'Area_mod_max', 'Height'])
 
         for identification_data_dict in matches_identification:
             casno = identification_data_dict['casno']
@@ -626,61 +625,18 @@ def cohort_identification_to_csv(filename,
             rt2 = identification_data_dict['rt2']
             height = identification_data_dict['height']
             if is_area_deconvolution:
-                area_deconvo = identification_data_dict['area']
+                area_deconvo = identification_data_dict['area_deconvo']
                 area_mod_max = identification_data_dict['area_mod_max']
                 row = [compound_name, casno, compound_formula, hit_prob,
                        match_factor, reverse_match_factor, rt1, rt2,
                        area_deconvo, area_mod_max, height]
             else:  # area = mod_max
-                area = identification_data_dict['area']
+                area = identification_data_dict['area_mod_max']
                 row = [compound_name, casno, compound_formula, hit_prob,
                        match_factor, reverse_match_factor, rt1, rt2, area,
                        height]
             writer.writerow(row)
 
-
-# def cohort_identification_alignment_input_format_txt(
-#         filename, matches_identification, PATH):
-#     r"""Generate formatted peak table for alignment.
-
-#     Parameters
-#     ----------
-#     filename :
-#         Chromatogram full filename.
-#     matches_identification :
-#         Array of match dictionary containing casno, name, formula, spectra,
-#         coordinates...
-#     PATH : optional
-#         Path to the resulting formatted peak table.
-#     """
-#     with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
-#         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
-#         for identification_data_dict in matches_identification:
-#             compound_name = identification_data_dict['compound_name']
-#             rt1 = identification_data_dict['rt1']
-#             rt2 = identification_data_dict['rt2']
-#             area = identification_data_dict['area']
-#             # formatted_spectrum = identification_data_dict['spectra']
-#             formatted_spectrum = identification_data_dict.get('spectra', '')
-
-#             f.write(write_line(compound_name, rt1, rt2, area,
-#                                formatted_spectrum))
-
-
-# def cohort_identification_alignment_input_format_txt(
-#         filename, matches_identification, PATH):
-#     with open(PATH + filename + '.txt', 'w', encoding='UTF8') as f:
-#         f.write("Name\tR.T...s.\tArea\tQuant.Masses\tSpectra\n")
-        
-#         for d in matches_identification:
-#             line = (
-#                 f"{d['compound_name']}\t"
-#                 f"{d['rt1']:.2f}\t"
-#                 f"{d['rt2']:.2f}\t"
-#                 f"{d['area']:.1f}\t"
-#                 f"{d.get('spectra', '')}\n"
-#             )
-#             f.write(line)
 
 def cohort_identification_alignment_input_format_txt(
         filename, matches_identification, PATH, is_area_deconvolution=False):
@@ -715,7 +671,7 @@ def cohort_identification_alignment_input_format_txt(
             rt1 = identification_data_dict['rt1']
             rt2 = identification_data_dict['rt2']
             if is_area_deconvolution:
-                area = identification_data_dict['area']
+                area = identification_data_dict['area_deconvo']
                 formatted_spectrum = identification_data_dict['spectra_deconvo']
             else:
                 area = identification_data_dict['area_mod_max']
