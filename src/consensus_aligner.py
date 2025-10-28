@@ -116,11 +116,17 @@ class ChromatographicAligner:
         
             # ✅ RESTRUCTURATION pour format uniforme 5 colonnes
             standardized_df = pd.DataFrame({
-                0: current_raw_file["Name"],
-                1: current_raw_file["R.T...s."],
-                2: selected_area,
-                3: current_raw_file["Quant.Masses"],
-                4: current_raw_file["Spectra"]
+            #     0: current_raw_file["Name"],
+            #     1: current_raw_file["R.T...s."],
+            #     2: selected_area,
+            #     3: current_raw_file["Quant.Masses"],
+            #     4: current_raw_file["Spectra"]
+            # })
+                "Name": current_raw_file["Name"],
+                "R.T...s.": current_raw_file["R.T...s."],
+                "Area": selected_area,
+                "Quant.Masses": current_raw_file["Quant.Masses"],
+                "Spectra": current_raw_file["Spectra"]
             })
 
             current_raw_file = standardized_df
@@ -914,7 +920,7 @@ class ChromatographicAligner:
             display_path = self.output_path.replace(self.docker_volume_path, "")
         else:
             display_path = self.output_path
-        print(f"Results saved to directory: /{display_path}", flush=True)
+        print(f"Results saved to directory: {display_path}", flush=True)
 
 
 if __name__ == "__main__":
