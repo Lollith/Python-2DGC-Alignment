@@ -3,6 +3,7 @@ let currentPath = '';
 let targetInput = null;
 
 const outputDiv = document.getElementById('output');
+const loadingDiv = document.getElementById('loading');
 
 function fillDefaultPaths() {
     const form = document.getElementById('dockerPathMeta');
@@ -15,13 +16,15 @@ function fillDefaultPaths() {
     const inputPath = document.getElementById('inputPath');
     const outputPath = document.getElementById('outputPath');
     const analysisPath = document.getElementById('analysisPath');
-    const identificationPath = document.getElementById('identificationPath');
+    const identInputPath = document.getElementById('identInputPath');
+    const identOutputPath = document.getElementById('identOutputPath');
     const cleanupPath = document.getElementById('cleanupPath');
     
     if (inputPath) inputPath.value = dockerPath;
     if (outputPath) outputPath.value = dockerPath;
     if (analysisPath) analysisPath.value = dockerPath;
-    if (identificationPath) identificationPath.value = dockerPath;
+    if (identInputPath) identInputPath.value = dockerPath;
+    if (identOutputPath) identOutputPath.value = dockerPath;
     if (cleanupPath) cleanupPath.value = dockerPath ;
     
     displayMessage('Chemins par défaut remplis', 'info');
@@ -200,7 +203,6 @@ function displayFileList(folders, files, currentPath) {
     });
 }
 
-const loadingDiv = document.getElementById('loading');
 
 // Initialisation principale
 function initializeApp() {
@@ -706,14 +708,14 @@ document.getElementById('refreshStatusBtn')?.addEventListener('click', refreshAl
     //----------onglet Identification-----------------
 function initializeIdentificationTab() {
     const listCsvBtn = document.getElementById('listCsvBtn');
-    const identificationForm = document.getElementById('identificationForm');
-    const csvFilesSelect = document.getElementById('csvFiles');
+    const csvFilesInput = document.getElementById('csvFiles');
+    const availableCsvFilesDiv = document.getElementById('availableCsvFiles');
 
 
     listCsvBtn.addEventListener('click', async function() {
-            const identificationPath = document.getElementById('identificationPath').value;
-            
-            if (!identificationPath.trim()) {
+            const identInputPath = document.getElementById('identInputPath').value;
+
+            if (!identInputPath.trim()) {
                 displayMessage('Veuillez spécifier un chemin pour les fichiers .csv', 'error');
                 return;
             }
@@ -726,31 +728,25 @@ function initializeIdentificationTab() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ path: identificationPath, extension: '.csv' })
+                    body: JSON.stringify({ path: identInputPath, extension: '.csv' })
                 });
                 
                 const data = await response.json();
-                
                 if (data.success) {
-                    csvFilesSelect.innerHTML = '';
                     if (data.files.length > 0) {
-                        data.files.forEach(file => {
-                            const option = document.createElement('option');
-                            option.value = file;
-                            option.textContent = file;
-                            csvFilesSelect.appendChild(option);
-                        });
-                        displayMessage(`${data.files.length} fichier(s) .csv trouvé(s)`);
+                        availableCsvFilesDiv.innerHTML = `<strong>Fichiers CSV trouvés:</strong><br>${data.files.join(', ')}`;
+                        availableCsvFilesDiv.style.display = 'block';
+                        displayMessage(`${data.files.length} fichier(s) CSV trouvé(s)`);
                     } else {
-                        const option = document.createElement('option');
-                        option.textContent = 'Aucun fichier .csv trouvé';
-                        option.disabled = true;
-                        csvFilesSelect.appendChild(option);
-                        displayMessage('Aucun fichier .csv trouvé', 'error');
+                        availableCsvFilesDiv.innerHTML = '<strong>Aucun fichier CSV trouvé dans ce dossier</strong>';
+                        availableCsvFilesDiv.style.display = 'block';
+                        displayMessage('Aucun fichier CSV trouvé', 'error');
                     }
                 } else {
                     displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
+                    availableCsvFilesDiv.style.display = 'none';
                 }
+                
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
             } finally {
@@ -761,47 +757,77 @@ function initializeIdentificationTab() {
    
 
 // Lancer l'analyse
+    const identificationForm = document.getElementById('identificationForm');
+    
+    if (identificationForm) {
         identificationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const identificationPath = document.getElementById('identificationPath').value;
-            const selectedFiles = Array.from(csvFilesSelect.selectedOptions).map(option => option.value);
-            loadingDiv.style.display = 'block';
-
-            
+        
+            const formData = new FormData(identificationForm);
             const data = {
-                identification_path: identificationPath,
-                selected_files: selectedFiles
+                input_path: formData.get('identInputPath'),
+                output_path: formData.get('identOutputPath'),
+                files: formData.get('csvFiles')
             };
-
-            //TODO check nist
-
-            //TODO changer ici
-
-            try {
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                
-                // Afficher tous les messages
-                result.messages.forEach(msg => {
-                    const isError = msg.toLowerCase().includes('erreur');
-                    displayMessage(msg, isError ? 'error' : 'success');
-                });
-            } catch (error) {
-                displayMessage('Erreur de connexion: ' + error.message, 'error');
-            } finally {
-                loadingDiv.style.display = 'none';
+            
+            if (!data.input_path?.trim()) {
+                displayMessage('Veuillez spécifier un chemin d\'entrée', 'error');
+                return;
             }
-        });
+            
+            if (!data.output_path?.trim()) {
+                displayMessage('Veuillez spécifier un chemin de sortie', 'error');
+                return;
+            }
+            
+            loadingDiv.style.display = 'block';
+            // outputDiv.innerHTML = '';
+            showProgress(true);
+
+            // TODO check nist
+
+            // TODO changer ici
+            
+        //     try {
+        //         const response = await fetch('/api/convert', {
+        //             method: 'POST',
+        //             headers: { 'Content-Type': 'application/json' },
+        //             body: JSON.stringify(data)
+        //         });
+                
+        //         const result = await response.json();
+                
+        //         if (result.messages) {
+        //             result.messages.forEach(msg => {
+        //                 const isError = msg.toLowerCase().includes('erreur');
+        //                 displayMessage(msg, isError ? 'error' : 'success');
+        //             });
+        //         }
+                
+        //         if (result.success && result.converted_files?.length > 0) {
+        //             let filesHtml = '<div class="converted-files"><strong>✨ Fichiers convertis avec succès:</strong><br>';
+        //             result.converted_files.forEach(file => {
+        //                 const filename = file.split('/').pop();
+        //                 filesHtml += `<div class="file-list-item">📄 ${filename}</div>`;
+        //             });
+        //             filesHtml += '</div>';
+        //             outputDiv.innerHTML += filesHtml;
+        //         }
+        //         if (result.success) {
+        //             displayMessage(`✨ Conversion terminée avec succès! (${result.converted_files?.length || 0} fichier(s) converti(s))`);
+        //         } else {
+        //             displayMessage('❌ La conversion a échoué', 'error');
+        //         }
+        //     } catch (error) {
+        //         displayMessage('Erreur de connexion: ' + error.message, 'error');
+        //     } finally {
+        //         loadingDiv.style.display = 'none';
+        //         showProgress(false);
+            // }
+        }
+    );
     }
-
-
+}
        
 
 

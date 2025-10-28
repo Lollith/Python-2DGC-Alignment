@@ -69,7 +69,7 @@
                         </div>
                         <form id="converterForm">
                             <div class="form-group">
-                                <label for="inputPath">📁 Chemin d'entrée</label>
+                                <label for="inputPath">📁 Chemin d'entrée .cdf</label>
                                 <div class="input-group">
                                     <span class="input-icon">📂</span>
                                     <input type="text" id="inputPath" name="inputPath" class="form-control" placeholder="Exemple: /mon/chemin">
@@ -182,17 +182,17 @@
                 <div class="form-card">
                     <form id="identificationForm">
                         <div class="form-group">
-                            <label for="identificationPath">📁 Chemin des fichiers</label>
+                            <label for="identInputPath">📁 Chemin des fichiers .CSV</label>
                             <div class="input-group">
                                 <span class="input-icon">📂</span>
-                                <input type="text" id="identificationPath" name="identification_path" class="form-control" placeholder="Exemple: /mon/chemin">
-                                <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('identificationPath')">
+                                <input type="text" id="identInputPath" name="identInputPath" class="form-control" placeholder="Exemple: /mon/chemin">
+                                <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('identInputPath')">
                                     📁 Parcourir
                                 </button>
                             </div>
                         </div>
                         
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label for="csvFiles">📊 Fichiers .csv à identifier</label>
                             <select id="csvFiles" name="csvFiles" multiple size="8">
                                 <option value="">Cliquez sur "Lister fichiers CSV" pour voir les fichiers disponibles</option>
@@ -200,7 +200,29 @@
                             <small style="color: var(--text-secondary); font-style: italic; margin-top: 8px; display: block;">
                                 Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers
                             </small>
-                        </div>
+                        </div> -->
+                         <div class="form-group">
+                                <label for="csvFiles">📄 Fichiers spécifiques (optionnel)</label>
+                                    <div class="input-group">
+                                        <span class="input-icon">📋</span>
+                                        <input type="text" id="csvFiles" name="csvFiles" 
+                                            placeholder="file1.cdf, file2.cdf (vide = tous les fichiers)">
+                                    </div>
+                                <div id="availableCsvFiles" class="files-list" style="display: none;"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="identOutputPath">💾 Chemin de sortie</label>
+                                <div class="input-group">
+                                    <span class="input-icon">💾</span>
+                                    <input type="text" id="identOutputPath" name="IdentOutputPath" class="form-control" placeholder="Sélectionnez un dossier…">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('identOutputPath')">
+                                        📁 Parcourir
+                                    </button>
+                                </div>
+                            </div> 
+
+
+
                         <div class="button-group">
                             <button type="button" id="listCsvBtn" class="btn btn-secondary">
                                 📋 <span>Lister fichiers .csv</span>
