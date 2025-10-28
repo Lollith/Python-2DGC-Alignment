@@ -1,7 +1,7 @@
 import { openFileExplorer, initializeFileExplorer } from './modules/fileExplorer.js';
-import { initializeConverterTab } from './modules/converter.js';
-import { initializeAnalysisTab } from './modules/analysis.js';
-import { initializeIdentificationTab } from './modules/identification.js';
+// import { initializeConverterTab } from './modules/converter.js';
+// import { initializeAnalysisTab } from './modules/analysis.js';
+// import { initializeIdentificationTab } from './modules/identification.js';
 
 window.openFileExplorer = openFileExplorer;
 
@@ -38,6 +38,14 @@ export function fillDefaultPaths() {
     
     displayMessage('Chemins par défaut remplis', 'info');
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ Rendre les fonctions globales pour les onclick HTML
+    window.openFileExplorer = openFileExplorer;
+    window.fillDefaultPaths = fillDefaultPaths;
+    
+    console.log('✅ Fonctions rendues globales');
+});
 
 
 export function showProgress(show = true) {
