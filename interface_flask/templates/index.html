@@ -192,15 +192,6 @@
                             </div>
                         </div>
                         
-                        <!-- <div class="form-group">
-                            <label for="csvFiles">📊 Fichiers .csv à identifier</label>
-                            <select id="csvFiles" name="csvFiles" multiple size="8">
-                                <option value="">Cliquez sur "Lister fichiers CSV" pour voir les fichiers disponibles</option>
-                            </select>
-                            <small style="color: var(--text-secondary); font-style: italic; margin-top: 8px; display: block;">
-                                Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs fichiers
-                            </small>
-                        </div> -->
                          <div class="form-group">
                                 <label for="csvFiles">📄 Fichiers spécifiques (optionnel)</label>
                                     <div class="input-group">
@@ -280,7 +271,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
        fillDefaultPaths({{ host_volume_path | tojson | safe }}); 
     </script>
