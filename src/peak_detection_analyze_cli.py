@@ -171,7 +171,7 @@ def main():
                     display_path = args.output.replace(docker_volume_path, "")
                 else:
                     display_path = args.output
-                print(f"📂 Parameters saved to '/{display_path}analysis.params'")
+                print(f"📂 Parameters saved to '{display_path}analysis.params'")
 
                 for result in results:
                     if result.startswith(docker_volume_path):
