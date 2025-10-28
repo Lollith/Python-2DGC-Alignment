@@ -41,6 +41,7 @@ class ChromatographicAligner:
         nist_api=None,
         output_path="",
         input_filter_path="",
+        area_selection="area_mod_max"
             ):
         """
         Initialize the chromatographic aligner with parameters.
@@ -78,6 +79,7 @@ class ChromatographicAligner:
         self.nist_api = nist_api
         self.output_path = output_path
         self.input_filter_path = input_filter_path
+        self.area_selection = area_selection
 
         # results storage
         self.imported_files = None
@@ -86,6 +88,54 @@ class ChromatographicAligner:
 
         self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
+    def check_file_parameters(self, current_raw_file):
+        """Check if the file contains deconvolution area and mod_max area or just one area.
+        Parameters:
+        -----------
+        file : str
+            Path to the chromatographic data file
+        """
+         # ✅ DÉTECTION DU FORMAT
+        columns = current_raw_file.columns.tolist()
+        
+        # Déterminer si on a le nouveau format (6 colonnes) ou l'ancien (5 colonnes)
+        has_area_deconvo = "Area.Deconv" in columns
+        has_area_mod_max = "Area.Mod.Max" in columns
+
+        if has_area_deconvo and has_area_mod_max:
+            print("🆕 Nouveau format détecté (6 colonnes)")
+            # Nouveau format: Name, R.T...s., Area.Deconv, Area.Mod.Max, Quant.Masses, Spectra
+            # ✅ ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
+
+            if self.area_selection == "area_deconvo":
+                selected_area = current_raw_file["Area.Deconv"]
+                print("📊 Utilisation de l'aire déconvolution pour l'alignement")
+            else:  # area_mod_max
+                selected_area = current_raw_file["Area.Mod.Max"]
+                print("📊 Utilisation de l'aire modulation max pour l'alignement")
+        
+            # ✅ RESTRUCTURATION pour format uniforme 5 colonnes
+            standardized_df = pd.DataFrame({
+            #     0: current_raw_file["Name"],
+            #     1: current_raw_file["R.T...s."],
+            #     2: selected_area,
+            #     3: current_raw_file["Quant.Masses"],
+            #     4: current_raw_file["Spectra"]
+            # })
+                "Name": current_raw_file["Name"],
+                "R.T...s.": current_raw_file["R.T...s."],
+                "Area": selected_area,
+                "Quant.Masses": current_raw_file["Quant.Masses"],
+                "Spectra": current_raw_file["Spectra"]
+            })
+
+            current_raw_file = standardized_df
+            spectra_col_index = 4
+            return current_raw_file, spectra_col_index
+
+        else:
+            print("📰 Ancien format détecté (5 colonnes)")
+            return current_raw_file, 4
 
     def importFile(self, file):
         """Import and process chromatographic data file
@@ -93,7 +143,6 @@ class ChromatographicAligner:
         -----------
         file : str
             Path to the chromatographic data file
-            
         Returns:
         --------
         list : [dataframe, spectra_list, missing_standards, ion_names, spectra_split]
@@ -103,6 +152,9 @@ class ChromatographicAligner:
         #read the file    
         current_raw_file = pd.read_csv(file, sep="\t", header=0,skipinitialspace=True)
         current_raw_file = current_raw_file.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else x))
+
+        # verifie si .txt contient aire deconvolution + aire mod_max ou juste 1 aire
+        current_raw_file, spectra_col_index = self.check_file_parameters(current_raw_file)
 
         # Convert columns to string
         current_raw_file.iloc[:, 4] = current_raw_file.iloc[:, 4].astype(str)
@@ -868,7 +920,7 @@ class ChromatographicAligner:
             display_path = self.output_path.replace(self.docker_volume_path, "")
         else:
             display_path = self.output_path
-        print(f"Results saved to directory: /{display_path}", flush=True)
+        print(f"Results saved to directory: {display_path}", flush=True)
 
 
 if __name__ == "__main__":
