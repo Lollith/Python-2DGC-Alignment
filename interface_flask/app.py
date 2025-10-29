@@ -528,18 +528,6 @@ def get_logs():
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
     
-@app.route('/debug/routes')
-def list_routes():
-    import urllib
-    output = []
-    for rule in app.url_map.iter_rules():
-        methods = ','.join(rule.methods)
-        output.append({
-            'endpoint': rule.endpoint,
-            'methods': methods,
-            'rule': rule.rule
-        })
-    return jsonify(output)
 
 @app.route('/api/identify', methods=['POST'])
 def identify_compounds():
