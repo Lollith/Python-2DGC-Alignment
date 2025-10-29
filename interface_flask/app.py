@@ -21,6 +21,7 @@ import logging
 from flask import Flask, jsonify
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
+import nist_local
 import nist_engine
 
 logger = logging.getLogger(__name__)
@@ -526,6 +527,71 @@ def get_logs():
             'logs': [f"❌ Erreur lors de la récupération des logs: {str(e)}"],
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
+    
+@app.route('/debug/routes')
+def list_routes():
+    import urllib
+    output = []
+    for rule in app.url_map.iter_rules():
+        methods = ','.join(rule.methods)
+        output.append({
+            'endpoint': rule.endpoint,
+            'methods': methods,
+            'rule': rule.rule
+        })
+    return jsonify(output)
+
+@app.route('/api/identify', methods=['POST'])
+def identify_compounds():
+    messages = []
+    messages.append("!!! Démarrage de l'identification NIST locale...!!!")
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Aucune donnée reçue'
+            }), 400
+        
+        input_path = data.get('input_path')
+        output_path = data.get('output_path')
+        files = data.get('files')
+        if not input_path:
+            return jsonify({
+                'success': False,
+                'message': 'input_path requis'
+            }), 400
+            
+        try: 
+            results = nist_local.search(
+                input_path=input_path,
+                output_path=output_path,
+                files=files
+            )
+        except ImportError as e:
+            return jsonify({
+                'success': False,
+                'message': f'Module NIST non trouvé: {str(e)}'
+            }), 500
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': f'Erreur NIST: {str(e)}'
+            }), 500
+        
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'messages': messages,
+            'identified_compounds': len(results)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 
 if __name__ == '__main__':

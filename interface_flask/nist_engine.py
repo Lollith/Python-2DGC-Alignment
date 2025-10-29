@@ -10,7 +10,7 @@ load_dotenv()
 
 class NistEngine:
     """
-    NIST Engine class to handle NIST-related operations.
+    NIST Engine class to handle NIST-related operations into docker.
     """
 
     def __init__(self):

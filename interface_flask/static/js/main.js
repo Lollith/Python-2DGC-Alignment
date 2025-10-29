@@ -1,8 +1,8 @@
 import { openFileExplorer, initializeFileExplorer } from './modules/fileExplorer.js';
 import { initializeConverterTab } from './modules/converter.js';
 import { initializeAnalysisTab } from './modules/analysis.js';
-// import { initializeIdentificationTab } from './modules/identification.js';
-// import {initializeMonitoringTab} from './modules/monitoring.js';
+import { initializeIdentificationTab } from './modules/identification.js';
+import {initializeMonitoringTab} from './modules/monitoring.js';
 
 export let selectedH5Files = [];
 export let currentPath = '';
@@ -172,8 +172,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeFileExplorer();
     initializeConverterTab();
     initializeAnalysisTab();
-// //     initializeIdentificationTab();
-// //     initializeMonitoringTab();
+    initializeIdentificationTab();
+    initializeMonitoringTab();
 
     fillDefaultPaths();
     displayMessage('✅ Application initialisée', 'success');
@@ -220,176 +220,3 @@ document.querySelectorAll('.modal').forEach((modal) => {
         }
     });
 });
-
-
-
-//     //----------onglet Identification-----------------
-// function initializeIdentificationTab() {
-//     const listCsvBtn = document.getElementById('listCsvBtn');
-//     const csvFilesInput = document.getElementById('csvFiles');
-//     const availableCsvFilesDiv = document.getElementById('availableCsvFiles');
-
-
-//     listCsvBtn.addEventListener('click', async function() {
-//             const identInputPath = document.getElementById('identInputPath').value;
-
-//             if (!identInputPath.trim()) {
-//                 displayMessage('Veuillez spécifier un chemin pour les fichiers .csv', 'error');
-//                 return;
-//             }
-//             listCsvBtn.disabled = true;
-//             listCsvBtn.textContent = '🔄 Chargement...';
-            
-//             try {
-//                 const response = await fetch('/api/list_files', {
-//                     method: 'POST',
-//                     headers: {
-//                         'Content-Type': 'application/json',
-//                     },
-//                     body: JSON.stringify({ path: identInputPath, extension: '.csv' })
-//                 });
-                
-//                 const data = await response.json();
-//                 if (data.success) {
-//                     if (data.files.length > 0) {
-//                         availableCsvFilesDiv.innerHTML = `<strong>Fichiers CSV trouvés:</strong><br>${data.files.join(', ')}`;
-//                         availableCsvFilesDiv.style.display = 'block';
-//                         displayMessage(`${data.files.length} fichier(s) CSV trouvé(s)`);
-//                     } else {
-//                         availableCsvFilesDiv.innerHTML = '<strong>Aucun fichier CSV trouvé dans ce dossier</strong>';
-//                         availableCsvFilesDiv.style.display = 'block';
-//                         displayMessage('Aucun fichier CSV trouvé', 'error');
-//                     }
-//                 } else {
-//                     displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
-//                     availableCsvFilesDiv.style.display = 'none';
-//                 }
-                
-//             } catch (error) {
-//                 displayMessage('Erreur de connexion: ' + error.message, 'error');
-//             } finally {
-//                 listCsvBtn.disabled = false;
-//                 listCsvBtn.textContent = '📋 Lister fichiers CSV';
-//             }
-//         });
-   
-
-// // Lancer l'analyse
-//     const identificationForm = document.getElementById('identificationForm');
-    
-//     if (identificationForm) {
-//         identificationForm.addEventListener('submit', async function(e) {
-//             e.preventDefault();
-        
-//             const formData = new FormData(identificationForm);
-//             const data = {
-//                 input_path: formData.get('identInputPath'),
-//                 output_path: formData.get('identOutputPath'),
-//                 files: formData.get('csvFiles')
-//             };
-            
-//             if (!data.input_path?.trim()) {
-//                 displayMessage('Veuillez spécifier un chemin d\'entrée', 'error');
-//                 return;
-//             }
-            
-//             if (!data.output_path?.trim()) {
-//                 displayMessage('Veuillez spécifier un chemin de sortie', 'error');
-//                 return;
-//             }
-            
-//             loadingDiv.style.display = 'block';
-//             // outputDiv.innerHTML = '';
-//             showProgress(true);
-
-//             // TODO check nist
-
-//             // TODO changer ici
-            
-//         //     try {
-//         //         const response = await fetch('/api/convert', {
-//         //             method: 'POST',
-//         //             headers: { 'Content-Type': 'application/json' },
-//         //             body: JSON.stringify(data)
-//         //         });
-                
-//         //         const result = await response.json();
-                
-//         //         if (result.messages) {
-//         //             result.messages.forEach(msg => {
-//         //                 const isError = msg.toLowerCase().includes('erreur');
-//         //                 displayMessage(msg, isError ? 'error' : 'success');
-//         //             });
-//         //         }
-                
-//         //         if (result.success && result.converted_files?.length > 0) {
-//         //             let filesHtml = '<div class="converted-files"><strong>✨ Fichiers convertis avec succès:</strong><br>';
-//         //             result.converted_files.forEach(file => {
-//         //                 const filename = file.split('/').pop();
-//         //                 filesHtml += `<div class="file-list-item">📄 ${filename}</div>`;
-//         //             });
-//         //             filesHtml += '</div>';
-//         //             outputDiv.innerHTML += filesHtml;
-//         //         }
-//         //         if (result.success) {
-//         //             displayMessage(`✨ Conversion terminée avec succès! (${result.converted_files?.length || 0} fichier(s) converti(s))`);
-//         //         } else {
-//         //             displayMessage('❌ La conversion a échoué', 'error');
-//         //         }
-//         //     } catch (error) {
-//         //         displayMessage('Erreur de connexion: ' + error.message, 'error');
-//         //     } finally {
-//         //         loadingDiv.style.display = 'none';
-//         //         showProgress(false);
-//             // }
-//         }
-//     );
-//     }
-// }
-       
-
-
-
-
-
-// // // ---------------------Onglet Monitoring--------------------
-// // redémarrer Docker
-// async function restartDocker() {
-//     const restartDockerBtn = document.getElementById('restartDockerBtn');
-//     if (!restartDockerBtn) return;
-    
-//     restartDockerBtn.disabled = true;
-//     restartDockerBtn.innerHTML = '🔄 <span>Redémarrage...</span>';
-    
-//     try {
-//         const response = await fetch('/api/restart_containers', {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' }
-//         });
-//         const data = await response.json();
-        
-//         if (data.success) {
-//             displayMessage('🔄 Redémarrage des conteneurs Docker...', 'info');
-            
-//             // Afficher TOUS les messages de restart
-//             data.status?.forEach(msg => {
-//                 const isError = msg.includes('❌');
-//                 const isSuccess = msg.includes('✅');
-//                 const type = isError ? 'error' : (isSuccess ? 'success' : 'info');
-//                 displayMessage(msg, type);
-//             });
-            
-//         } else {
-//             displayMessage('❌ Erreur lors du redémarrage de Docker', 'error');
-//             data.status?.forEach(msg => displayMessage(msg, 'error'));
-//         }
-        
-//     } catch (error) {
-//         displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
-//     } finally {
-//         restartDockerBtn.disabled = false;
-//         restartDockerBtn.innerHTML = '🔄 <span>Redémarrer Docker</span>';
-//     }
-// }
-
-

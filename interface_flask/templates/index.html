@@ -35,9 +35,6 @@
         <div class="header">
             <h1>🔬 DataLab 2DGC</h1>
             <p>Conversion de données et analyses </p>
-            <button type="button" onclick="fillDefaultPaths()" class="btn btn-outline-info mb-3">
-            📁 Remplir les chemins par défaut
-            </button>
         </div>
         
         <div class="main-content">
@@ -200,7 +197,7 @@
                                     <div class="input-group">
                                         <span class="input-icon">📋</span>
                                         <input type="text" id="csvFiles" name="csvFiles" 
-                                            placeholder="file1.cdf, file2.cdf (vide = tous les fichiers)">
+                                            placeholder="file1.csv, file2.csv (vide = tous les fichiers)">
                                     </div>
                                 <div id="availableCsvFiles" class="files-list" style="display: none;"></div>
                             </div>
@@ -208,7 +205,7 @@
                                 <label for="identOutputPath">💾 Chemin de sortie</label>
                                 <div class="input-group">
                                     <span class="input-icon">💾</span>
-                                    <input type="text" id="identOutputPath" name="IdentOutputPath" class="form-control" placeholder="Sélectionnez un dossier…">
+                                    <input type="text" id="identOutputPath" name="identOutputPath" class="form-control" placeholder="Sélectionnez un dossier…">
                                     <button type="button" class="btn btn-outline-secondary" onclick="openFileExplorer('identOutputPath')">
                                         📁 Parcourir
                                     </button>
