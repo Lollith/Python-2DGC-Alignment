@@ -1,17 +1,16 @@
-import { displayMessage } from '../main.js';
-
-let localCurrentPath = '';
-let localTargetInput = null;
+import { displayMessage, setCurrentPath, setTargetInput, getCurrentPath, getTargetInput } from '../main.js';
 
 export function openFileExplorer(inputId) {
-    localTargetInput = document.getElementById(inputId);
-    if (!localTargetInput) {
+    const input = document.getElementById(inputId);
+    if (!input) {
         console.error(`Input ${inputId} non trouvé`);
         return;
     }
     
-    localCurrentPath = targetInput.value || '/';
-    loadDirectoryContent(localCurrentPath);
+    setTargetInput(input);
+    setCurrentPath(input.value || '/');
+
+    loadDirectoryContent(getCurrentPath());
     
     const modalElement = document.getElementById('fileExplorerModal');
     if (modalElement && typeof bootstrap !== 'undefined') {
@@ -27,13 +26,15 @@ export function initializeFileExplorer() {
     const selectFolderBtn = document.getElementById('selectFolder');
     if (selectFolderBtn) {
         selectFolderBtn.onclick = () => {
-            if (localTargetInput) {
-                localTargetInput.value = localCurrentPath;
+            const targetInput = getTargetInput();
+            const currentPath = getCurrentPath();
+            if (targetInput) {
+                targetInput.value = currentPath;
                 const modalElement = document.getElementById('fileExplorerModal');
                 if (modalElement && typeof bootstrap !== 'undefined') {
                     bootstrap.Modal.getInstance(modalElement)?.hide();
                 }
-                displayMessage(`Dossier sélectionné: ${localCurrentPath}`, 'info');
+                displayMessage(`Dossier sélectionné: ${currentPath}`, 'info');
             }
         };
     }
@@ -49,7 +50,7 @@ export async function loadDirectoryContent(path) {
         
         const data = await response.json();
 
-        localCurrentPath = path;
+        setCurrentPath(path);
         
         if (data.success) {
             displayFileList(data.folders || [], data.files || [], path);

@@ -35,6 +35,9 @@
         <div class="header">
             <h1>🔬 DataLab 2DGC</h1>
             <p>Conversion de données et analyses </p>
+            <button type="button" onclick="fillDefaultPaths()" class="btn btn-outline-info mb-3">
+            📁 Remplir les chemins par défaut
+            </button>
         </div>
         
         <div class="main-content">
@@ -270,10 +273,7 @@
             </div>
         </div>
     </div>
-
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <!-- <script>
-       fillDefaultPaths({{ host_volume_path | tojson | safe }}); 
-    </script> -->
+
 </body>
 </html>
