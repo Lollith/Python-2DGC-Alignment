@@ -9,8 +9,6 @@ from consensus_precompressor import PeakPrecompressor
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 
-
-
 def main():
     print("Starting Peak Precompressor ...", flush=True)
     parser = argparse.ArgumentParser(description="Peak Precompressor")
@@ -23,8 +21,8 @@ def main():
     # parser.add_argument('--common_ions', nargs='+', type=int, default=None, help="List of common ions")
     parser.add_argument('--quant_method', type=str, default="T", help="Quantification method")
     # parser.add_argument("--output", type=bool, required=True, help="")
+    parser.add_argument('--area_selection', type=str, default="area_mod_max", help="Area selection method")
     args = parser.parse_args()
-
     try:
         precompressedFiles = PeakPrecompressor(
             rt1_penalty=args.rt1_penalty,
@@ -33,6 +31,7 @@ def main():
             num_cores=args.num_cores,
             # common_ions=args.common_ions,
             quant_method=args.quant_method,
+            area_selection=args.area_selection
         )
         print(f"🔍 Starting analysis of {len(args.input)} files: {args.input}...", flush=True)
         print(f"\n{'='*60}", flush=True)
