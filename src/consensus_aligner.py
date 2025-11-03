@@ -29,8 +29,8 @@ class ChromatographicAligner:
 
     def __init__(
         self,
-        rt1_penalty=1,
-        rt2_penalty=10,
+        rt1_penalty=1.0,
+        rt2_penalty=10.0,
         similarity_cutoff=90,
         disimilarity_cutoff=90,
         missing_value_limit=0.75,
