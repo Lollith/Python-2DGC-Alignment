@@ -112,7 +112,7 @@ export function initializeIdentificationTab() {
                             displayMessage(message, 'info');  // Afficher message app.py
                         });
                     }
-                    displayMessage(`✅ Identification terminée! , 'success');
+                    displayMessage(`✅ Identification terminée!`, 'success');
                     
                 } else {
                     displayMessage('❌ L\'identification a échoué: ' + result.message, 'error');
