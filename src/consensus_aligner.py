@@ -95,7 +95,7 @@ class ChromatographicAligner:
         file : str
             Path to the chromatographic data file
         """
-         # ✅ DÉTECTION DU FORMAT
+         # DÉTECTION DU FORMAT
         columns = current_raw_file.columns.tolist()
         
         # Déterminer si on a le nouveau format (6 colonnes) ou l'ancien (5 colonnes)
@@ -105,7 +105,7 @@ class ChromatographicAligner:
         if has_area_deconvo and has_area_mod_max:
             print("🆕 Nouveau format détecté (6 colonnes)")
             # Nouveau format: Name, R.T...s., Area.Deconv, Area.Mod.Max, Quant.Masses, Spectra
-            # ✅ ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
+            # ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
 
             if self.area_selection == "area_deconvo":
                 selected_area = current_raw_file["Area.Deconv"]
@@ -114,14 +114,7 @@ class ChromatographicAligner:
                 selected_area = current_raw_file["Area.Mod.Max"]
                 print("📊 Utilisation de l'aire modulation max pour l'alignement")
         
-            # ✅ RESTRUCTURATION pour format uniforme 5 colonnes
             standardized_df = pd.DataFrame({
-            #     0: current_raw_file["Name"],
-            #     1: current_raw_file["R.T...s."],
-            #     2: selected_area,
-            #     3: current_raw_file["Quant.Masses"],
-            #     4: current_raw_file["Spectra"]
-            # })
                 "Name": current_raw_file["Name"],
                 "R.T...s.": current_raw_file["R.T...s."],
                 "Area": selected_area,
@@ -130,12 +123,11 @@ class ChromatographicAligner:
             })
 
             current_raw_file = standardized_df
-            spectra_col_index = 4
-            return current_raw_file, spectra_col_index
+            return current_raw_file
 
         else:
             print("📰 Ancien format détecté (5 colonnes)")
-            return current_raw_file, 4
+            return current_raw_file
 
     def importFile(self, file):
         """Import and process chromatographic data file
@@ -154,7 +146,7 @@ class ChromatographicAligner:
         current_raw_file = current_raw_file.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else x))
 
         # verifie si .txt contient aire deconvolution + aire mod_max ou juste 1 aire
-        current_raw_file, spectra_col_index = self.check_file_parameters(current_raw_file)
+        current_raw_file = self.check_file_parameters(current_raw_file)
 
         # Convert columns to string
         current_raw_file.iloc[:, 4] = current_raw_file.iloc[:, 4].astype(str)
