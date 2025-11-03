@@ -95,8 +95,6 @@ export function initializeIdentificationTab() {
             }
 
             try {
-                // displayMessage('🔬 Lancement de l\'identification NIST...', 'info');
-                
                 const response = await fetch('/api/identify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

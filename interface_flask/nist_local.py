@@ -3,23 +3,9 @@ import os
 import pyms.Spectrum
 from dotenv import load_dotenv
 import time
-import csv
 import pandas as pd
 
 load_dotenv()
-
-# TODO fonction de matching a importer
-# def filter_best_hits(list_hits, match_factor_min):
-#     search_results = [hit[0] for hit in list_hits]
-#     match_factors = [result.match_factor for result in search_results]
-#     max_match_factor = max(match_factors)
-
-#     filtered_hits = [
-#         result for result in search_results
-#         if result.match_factor >= max_match_factor - 100
-#         and result.match_factor >= match_factor_min
-#     ]
-#     return filtered_hits
 
 def serialize_hit_tuple(hit_tuple):
         search_result, ref_data = hit_tuple
@@ -42,54 +28,6 @@ def filter_best_hits(list_hits, match_factor_min):
 
     return filtered_hits
 
-# def save_results_to_csv_native(input_path, output_path, files_list, all_matches, messages):
-#     """Sauvegarder avec le module CSV natif Python"""
-    
-#     for file in files_list:
-#         input_filepath = os.path.join(input_path, file)
-#         output_filepath = os.path.join(output_path, f"identified_{file}")
-        
-#         # ✅ Lire le fichier original
-#         with open(input_filepath, 'r', encoding='utf-8') as infile:
-#             reader = csv.reader(infile, delimiter=';')
-#             data = list(reader)
-        
-#         if not data:
-#             continue
-            
-#         # ✅ Ajouter les nouveaux en-têtes
-#         header = data[0]
-#         new_columns = ['NIST_Compound_Name', 'NIST_CAS', 'NIST_Formula', 
-#                       'NIST_Match_Factor', 'NIST_Hit_Prob', 'NIST_Reverse_Match']
-#         header.extend(new_columns)
-        
-#         # ✅ Initialiser les nouvelles colonnes vides pour chaque ligne
-#         for i in range(1, len(data)):
-#             data[i].extend([''] * len(new_columns))
-        
-#         # ✅ Remplir avec les résultats d'identification
-#         for match in all_matches:
-#             if match['file'] == file:
-#                 line_idx = match['line']  # Line 1-based
-#                 if line_idx < len(data):
-#                     row = data[line_idx]
-#                     # Index des nouvelles colonnes
-#                     base_idx = len(row) - len(new_columns)
-#                     row[base_idx] = str(match['compound_name'])
-#                     row[base_idx + 1] = str(match['casno'])
-#                     # row[base_idx + 2] = str(match['compound_formula'])
-#                     row[base_idx + 3] = str(match['match_factor'])
-#                     row[base_idx + 4] = str(match['hit_prob'])
-#                     row[base_idx + 5] = str(match['reverse_match_factor'])
-        
-#         # ✅ Écrire le fichier de sortie
-#         with open(output_filepath, 'w', newline='', encoding='utf-8') as outfile:
-#             writer = csv.writer(outfile, delimiter=';')
-#             writer.writerows(data)
-        
-#         messages.append(f"✅ Fichier CSV identifié sauvegardé: {output_filepath}")
-
-    
 
 def matching_nist(input_path, output_path, files):
     """
@@ -113,14 +51,6 @@ def matching_nist(input_path, output_path, files):
     messages.append(f"📋 Fichiers à traiter: {files_list}")
 
     with pyms_nist_search.Engine(mainlib_path, pyms_nist_search.NISTMS_MAIN_LIB, temp_dir) as engine:
-    # engine = pyms_nist_search.Engine(
-    #                mainlib_path,
-    #                 pyms_nist_search.NISTMS_MAIN_LIB,
-    #                 temp_dir
-    #                 )
-        # all_matches = []
-        # mass_values = []
-        # int_values = []
         
         for file in files_list:
             filepath = os.path.join(input_path, file)
@@ -136,9 +66,6 @@ def matching_nist(input_path, output_path, files):
             compounds_identified = 0
 
             for row in range(df.shape[0]):
-                # if row % 100 == 0:  # Tous les 100 composés
-                #     messages.append(f"📊 Traité {row}/{len(df)} composés...")
-
                 s = df.at[row, 'Spectra']
                 pairs = s.strip().split()
 
@@ -166,7 +93,7 @@ def matching_nist(input_path, output_path, files):
                     return '/'.join(str(m.get(field, '')) for m in top_hits)
 
                 if top_hits:
-                    coumpounds_identified += 1
+                    compounds_identified += 1
                     identification_data_dict = {
                     'compound_name': join_field('name'),
                     'casno': join_field('cas_number'),
@@ -176,90 +103,13 @@ def matching_nist(input_path, output_path, files):
                     for key in identification_data_dict:
                         df.at[row, key] = identification_data_dict[key]
 
-            output_filepath = os.path.join(output_path, f"identified2_{file}")
+            output_filepath = os.path.join(output_path, f"identified_{file}")
             df.to_csv(output_filepath, sep=";", index=False, encoding="utf-8-sig") #compatibilite avec excel
             messages.append(f"✅ {file}: {compounds_identified}/{compounds_processed} composés identifiés")
             messages.append(f"💾 Fichier CSV identifié sauvegardé: {output_filepath}")
-        # all_matches = []  # Placeholder to return if needed
-                
-            # with open(filepath, 'r') as f:
-            #     first_line = f.readline().strip()
-            #     # messages.append(f"First line of the file: {first_line}")
-                
-            #     if "Spectra" in first_line:
-            #         # messages.append(f"Found spectra line: {first_line.strip()}")
-            #         headers = first_line.split(';')  # Séparer par point-virgule
-            #         # messages.append(f"📊 Colonnes trouvées: {headers}")
-                        
-            #         spectra_index = headers.index("Spectra")
-            #         # messages.append(f"📍 Colonne 'Spectra' à l'index: {spectra_index}")
-
-            #         line_count = 0
-            #         nb_analyte = 0
-            #         for line in f:
-            #             line_count += 1
-            #             parts = line.strip().split(';')
-
-            #             if len(parts) > spectra_index: 
-            #                 mass_values = []
-            #                 int_values = []
-            #                 spectra_data = parts[spectra_index]
-            #                 # messages.append(f"Spectra data: {spectra_data}")
-                            
-            #                 spectra_parts = spectra_data.split(" ")
-            #                 for part in spectra_parts:
-            #                     if ':' in part:
-            #                         mass, intensity = part.split(":")
-            #                         mass_values.append(float(mass))
-            #                         int_values.append(float(intensity))
-            #                 # messages.append(f"Extracted mass values: {mass_values}")
-            #                 # messages.append(f"Extracted intensity values: {int_values}")
-
-            #             mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
-            #             results = engine.full_search_with_ref_data(mass_spectrum)
-            #             match_factor_min = 650 # TODO parametre ??
-            #             top_hits = filter_best_hits(results, match_factor_min)
-                    
-            #             if top_hits:
-            #                 for j, hit in enumerate(top_hits):
-            #                     match_data = {
-            #                         'file': file,
-            #                         'line': line_count,
-            #                         'number': j,
-            #                         'casno': hit.cas,
-            #                         'compound_name': hit.name,
-            #                         # 'compound_formula': hit.formula,
-            #                         'hit_prob': hit.hit_prob,
-            #                         'match_factor': hit.match_factor,
-            #                         'reverse_match_factor': hit.reverse_match_factor,
-            #                         'spectra': int_values
-            #                         }
-            #                     all_matches.append(match_data)
-            #             else:
-            #                 # Composé non identifié
-            #                 nb_analyte += 1
-            #                 all_matches.append({
-            #                     'file': file,
-            #                     'line': line_count,
-            #                     'spectra': int_values,
-            #                     'compound_name': f'Analyte{nb_analyte}',
-            #                     'casno': '',
-            #                     'compound_formula': '',
-            #                     'hit_prob': '',
-            #                     'match_factor': '',
-            #                     'reverse_match_factor': ''
-            #                     })
-
-
-
-        # sortie creer un file ds l output-path
-    # messages.append("🔓 Moteur NIST libéré automatiquement")
-    # try:
-    #     save_results_to_csv_native(input_path, output_path, files_list, all_matches, messages)
-    # except Exception as e:
-    #     messages.append(f"❌ Erreur sauvegarde: {str(e)}")
+  
     end = time.time() - start
-    messages.append("⏱️ NIST local search completed in {end:.2f} secondes")
+    messages.append(f"⏱️ NIST local search completed in {end:.2f} secondes")
 
     return messages
 

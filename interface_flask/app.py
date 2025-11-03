@@ -532,7 +532,6 @@ def get_logs():
 @app.route('/api/identify', methods=['POST'])
 def identify_compounds():
     messages = []
-    # messages.append("!!! Démarrage de l'identification NIST locale...!!!")
     try:
         data = request.get_json()
         if not data:
@@ -580,108 +579,6 @@ def identify_compounds():
             'message': str(e),
             'messages': messages
         }), 500
-
-
-
-# @app.route('/api/nist/diagnose', methods=['GET'])
-# def diagnose_nist():
-#     """Diagnostic complet NIST"""
-#     results = []
-    
-#     try:
-#         # Test 1: Variables d'environnement
-#         mainlib_path = os.getenv("MAINLIB_PATH", "C:/NIST20/MSSEARCH/mainlib")
-#         temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
-        
-#         results.append(f"🔧 MAINLIB_PATH: {mainlib_path}")
-#         results.append(f"📁 Mainlib existe: {os.path.exists(mainlib_path)}")
-#         results.append(f"🔧 TEMP_DIR: {temp_dir}")
-#         results.append(f"📁 Temp existe: {os.path.exists(temp_dir)}")
-        
-#         # Test 2: Permissions
-#         if os.path.exists(mainlib_path):
-#             results.append(f"🔓 Mainlib lisible: {os.access(mainlib_path, os.R_OK)}")
-        
-#         if os.path.exists(temp_dir):
-#             results.append(f"🔓 Temp modifiable: {os.access(temp_dir, os.W_OK)}")
-            
-#         # Test 3: Fichiers critiques
-#         critical_files = [
-#             os.path.join(mainlib_path, "mainlib.msd"),
-#             os.path.join(mainlib_path, "NIST.msl")
-#         ]
-        
-#         for file_path in critical_files:
-#             results.append(f"📄 {os.path.basename(file_path)}: {os.path.exists(file_path)}")
-        
-#         # Test 4: Import modules
-#         try:
-#             import pyms_nist_search
-#             results.append("✅ pyms_nist_search importé")
-#         except Exception as e:
-#             results.append(f"❌ Import pyms_nist_search: {str(e)}")
-        
-#         # Test 5: Initialisation
-#         try:
-#             engine = pyms_nist_search.Engine(mainlib_path, pyms_nist_search.NISTMS_MAIN_LIB, temp_dir)
-#             engine.uninit()
-#             results.append("✅ Test initialisation réussi")
-#         except Exception as e:
-#             results.append(f"❌ Initialisation échouée: {str(e)}")
-            
-#         return jsonify({
-#             'success': True,
-#             'diagnostics': results
-#         })
-        
-#     except Exception as e:
-#         results.append(f"❌ Erreur diagnostic: {str(e)}")
-#         return jsonify({
-#             'success': False,
-#             'diagnostics': results
-#         })
-
-# import pyms_nist_search
-# import pyms.Spectrum
-
-# @app.route('/api/nist/test-search', methods=['GET'])
-# def test_nist_search():
-#     """Test d'une vraie recherche NIST"""
-#     try:
-#         mainlib_path = os.getenv("MAINLIB_PATH", "C:/NIST20/MSSEARCH/mainlib")
-#         temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
-        
-#         # Test avec un spectre simple (acétone typique)
-#         mass_values = [43.0, 58.0]  # Pics caractéristiques acétone
-#         int_values = [100.0, 20.0]
-        
-#         with pyms_nist_search.Engine(mainlib_path, pyms_nist_search.NISTMS_MAIN_LIB, temp_dir) as engine:
-#             mass_spectrum = pyms.Spectrum.MassSpectrum(mass_values, int_values)
-#             results = engine.full_search_with_ref_data(mass_spectrum)
-            
-#             if results:
-#                 # first_hit = results[0]
-#                 search_results = [hit[0] for hit in results]
-#                 return jsonify({
-#                     'success': True,
-#                     'message': '🎉 Recherche NIST fonctionnelle !',
-#                     'test_result': {
-#                         'compound': search_results[0].name,
-#                         'match_factor': search_results[0].match_factor,
-#                         'cas': search_results[0].cas
-#                     }
-#                 })
-#             else:
-#                 return jsonify({
-#                     'success': True,
-#                     'message': '⚠️ NIST fonctionne mais aucun résultat pour ce test'
-#                 })
-                
-#     except Exception as e:
-#         return jsonify({
-#             'success': False,
-#             'message': f'❌ Erreur test: {str(e)}'
-#         })
 
 
 if __name__ == '__main__':
