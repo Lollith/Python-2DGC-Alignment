@@ -1,4 +1,4 @@
-import { displayMessage, loadingDiv, showProgress } from '../main.js';
+import { displayMessage, loadingDiv, outputDiv, showProgress } from '../main.js';
 
 export function initializeIdentificationTab() {
     const listCsvBtn = document.getElementById('listCsvBtn');
@@ -95,40 +95,36 @@ export function initializeIdentificationTab() {
             }
 
             try {
-            displayMessage('🔬 Lancement de l\'identification NIST...', 'info');
-            
-            const response = await fetch('/api/identify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                displayMessage(`✅ Identification terminée! ${result.identified_compounds || 0} composé(s) identifié(s)`, 'success');
+                // displayMessage('🔬 Lancement de l\'identification NIST...', 'info');
                 
-                // Afficher les résultats
-                if (result.results?.length > 0) {
-                    let resultsHtml = '<div class="identification-results"><strong>🔬 Résultats d\'identification:</strong><br>';
-                    result.results.forEach(compound => {
-                        resultsHtml += `<div class="result-item">📄 ${compound.name} (Score: ${compound.score})</div>`;
-                    });
-                    resultsHtml += '</div>';
-                    outputDiv.innerHTML += resultsHtml;
-                    displayMessage('✅ Résultats affichés ci-dessous.', result.message);
+                const response = await fetch('/api/identify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+
+                    if (result.messages && result.messages.length > 0) {
+                        result.messages.forEach(message => {
+                            displayMessage(message, 'info');  // Afficher message app.py
+                        });
+                    }
+                    displayMessage(`✅ Identification terminée! , 'success');
+                    
+                } else {
+                    displayMessage('❌ L\'identification a échoué: ' + result.message, 'error');
                 }
-            } else {
-                displayMessage('❌ L\'identification a échoué: ' + result.message, 'error');
-            }
             
-        } catch (error) {
-            displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
-        } finally {
-            loadingDiv.style.display = 'none';
-            showProgress(false);
-        }
-    });
-}
+            } catch (error) {
+                displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
+            } finally {
+                loadingDiv.style.display = 'none';
+                showProgress(false);
+            }
+     });
+    }
 }
        
