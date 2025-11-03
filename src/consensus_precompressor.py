@@ -46,7 +46,7 @@ class PeakPrecompressor:
         has_area_mod_max = "Area.Mod.Max" in columns
 
         if has_area_deconvo and has_area_mod_max:
-            print("🆕 Nouveau format détecté (6 colonnes)")
+            #print("🆕 Nouveau format détecté (6 colonnes)")
             # Nouveau format: Name, R.T...s., Area.Deconv, Area.Mod.Max, Quant.Masses, Spectra
             # ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
 
@@ -70,7 +70,7 @@ class PeakPrecompressor:
             return current_raw_file, spectra_col_index
 
         else:
-            print("📰 Ancien format détecté (5 colonnes)")
+            #print("📰 Ancien format détecté (5 colonnes)")
             return current_raw_file, 4
 
     def importFile(self, file):

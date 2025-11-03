@@ -40,7 +40,7 @@ def main():
                 display_path = f.replace(precompressedFiles.docker_volume_path, "")
             else:
                 display_path = f
-            print(f"  {i}. /{display_path}")
+            print(f"  {i}. {display_path}")
         precompressedFiles.precompress_files(args.input, args.output_dir)
 
         print(f"✅ Analysis completed successfully!", flush=True)
