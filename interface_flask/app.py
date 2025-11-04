@@ -3,6 +3,7 @@ from datetime import datetime
 from waitress import serve
 from flask import Flask, render_template, request, jsonify, send_file, Response
 from data_converter import DataConverter
+from nist_local import NistLocal
 from datetime import datetime
 import os
 import time
@@ -21,7 +22,6 @@ import logging
 from flask import Flask, jsonify
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
-import nist_local
 import nist_engine
 import json
 
@@ -58,6 +58,7 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 
 # Instances
 converter = DataConverter()
+nist_local = NistLocal()
 compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml") #DEBUG
 # nist_wrapper = nist_search.NISTSearchWrapper()
 
@@ -113,14 +114,15 @@ def list_files():
     try:
         if extension == '.cdf':
             files = converter.get_files_from_folder(path)
+        elif extension == '.csv' and only_peak_info:
+            files = nist_local.get_peak_info_files_from_folders(path)
         else:
             files = []
             for filename in os.listdir(path):
                 if filename.lower().endswith(extension.lower()):
                     files.append(filename)
             files.sort()
-        if only_peak_info:
-            files = [f for f in files if 'peak_info' in f.lower()]
+        
 
         return jsonify({'success': True, 'files': files,  'filter': 'peak_info only'})
     except Exception as e:
@@ -547,7 +549,13 @@ def identify_compounds():
 
         input_path = data.get('input_path')
         output_path = data.get('output_path')
-        files = data.get('files')
+        files = data.get('files', '')
+
+        if files and files.strip():
+            files_list = files
+        else:
+            files_list = None
+
         if not input_path:
             return jsonify({
                 'success': False,
@@ -558,7 +566,7 @@ def identify_compounds():
             search_messages = nist_local.matching_nist(
                 input_path=input_path,
                 output_path=output_path,
-                files=files,
+                files=files_list,
             )
             messages.extend(search_messages)
         except ImportError as e:
@@ -583,39 +591,6 @@ def identify_compounds():
             'message': str(e),
             'messages': messages
         }), 500
-
-
-# @app.route('/api/identify', methods=['GET'])
-# def identify_compounds():
-    
-#     input_path = request.args.get('input_path')
-#     output_path = request.args.get('output_path')
-#     files = request.args.get('files')
-    
-#     def generate_identification():
-#         try:
-#             yield f"data: {json.dumps({'type': 'message', 'content': '? Starting NIST local search...', 'message_type': 'info'})}\n\n"
-            
-
-#             # Traitement NIST avec streaming
-#             search_messages = nist_local.matching_nist(
-#                 input_path=input_path,
-#                  output_path=output_path,
-#                  files=files,
-#             )
-            
-#             # Envoyer les messages restants
-#             for message in search_messages:
-#                 yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
-            
-#             # Message de fin
-#             yield f"data: {json.dumps({'type': 'complete', 'content': '🎉 Identification terminée!', 'message_type': 'success'})}\n\n"
-            
-#         except Exception as e:
-#             yield f"data: {json.dumps({'type': 'error', 'content': f'❌ Erreur: {str(e)}', 'message_type': 'error'})}\n\n"
-
-#     return Response(generate_identification(), mimetype='text/event-stream')
-
 
 
 if __name__ == '__main__':
