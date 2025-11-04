@@ -218,7 +218,6 @@ export function initializeConverterTab() {
             }
         });
     }
-    // initializeAnalysisTab();
     displayMessage('🚀 Interface DataLab 2DGC initialisée', 'success');
-    // initializeIdentificationTab();
+
 }

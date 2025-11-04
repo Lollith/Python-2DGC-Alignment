@@ -8,7 +8,7 @@ import os
 import time
 import sys
 import docker
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, Response
 import os
 import threading
 import shutil
@@ -23,6 +23,8 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
 import nist_local
 import nist_engine
+import json
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -118,7 +120,7 @@ def list_files():
                     files.append(filename)
             files.sort()
         if only_peak_info:
-            files = [f for f in files if 'Peak_info' in f]
+            files = [f for f in files if 'peak_info' in f.lower()]
 
         return jsonify({'success': True, 'files': files,  'filter': 'peak_info only'})
     except Exception as e:
@@ -532,91 +534,87 @@ def get_logs():
         })
     
 
-# @app.route('/api/identify', methods=['POST'])
-# def identify_compounds():
-#     messages = []
-#     try:
-#         data = request.get_json()
-#         if not data:
-#             return jsonify({
-#                 'success': False,
-#                 'message': 'Aucune donnée reçue'
-#             }), 400
-
-#         input_path = data.get('input_path')
-#         output_path = data.get('output_path')
-#         files = data.get('files')
-#         if not input_path:
-#             return jsonify({
-#                 'success': False,
-#                 'message': 'input_path requis'
-#             }), 400
-
-#         try:
-#             search_messages = nist_local.matching_nist(
-#                 input_path=input_path,
-#                 output_path=output_path,
-#                 files=files,
-#             )
-#             messages.extend(search_messages)
-#         except ImportError as e:
-#             return jsonify({
-#                 'success': False,
-#                 'message': f'Module NIST non trouvé: {str(e)}'
-#             }), 500
-#         except Exception as e:
-#             return jsonify({
-#                 'success': False,
-#                 'message': f'Erreur NIST: {str(e)}'
-#             }), 500
-
-#         return jsonify({
-#             'success': True,
-#             'messages': messages,
-#         })
-        
-#     except Exception as e:
-#         return jsonify({
-#             'success': False,
-#             'message': str(e),
-#             'messages': messages
-#         }), 500
-import json
-
 @app.route('/api/identify', methods=['POST'])
 def identify_compounds():
-    data = request.get_json()
-    
-    def generate_progress():
-        """Generator pour streamer les messages en temps réel"""
-        try:
-            # Envoyer le message de début
-            yield f"data: {json.dumps({'type': 'message', 'content': '🔬 Starting NIST local search...', 'message_type': 'info'})}\n\n"
-            
-            # Appeler votre fonction avec callback pour messages
-            def message_callback(message, msg_type='info'):
-                """Callback pour envoyer chaque message progressivement"""
-                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': msg_type})}\n\n"
-            
-            # Traitement NIST avec streaming
-            result_messages = nist_local.matching_nist_streaming(
-                data.get('input_path'), 
-                data.get('output_path'), 
-                data.get('files'),
-                progress_callback=message_callback
-            )
-            
-            # Envoyer les messages restants
-            for message in result_messages:
-                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
-            
-            # Message de fin
-            yield f"data: {json.dumps({'type': 'complete', 'content': '🎉 Identification terminée!', 'message_type': 'success'})}\n\n"
-            
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'content': f'❌ Erreur: {str(e)}', 'message_type': 'error'})}\n\n"
+    messages = []
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Aucune donnée reçue'
+            }), 400
 
-    return Response(generate_progress(), mimetype='text/event-stream')
+        input_path = data.get('input_path')
+        output_path = data.get('output_path')
+        files = data.get('files')
+        if not input_path:
+            return jsonify({
+                'success': False,
+                'message': 'input_path requis'
+            }), 400
+
+        try:
+            search_messages = nist_local.matching_nist(
+                input_path=input_path,
+                output_path=output_path,
+                files=files,
+            )
+            messages.extend(search_messages)
+        except ImportError as e:
+            return jsonify({
+                'success': False,
+                'message': f'Module NIST non trouvé: {str(e)}'
+            }), 500
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': f'Erreur NIST: {str(e)}'
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'messages': messages,
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e),
+            'messages': messages
+        }), 500
+
+
+# @app.route('/api/identify', methods=['GET'])
+# def identify_compounds():
+    
+#     input_path = request.args.get('input_path')
+#     output_path = request.args.get('output_path')
+#     files = request.args.get('files')
+    
+#     def generate_identification():
+#         try:
+#             yield f"data: {json.dumps({'type': 'message', 'content': '? Starting NIST local search...', 'message_type': 'info'})}\n\n"
+            
+
+#             # Traitement NIST avec streaming
+#             search_messages = nist_local.matching_nist(
+#                 input_path=input_path,
+#                  output_path=output_path,
+#                  files=files,
+#             )
+            
+#             # Envoyer les messages restants
+#             for message in search_messages:
+#                 yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
+            
+#             # Message de fin
+#             yield f"data: {json.dumps({'type': 'complete', 'content': '🎉 Identification terminée!', 'message_type': 'success'})}\n\n"
+            
+#         except Exception as e:
+#             yield f"data: {json.dumps({'type': 'error', 'content': f'❌ Erreur: {str(e)}', 'message_type': 'error'})}\n\n"
+
+#     return Response(generate_identification(), mimetype='text/event-stream')
 
 
 

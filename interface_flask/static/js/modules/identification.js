@@ -27,19 +27,20 @@ export function initializeIdentificationTab() {
                     body: JSON.stringify({
                         path: identInputPath,
                         extension: '.csv',
-                    peak_info_only: true})
+                        peak_info_only: true
+                    })
                 });
                 
                 const data = await response.json();
                 if (data.success) {
                     if (data.files.length > 0) {
-                        availableCsvFilesDiv.innerHTML = `<strong>Fichiers Peak_info.csv trouvés:</strong><br>${data.files.join(', ')}`;
+                        availableCsvFilesDiv.innerHTML = `<strong>Fichiers Peak_Info.csv trouvés:</strong><br>${data.files.join(', ')}`;
                         availableCsvFilesDiv.style.display = 'block';
-                        displayMessage(`${data.files.length} fichier(s) Peak_info.csv trouvé(s)`);
+                        displayMessage(`${data.files.length} fichier(s) Peak_Info.csv trouvé(s)`);
                     } else {
-                        availableCsvFilesDiv.innerHTML = '<strong>Aucun fichier Peak_info.csv trouvé dans ce dossier</strong>';
+                        availableCsvFilesDiv.innerHTML = '<strong>Aucun fichier Peak_Info.csv trouvé dans ce dossier</strong>';
                         availableCsvFilesDiv.style.display = 'block';
-                        displayMessage('Aucun fichier Peak_info.csv trouvé', 'error');
+                        displayMessage('Aucun fichier Peak_Info.csv trouvé', 'error');
                     }
                 } else {
                     displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
@@ -75,6 +76,7 @@ export function initializeIdentificationTab() {
                 displayMessage('Veuillez spécifier un chemin de sortie', 'error');
                 return;
             }
+            
             function cleanupUI() {
                 loadingDiv.style.display = 'none';
                 showProgress(false);

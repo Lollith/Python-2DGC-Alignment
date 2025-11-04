@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeMonitoringTab();
 
     fillDefaultPaths();
-    displayMessage('✅ Application initialisée', 'success');
+    displayMessage('✨ Application initialisée', 'success');
 });
 
 

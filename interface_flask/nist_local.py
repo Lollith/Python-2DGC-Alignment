@@ -46,19 +46,19 @@ def matching_nist_streaming(input_path, output_path, files, progress_callback=No
     temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
 
     files_list = [f.strip() for f in files.split(',') if f.strip()]
-    peak_info_files = [f for f in files_list if "peak_info" in f.lower()]
+    # peak_info_files = [f for f in files_list if "peak_info" in f.lower()]
     
-    if not peak_info_files:
-        send_message("⚠️ Aucun fichier peak_info trouvé", 'warning')
-        return messages
+    # if not peak_info_files:
+    #     send_message("⚠️ Aucun fichier peak_info trouvé", 'warning')
+    #     return messages
     
-    send_message(f"📋 Fichiers peak_info à traiter: {peak_info_files}")
+    send_message(f"📋 Fichiers peak_info à traiter: {files_list}")
     
     with pyms_nist_search.Engine(mainlib_path, pyms_nist_search.NISTMS_MAIN_LIB, temp_dir) as engine:
         
-        for file_idx, file in enumerate(peak_info_files):
+        for file_idx, file in enumerate(files_list):
             filepath = os.path.join(input_path, file)
-            send_message(f"🔬 Processing file {file_idx+1}/{len(peak_info_files)}: {file}")
+            send_message(f"🔬 Processing file {file_idx+1}/{len(files_list)}: {file}")
             
             try:
                 df = pd.read_csv(filepath, sep=";")
@@ -140,6 +140,13 @@ def matching_nist_streaming(input_path, output_path, files, progress_callback=No
     return messages
 
 
+def get_files_from_folder(path):
+    """Get all peak_info files from a folder."""
+    if os.path.isdir(path):
+        return [f for f in os.listdir(path) if 'peak_info' in f.lower()]
+    else:
+        return []
+
 def matching_nist(input_path, output_path, files):
     """
     Perform a local NIST search operation.
@@ -159,11 +166,11 @@ def matching_nist(input_path, output_path, files):
     temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
 
     files_list = [f.strip() for f in files.split(',') if f.strip()]
-    peak_info_files = [f for f in files_list if "peak_info" in f.lower()]
 
-    if not peak_info_files:
-        messages.append("⚠️ Aucun fichier 'peak_info' trouvé dans la liste")
-        return messages
+ #   peak_info_files = [f for f in files_list if "peak_info" in f.lower()]
+
+  ##     messages.append("⚠️ Aucun fichier 'peak_info' trouvé dans la liste")
+    #    return messages
     messages.append(f"📋 Fichiers à traiter: {files_list}")
 
     with pyms_nist_search.Engine(
@@ -171,7 +178,7 @@ def matching_nist(input_path, output_path, files):
             pyms_nist_search.NISTMS_MAIN_LIB,
             temp_dir) as engine:
         
-        for file in peak_info_files:
+        for file in files_list:
             filepath = os.path.join(input_path, file)
             messages.append(f"Processing file: {filepath}")
         #     # lire le file.csv et chercher la colonne  spectra  et extraire mass_values et int_values tel que masse:intensite masse:intensite ...
