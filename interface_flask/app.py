@@ -538,7 +538,7 @@ def get_logs():
 
 @app.route('/api/identify', methods=['POST'])
 def identify_compounds():
-    messages = []
+    all_messages = []
     try:
         data = request.get_json()
         if not data:
@@ -551,24 +551,41 @@ def identify_compounds():
         output_path = data.get('output_path')
         files = data.get('files', '')
 
-        if files and files.strip():
-            files_list = files
-        else:
-            files_list = None
-
+        files_param = files.strip() if files and files.strip() else None
         if not input_path:
             return jsonify({
                 'success': False,
                 'message': 'input_path requis'
             }), 400
+        
+        try:
+            files, check_messages = nist_local.check_files(
+                input_path,
+                files_param)
+            if check_messages:
+                all_messages.extend(check_messages)
+            if files is None:
+                 return jsonify({
+                    'success': False,
+                    'message': "Aucun fichier Peak_info dsns ce dossier",
+                    'messages': all_messages
+                })
+
+        except ImportError as e:
+            return jsonify({
+                'success': False,
+                'message': f'Erreur vérification fichiers: {str(e)}'
+            }), 500
+
 
         try:
             search_messages = nist_local.matching_nist(
-                input_path=input_path,
-                output_path=output_path,
-                files=files_list,
+                input_path,
+                output_path,
+                files,
             )
-            messages.extend(search_messages)
+            if search_messages:
+                all_messages.extend(search_messages)
         except ImportError as e:
             return jsonify({
                 'success': False,
@@ -582,14 +599,15 @@ def identify_compounds():
 
         return jsonify({
             'success': True,
-            'messages': messages,
+            'message':'Identification terminée avec succès',
+            'messages': all_messages,
         })
         
     except Exception as e:
         return jsonify({
             'success': False,
             'message': str(e),
-            'messages': messages
+            'messages': all_messages
         }), 500
 
 

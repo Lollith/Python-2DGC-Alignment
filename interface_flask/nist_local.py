@@ -44,11 +44,34 @@ class NistLocal:
     def get_files_from_folder(self, path):
         """Get all peak_info files from a folder."""
         if os.path.isdir(path):
-            return [f for f in os.listdir(path) if 'peak_info' in f.lower()]
+            return [f for f in os.listdir(path)
+                    if 'peak_info' in f.lower()
+                    and not f.startswith('identified_')]
         else:
             return []
+        
+    def check_files(self, input_path, files):
+        messages = []
 
-    def matching_nist(self, input_path, output_path, files):
+        if files is None:
+            # si pas de file specifique, selectionne tous les peak info ds le dossier
+            files_list = self.get_peak_info_files_from_folders(input_path)
+            messages.append(f"❌ no selected filed, search file{files_list}")
+            
+        else:
+            # fichier specifique fournit
+            files_list = [f.strip() for f in files.split(',') if f.strip()]
+            messages.append(f"❌ selected file :{files_list}")
+        
+        if not files_list:
+            messages.append("❌ Aucun fichier Peak_Info trouvé !")
+            return None, messages
+        
+        
+        messages.append(f"🎯 Fichiers peak_info à traiter: {files_list}")
+        return files_list, messages
+
+    def matching_nist(self, input_path, output_path, files_list):
         """
         Perform a local NIST search operation.
 
@@ -62,17 +85,7 @@ class NistLocal:
         messages.append("🔬 Starting NIST local search...")
         start = time.time()
         
-        if files is None:
-            # si pas de file specifique, selectionne tous les peak info ds le dossier
-            files_list = self.get_peak_info_files_from_folders(input_path)
-        else:
-            # fichier specifique fournit
-            files_list = [f.strip() for f in files.split(',') if f.strip()]
-        
-        if not files_list:
-            messages.append("❌ Aucun fichier Peak_Info trouvé !")
-            return messages
-        messages.append(f"🎯 Fichiers peak_info à traiter: {files_list}")
+      #  files_list = self.check_files(input_path, files, messages)
 
         with pyms_nist_search.Engine(
                 self.mainlib_path,
