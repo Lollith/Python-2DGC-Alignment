@@ -140,7 +140,7 @@ class DockerComposeManager:
         messages.append(f"🔄 Redémarrage du service '{service_name}'...")
         success, output, error = self.run_compose_command(['restart', service_name])
         if success:
-            messages.append(f"✅ Service '{service_name}' redémarré avec succès")
+            messages.append(f"✨ Service '{service_name}' redémarré avec succès")
         else:
             messages.append(f"❌ Erreur lors du redémarrage du service '{service_name}': {error}")
         return messages

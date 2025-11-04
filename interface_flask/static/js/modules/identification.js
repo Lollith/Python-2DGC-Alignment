@@ -24,19 +24,22 @@ export function initializeIdentificationTab() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ path: identInputPath, extension: '.csv' })
+                    body: JSON.stringify({
+                        path: identInputPath,
+                        extension: '.csv',
+                    peak_info_only: true})
                 });
                 
                 const data = await response.json();
                 if (data.success) {
                     if (data.files.length > 0) {
-                        availableCsvFilesDiv.innerHTML = `<strong>Fichiers CSV trouvés:</strong><br>${data.files.join(', ')}`;
+                        availableCsvFilesDiv.innerHTML = `<strong>Fichiers Peak_info.csv trouvés:</strong><br>${data.files.join(', ')}`;
                         availableCsvFilesDiv.style.display = 'block';
-                        displayMessage(`${data.files.length} fichier(s) CSV trouvé(s)`);
+                        displayMessage(`${data.files.length} fichier(s) Peak_info.csv trouvé(s)`);
                     } else {
-                        availableCsvFilesDiv.innerHTML = '<strong>Aucun fichier CSV trouvé dans ce dossier</strong>';
+                        availableCsvFilesDiv.innerHTML = '<strong>Aucun fichier Peak_info.csv trouvé dans ce dossier</strong>';
                         availableCsvFilesDiv.style.display = 'block';
-                        displayMessage('Aucun fichier CSV trouvé', 'error');
+                        displayMessage('Aucun fichier Peak_info.csv trouvé', 'error');
                     }
                 } else {
                     displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
@@ -47,7 +50,7 @@ export function initializeIdentificationTab() {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
             } finally {
                 listCsvBtn.disabled = false;
-                listCsvBtn.textContent = '📋 Lister fichiers CSV';
+                listCsvBtn.textContent = '📋 Lister fichiers';
             }
         });
    
@@ -68,12 +71,10 @@ export function initializeIdentificationTab() {
                 displayMessage('Veuillez spécifier un chemin d\'entrée', 'error');
                 return;
             }
-            
             if (!data.output_path?.trim()) {
                 displayMessage('Veuillez spécifier un chemin de sortie', 'error');
                 return;
             }
-            
             function cleanupUI() {
                 loadingDiv.style.display = 'none';
                 showProgress(false);

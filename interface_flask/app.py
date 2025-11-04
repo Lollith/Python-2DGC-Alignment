@@ -103,7 +103,8 @@ def list_files():
     data = request.get_json()
     path = data.get('path', '')
     extension = data.get('extension', '.cdf')  # .cdf: Extension par défaut
-    
+    only_peak_info = data.get('peak_info_only', False)
+
     if not path or not os.path.isdir(path):
         return jsonify({'success': False, 'message': 'Chemin invalide'})
 
@@ -116,8 +117,10 @@ def list_files():
                 if filename.lower().endswith(extension.lower()):
                     files.append(filename)
             files.sort()
+        if only_peak_info:
+            files = [f for f in files if 'Peak_info' in f]
 
-        return jsonify({'success': True, 'files': files})
+        return jsonify({'success': True, 'files': files,  'filter': 'peak_info only'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'})
 

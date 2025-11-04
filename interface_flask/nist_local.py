@@ -49,11 +49,19 @@ def matching_nist(input_path, output_path, files):
     temp_dir = os.getenv("TEMP_DIR", "C:/NIST20/MSSEARCH/tmp")
 
     files_list = [f.strip() for f in files.split(',') if f.strip()]
+    peak_info_files = [f for f in files_list if "peak_info" in f.lower()]
+
+    if not peak_info_files:
+        messages.append("⚠️ Aucun fichier 'peak_info' trouvé dans la liste")
+        return messages
     messages.append(f"📋 Fichiers à traiter: {files_list}")
 
-    with pyms_nist_search.Engine(mainlib_path, pyms_nist_search.NISTMS_MAIN_LIB, temp_dir) as engine:
+    with pyms_nist_search.Engine(
+            mainlib_path,
+            pyms_nist_search.NISTMS_MAIN_LIB,
+            temp_dir) as engine:
         
-        for file in files_list:
+        for file in peak_info_files:
             filepath = os.path.join(input_path, file)
             messages.append(f"Processing file: {filepath}")
         #     # lire le file.csv et chercher la colonne  spectra  et extraire mass_values et int_values tel que masse:intensite masse:intensite ...
