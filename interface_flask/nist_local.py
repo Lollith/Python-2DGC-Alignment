@@ -4,6 +4,7 @@ import pyms.Spectrum
 from dotenv import load_dotenv
 import time
 import pandas as pd
+import json
 
 load_dotenv()
 
@@ -72,6 +73,82 @@ class NistLocal:
         return files_list, messages
 
     def matching_nist(self, input_path, output_path, files_list):
+        yield "? Starting NIST local search..."
+        start = time.time()
+        
+        with pyms_nist_search.Engine(
+                self.mainlib_path,
+                pyms_nist_search.NISTMS_MAIN_LIB,
+                self.temp_dir) as engine:
+            
+            for file in files_list:
+                filepath = os.path.join(input_path, file)
+                yield f"? Processing file: {filepath}"  # ? Message immédiat !
+                
+                df = pd.read_csv(filepath, sep=";")
+                df['compound_name'] = ""
+                df['casno'] = ""
+                df['compound_formula'] = ""
+                df['match_factor'] = ""
+
+                compounds_processed = 0
+                compounds_identified = 0
+                total_rows = df.shape[0]
+                
+                for row in range(total_rows):
+                    # ? Messages de progression
+                    if row % 20 == 0:
+                        progress = (row / total_rows) * 100
+                        yield f"? {file}: {row}/{total_rows} traités ({progress:.1f}%)"
+                    
+                    s = df.at[row, 'Spectra']
+                    pairs = s.strip().split()
+
+                    masses = []
+                    intensities = []
+
+                    for pair in pairs:
+                            m, i = pair.split(":")
+                            masses.append(int(float(m)))  #  or float(m) if decimals matter
+                            intensities.append(float(i))
+
+                    compounds_processed += 1
+
+                    list_hits = []
+                    mass_spectrum = pyms.Spectrum.MassSpectrum(masses, intensities)
+
+                    hits = engine.full_search_with_ref_data(mass_spectrum, n_hits=20)
+                    for i, hit_tuple in enumerate(hits):
+                        results = self.serialize_hit_tuple(hit_tuple)
+                        list_hits.append(results)
+                    match_factor_min = 650 #TODO parametre ??
+                    top_hits = self.filter_best_hits(list_hits, match_factor_min)
+
+                    def join_field(field):
+                        return '/'.join(str(m.get(field, '')) for m in top_hits)
+
+                    if top_hits:
+                        compounds_identified += 1
+                        identification_data_dict = {
+                            'compound_name': join_field('name'),
+                            'casno': join_field('cas_number'),
+                            'compound_formula': join_field('formula'),
+                            'match_factor': join_field('match_factor'),
+                        }
+                        for key in identification_data_dict:
+                            df.at[row, key] = identification_data_dict[key]
+
+                output_filepath = os.path.join(output_path, f"identified_{file}")
+                df.to_csv(output_filepath, sep=";", index=False, encoding="utf-8-sig") #compatibilite avec excel
+                yield f"? {file}: terminé"
+        
+        yield f"?? Temps total: {time.time()-start:.2f} secondes"
+    
+    # Dans ta route Flask
+        for message in self.matching_nist(input_path, output_path, files_list):
+            yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
+
+    def matching_nist2(self, input_path, output_path, files_list):
         """
         Perform a local NIST search operation.
 
@@ -82,7 +159,7 @@ class NistLocal:
         """
         messages = []
         
-        messages.append("🔬 Starting NIST local search...")
+        #messages.append("🔬 Starting NIST local search...")
         start = time.time()
         
       #  files_list = self.check_files(input_path, files, messages)

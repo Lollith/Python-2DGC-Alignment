@@ -76,7 +76,7 @@ export function initializeIdentificationTab() {
                 displayMessage('Veuillez spécifier un chemin de sortie', 'error');
                 return;
             }
-            
+
             function cleanupUI() {
                 loadingDiv.style.display = 'none';
                 showProgress(false);
@@ -101,48 +101,49 @@ export function initializeIdentificationTab() {
             }
             
         // ✅ UI loading
-        loadingDiv.style.display = 'block';
-        showProgress(true);
-        
-        // ✅ NOUVEAU : EventSource pour streaming
-        const params = new URLSearchParams(data);
-        const eventSource = new EventSource(`/api/identify?${params}`);
-        
-        eventSource.onmessage = function(event) {
-            const messageData = JSON.parse(event.data);
+            loadingDiv.style.display = 'block';
+            showProgress(true);
             
-            // ✅ Chaque message arrive IMMÉDIATEMENT !
-            switch(messageData.type) {
-                case 'message':
-                    displayMessage(messageData.content, messageData.message_type);
-                    break;
-                case 'error':
-                    displayMessage(messageData.content, messageData.message_type);
-                    eventSource.close();
-                    loadingDiv.style.display = 'none';
-                    showProgress(false);
-                    break;
-                case 'complete':
-                    displayMessage(messageData.content, messageData.message_type);
-                    eventSource.close();
-                    loadingDiv.style.display = 'none';
-                    showProgress(false);
-                    break;
-            }
-        };
+            // ✅ NOUVEAU : EventSource pour streaming
+            const params = new URLSearchParams(data);
+            const eventSource = new EventSource(`/api/identify?${params}`);
+            
+            eventSource.onmessage = function(event) {
+                const messageData = JSON.parse(event.data);
+                
+                // ✅ Chaque message arrive IMMÉDIATEMENT !
+                switch(messageData.type) {
+                    case 'message':
+                        displayMessage(messageData.content, messageData.message_type);
+                        break;
+                    case 'error':
+                        displayMessage(messageData.content, messageData.message_type);
+                        eventSource.close();
+                        loadingDiv.style.display = 'none';
+                        showProgress(false);
+                        break;
+                    case 'complete':
+                        displayMessage(messageData.content, messageData.message_type);
+                        eventSource.close();
+                        loadingDiv.style.display = 'none';
+                        showProgress(false);
+                        break;
+                }
+            };
 
-        eventSource.onerror = function() {
-            displayMessage('❌ Erreur de connexion au stream', 'error');
-            eventSource.close();
-            loadingDiv.style.display = 'none';
-            showProgress(false);
-        };
+            eventSource.onerror = function() {
+                displayMessage('❌ Erreur de connexion au stream', 'error');
+                eventSource.close();
+                loadingDiv.style.display = 'none';
+                showProgress(false);
+            };
 
-        // ✅ Nettoyer si l'utilisateur quitte la page
-        window.addEventListener('beforeunload', function() {
-            eventSource.close();
+            // ✅ Nettoyer si l'utilisateur quitte la page
+            window.addEventListener('beforeunload', function() {
+                eventSource.close();
+            });
         });
-    });
+    }
 }
 
 //             try {
@@ -175,4 +176,4 @@ export function initializeIdentificationTab() {
 //      });
 //     }
 // }
-       
+    
