@@ -176,7 +176,7 @@ document.getElementById('refreshStatusBtn')?.addEventListener('click', refreshAl
                 // Afficher TOUS les messages de restart
                 data.status?.forEach(msg => {
                     const isError = msg.includes('❌');
-                    const isSuccess = msg.includes('✅');
+                    const isSuccess = msg.includes('✨');
                     const type = isError ? 'error' : (isSuccess ? 'success' : 'info');
                     displayMessage(msg, type);
                 });

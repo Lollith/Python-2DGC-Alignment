@@ -103,7 +103,7 @@ export function displayMessage(message, type = 'success') {
     switch(type) {
         case 'error':
             className = 'error';
-            prefix = '❌';
+            prefix = '⚠️';
             break;
         case 'info':
             className = 'info';

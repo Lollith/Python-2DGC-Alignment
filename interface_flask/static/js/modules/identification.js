@@ -1,13 +1,14 @@
 import { displayMessage, loadingDiv, outputDiv, showProgress } from '../main.js';
 
 export function initializeIdentificationTab() {
+    
     const listCsvBtn = document.getElementById('listCsvBtn');
     const csvFilesInput = document.getElementById('csvFiles');
     const availableCsvFilesDiv = document.getElementById('availableCsvFiles');
     const identificationForm = document.getElementById('identificationForm');
 
-
-    listCsvBtn.addEventListener('click', async function() {
+    if (identificationForm) {
+        listCsvBtn.addEventListener('click', async function() {
             const identInputPath = document.getElementById('identInputPath').value;
 
             if (!identInputPath.trim()) {
@@ -50,9 +51,8 @@ export function initializeIdentificationTab() {
             }
         });
    
-
+    }
 // Lancer l'analyse
-    
     if (identificationForm) {
         identificationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -74,9 +74,10 @@ export function initializeIdentificationTab() {
                 return;
             }
             
-            loadingDiv.style.display = 'block';
-            // outputDiv.innerHTML = '';
-            showProgress(true);
+            function cleanupUI() {
+                loadingDiv.style.display = 'none';
+                showProgress(false);
+            }
 
             try {
             const nistCheck = await fetch('/nist/health');
@@ -85,12 +86,14 @@ export function initializeIdentificationTab() {
             
             if (nistStatus.nist_status !== 'available') {
                 displayMessage('❌ Moteur NIST indisponible. Vérifiez le statut dans l\'onglet Monitoring.', 'error');
+                cleanupUI();
                 return;
             } else {
-                displayMessage('✅ Moteur NIST actif.');
+                displayMessage('✨ Moteur NIST actif.');
             }
             } catch (error) {
                 displayMessage('❌ Impossible de vérifier le statut NIST: ' + error.message, 'error');
+                cleanupUI();
                 return;
             }
 
@@ -110,7 +113,7 @@ export function initializeIdentificationTab() {
                             displayMessage(message, 'info');  // Afficher message app.py
                         });
                     }
-                    displayMessage(`✅ Identification terminée!`, 'success');
+                    displayMessage(`✨ Identification terminée!`, 'success');
                     
                 } else {
                     displayMessage('❌ L\'identification a échoué: ' + result.message, 'error');
@@ -119,8 +122,7 @@ export function initializeIdentificationTab() {
             } catch (error) {
                 displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
             } finally {
-                loadingDiv.style.display = 'none';
-                showProgress(false);
+                cleanupUI();
             }
      });
     }

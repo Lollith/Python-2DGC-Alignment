@@ -539,7 +539,7 @@ def identify_compounds():
                 'success': False,
                 'message': 'Aucune donnée reçue'
             }), 400
-        
+
         input_path = data.get('input_path')
         output_path = data.get('output_path')
         files = data.get('files')
@@ -548,8 +548,8 @@ def identify_compounds():
                 'success': False,
                 'message': 'input_path requis'
             }), 400
-            
-        try: 
+
+        try:
             search_messages = nist_local.matching_nist(
                 input_path=input_path,
                 output_path=output_path,
@@ -566,8 +566,7 @@ def identify_compounds():
                 'success': False,
                 'message': f'Erreur NIST: {str(e)}'
             }), 500
-        
-        
+
         return jsonify({
             'success': True,
             'messages': messages,

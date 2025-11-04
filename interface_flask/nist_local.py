@@ -7,14 +7,15 @@ import pandas as pd
 
 load_dotenv()
 
+
 def serialize_hit_tuple(hit_tuple):
-        search_result, ref_data = hit_tuple
-        return {
-            "name": getattr(search_result, "name", None),
-            "match_factor": getattr(search_result, "match_factor", None),
-            "cas_number": getattr(search_result, "cas", None),
-            "formula": getattr(ref_data, "formula", None),
-        }
+    search_result, ref_data = hit_tuple
+    return {
+        "name": getattr(search_result, "name", None),
+        "match_factor": getattr(search_result, "match_factor", None),
+        "cas_number": getattr(search_result, "cas", None),
+        "formula": getattr(ref_data, "formula", None),
+    }
 
 
 def filter_best_hits(list_hits, match_factor_min):
@@ -95,11 +96,11 @@ def matching_nist(input_path, output_path, files):
                 if top_hits:
                     compounds_identified += 1
                     identification_data_dict = {
-                    'compound_name': join_field('name'),
-                    'casno': join_field('cas_number'),
-                    'compound_formula': join_field('formula'),
-                    'match_factor': join_field('match_factor'),
-                }
+                        'compound_name': join_field('name'),
+                        'casno': join_field('cas_number'),
+                        'compound_formula': join_field('formula'),
+                        'match_factor': join_field('match_factor'),
+                    }
                     for key in identification_data_dict:
                         df.at[row, key] = identification_data_dict[key]
 
@@ -107,11 +108,9 @@ def matching_nist(input_path, output_path, files):
             df.to_csv(output_filepath, sep=";", index=False, encoding="utf-8-sig") #compatibilite avec excel
             messages.append(f"✅ {file}: {compounds_identified}/{compounds_processed} composés identifiés")
             messages.append(f"💾 Fichier CSV identifié sauvegardé: {output_filepath}")
-  
+
     end = time.time() - start
     messages.append(f"⏱️ NIST local search completed in {end:.2f} secondes")
 
     return messages
-
-
 

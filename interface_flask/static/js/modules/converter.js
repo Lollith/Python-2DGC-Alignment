@@ -205,7 +205,7 @@ export function initializeConverterTab() {
                 const data = await response.json();
                 
                 if (data.success) {
-                    displayMessage(`✅ ${data.deleted_count} fichier(s) .h5 supprimé(s)`, 'success');
+                    displayMessage(`✨ ${data.deleted_count} fichier(s) .h5 supprimé(s)`, 'success');
                     h5FilesList.style.display = 'none';
                 } else {
                     displayMessage(data.message || 'Erreur lors de la suppression', 'error');
