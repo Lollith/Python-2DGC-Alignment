@@ -536,79 +536,124 @@ def get_logs():
         })
     
 
-@app.route('/api/identify', methods=['POST'])
+# @app.route('/api/identify', methods=['GET'])
+# def identify_compounds():
+#     all_messages = []
+#     try:
+#         data = request.get_json()
+#         if not data:
+#             return jsonify({
+#                 'success': False,
+#                 'message': 'Aucune donnée reçue'
+#             }), 400
+
+#         input_path = data.get('input_path')
+#         output_path = data.get('output_path')
+#         files = data.get('files', '')
+
+#         files_param = files.strip() if files and files.strip() else None
+#         if not input_path:
+#             return jsonify({
+#                 'success': False,
+#                 'message': 'input_path requis'
+#             }), 400
+        
+#         try:
+#             files, check_messages = nist_local.check_files(
+#                 input_path,
+#                 files_param)
+#             if check_messages:
+#                 all_messages.extend(check_messages)
+#             if files is None:
+#                 return jsonify({
+#                     'success': False,
+#                     'message': "Aucun fichier Peak_info dsns ce dossier",
+#                     'messages': all_messages
+#                 })
+
+#         except ImportError as e:
+#             return jsonify({
+#                 'success': False,
+#                 'message': f'Erreur vérification fichiers: {str(e)}'
+#             }), 500
+
+
+#         try:
+#             search_messages = nist_local.matching_nist(
+#                 input_path,
+#                 output_path,
+#                 files,
+#             )
+#             if search_messages:
+#                 all_messages.extend(search_messages)
+#         except ImportError as e:
+#             return jsonify({
+#                 'success': False,
+#                 'message': f'Module NIST non trouvé: {str(e)}'
+#             }), 500
+#         except Exception as e:
+#             return jsonify({
+#                 'success': False,
+#                 'message': f'Erreur NIST: {str(e)}'
+#             }), 500
+
+#         return jsonify({
+#             'success': True,
+#             'message':'Identification terminée avec succès',
+#             'messages': all_messages,
+#         })
+        
+#     except Exception as e:
+#         return jsonify({
+#             'success': False,
+#             'message': str(e),
+#             'messages': all_messages
+#         }), 500
+
+@app.route('/api/identify', methods=['GET'])
 def identify_compounds():
-    all_messages = []
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({
-                'success': False,
-                'message': 'Aucune donnée reçue'
-            }), 400
+    input_path = request.args.get('input_path')
+    output_path = request.args.get('output_path')
+    files = request.args.get('files', '')
 
-        input_path = data.get('input_path')
-        output_path = data.get('output_path')
-        files = data.get('files', '')
-
-        files_param = files.strip() if files and files.strip() else None
-        if not input_path:
-            return jsonify({
-                'success': False,
-                'message': 'input_path requis'
-            }), 400
-        
+    def generate_identification():
         try:
-            files, check_messages = nist_local.check_files(
-                input_path,
-                files_param)
-            if check_messages:
-                all_messages.extend(check_messages)
-            if files is None:
-                 return jsonify({
-                    'success': False,
-                    'message': "Aucun fichier Peak_info dsns ce dossier",
-                    'messages': all_messages
-                })
-
-        except ImportError as e:
-            return jsonify({
-                'success': False,
-                'message': f'Erreur vérification fichiers: {str(e)}'
-            }), 500
-
-
-        try:
-            search_messages = nist_local.matching_nist(
-                input_path,
-                output_path,
-                files,
-            )
-            if search_messages:
-                all_messages.extend(search_messages)
-        except ImportError as e:
-            return jsonify({
-                'success': False,
-                'message': f'Module NIST non trouvé: {str(e)}'
-            }), 500
+            # ✅ Validation
+            if not input_path or not input_path.strip():
+                yield f"data: {json.dumps({'type': 'error', 'content': '❌ Aucun chemin d\'entrée spécifié !', 'message_type': 'error'})}\n\n"
+                return
+            
+            yield f"data: {json.dumps({'type': 'message', 'content': '🔍 Phase 1: Vérification des fichiers...', 'message_type': 'info'})}\n\n"
+            
+            # ✅ PHASE 1: Check files avec messages temps réel
+            files_param = files.strip() if files and files.strip() else None
+            files_list, check_messages = nist_local.check_files(input_path, files_param)
+            
+            # ✅ Afficher chaque message de check_files IMMÉDIATEMENT
+            for message in check_messages:
+                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
+            
+            # ✅ Arrêter si pas de fichiers
+            if files_list is None:
+                yield f"data: {json.dumps({'type': 'error', 'content': '❌ Analyse annulée - aucun fichier à traiter', 'message_type': 'error'})}\n\n"
+                return
+            
+            # ✅ Message de transition entre les phases
+            yield f"data: {json.dumps({'type': 'message', 'content': '🚀 Phase 2: Démarrage de l\'analyse NIST...', 'message_type': 'info'})}\n\n"
+            
+            # ✅ PHASE 2: Traitement NIST (garde ta version existante !)
+            search_messages = nist_local.matching_nist(input_path, output_path, files_list)
+            
+            # ✅ Afficher tous les messages NIST d'un coup (ou un par un si tu veux)
+            for message in search_messages:
+                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
+            
+            yield f"data: {json.dumps({'type': 'complete', 'content': '🎉 Identification terminée!', 'message_type': 'success'})}\n\n"
+            
         except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': f'Erreur NIST: {str(e)}'
-            }), 500
+            yield f"data: {json.dumps({'type': 'error', 'content': f'❌ Erreur: {str(e)}', 'message_type': 'error'})}\n\n"
 
-        return jsonify({
-            'success': True,
-            'message':'Identification terminée avec succès',
-            'messages': all_messages,
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e),
-            'messages': all_messages
-        }), 500
+    return Response(generate_identification(), mimetype='text/event-stream')
 
 
 if __name__ == '__main__':

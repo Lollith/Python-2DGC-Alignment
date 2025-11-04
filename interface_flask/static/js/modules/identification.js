@@ -99,35 +99,80 @@ export function initializeIdentificationTab() {
                 cleanupUI();
                 return;
             }
-
-            try {
-                const response = await fetch('/api/identify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-
-                    if (result.messages && result.messages.length > 0) {
-                        result.messages.forEach(message => {
-                            displayMessage(message, 'info');  // Afficher message app.py
-                        });
-                    }
-                    displayMessage(`✨ Identification terminée!`, 'success');
-                    
-                } else {
-                    displayMessage('❌ L\'identification a échoué: ' + result.message, 'error');
-                }
             
-            } catch (error) {
-                displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
-            } finally {
-                cleanupUI();
+        // ✅ UI loading
+        loadingDiv.style.display = 'block';
+        showProgress(true);
+        
+        // ✅ NOUVEAU : EventSource pour streaming
+        const params = new URLSearchParams(data);
+        const eventSource = new EventSource(`/api/identify?${params}`);
+        
+        eventSource.onmessage = function(event) {
+            const messageData = JSON.parse(event.data);
+            
+            // ✅ Chaque message arrive IMMÉDIATEMENT !
+            switch(messageData.type) {
+                case 'message':
+                    displayMessage(messageData.content, messageData.message_type);
+                    break;
+                case 'error':
+                    displayMessage(messageData.content, messageData.message_type);
+                    eventSource.close();
+                    loadingDiv.style.display = 'none';
+                    showProgress(false);
+                    break;
+                case 'complete':
+                    displayMessage(messageData.content, messageData.message_type);
+                    eventSource.close();
+                    loadingDiv.style.display = 'none';
+                    showProgress(false);
+                    break;
             }
-     });
-    }
+        };
+
+        eventSource.onerror = function() {
+            displayMessage('❌ Erreur de connexion au stream', 'error');
+            eventSource.close();
+            loadingDiv.style.display = 'none';
+            showProgress(false);
+        };
+
+        // ✅ Nettoyer si l'utilisateur quitte la page
+        window.addEventListener('beforeunload', function() {
+            eventSource.close();
+        });
+    });
 }
+
+//             try {
+//                 const response = await fetch('/api/identify', {
+//                     method: 'POST',
+//                     headers: { 'Content-Type': 'application/json' },
+//                     body: JSON.stringify(data)
+//                 });
+                
+//                 const result = await response.json();
+                
+//                 if (result.success) {
+
+//                     if (result.messages && result.messages.length > 0) {
+//                         result.messages.forEach(message => {
+//                             displayMessage(message, 'info');  // Afficher message app.py
+//                         });
+//                     }
+//                     displayMessage(`✨ Identification terminée!`, 'success');
+                    
+//                 } else {
+//                     displayMessage('❌ L\'identification a échoué: ' + result.message, 'error');
+//                 }
+            
+//             } catch (error) {
+//                 displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
+//             } finally {
+//                 cleanupUI();
+//             }
+//      });
+//     }
+// }
        
