@@ -125,7 +125,7 @@ In this project, we use the NIST mass spectral search engine to automate the ide
 To use NIST, you must place your NIST database files (mainlib) into a designated folder. This folder should contain the Nist library and an empty tmp folder.
 When you start the Flask Api, keep it running in the backgroung while performing identifications.
 
-### jupyter & Flask password hash
+### Jupyter & Flask password hash
 
 To avoid having to click on the address with the token each time you launch Jupyter in the browser, you can set a password. Then, you’ll only need to access http://localhost:8888 directly.
 For the api Flask you need a password too.
@@ -175,7 +175,7 @@ IP_SERVER=...
 - From windows explorer:
 Double-click on launcher.bat, then open http://localhost:8080. This will start the Flask server.
 
--From the terminal:
+- From the terminal:
 ```
 python interface_flask/app.py
 ```
@@ -192,6 +192,7 @@ The project uses a Flask app:
 3. Interface tabs:
     - **Converter**: Provides access to a file converter that transforms .cdf chromatogram files into HDF5 format. These .h5 files are smaller and faster to process for downstream analysis in the container. A cleaner tool is also included, which allows users to delete the .h5 files.
     - **Analyzer**: Allows users to list available .h5 files and launch JupyterLab for data analysis.
+   - **Identification**: Performs automated compound identification using NIST mass spectral library search. This module processes Peak_Info.csv files obtained from the alignment module in the Analyzer tab. The identification algorithm utilizes the mass spectrum data from the designated seed file, which serves as the representative spectrum for each aligned peak cluster across multiple samples. This streamlined identification workflow is performed significantly faster than the comprehensive identification process available in JupyterLab.
     - **Monitoring**: The application allows you to check system status: whether containers and NIST are running. You can start or restart Docker containers and view system logs. 
 
 
