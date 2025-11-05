@@ -15,6 +15,47 @@ c.ServerApp.ip = '0.0.0.0'
 c.ServerApp.open_browser = False
 c.ServerApp.port = 8888
 
+c.ServerApp.extra_static_paths = ["/root/.jupyter/custom"]
+
+def setup_custom_css():
+    import os
+    css_dir = "/root/.jupyter/custom"
+    os.makedirs(css_dir, exist_ok=True)
+    css_content = """
+        /* Taille de police 32px pour le code et les cellules */
+        .CodeMirror, .CodeMirror-lines, .CodeMirror-line {
+            font-size: 32px !important;
+            line-height: 1.2 !important;
+        }
+
+        /* Taille de police 32px pour les outputs */
+        .output_area, .output_text, .output_subarea {
+            font-size: 32px !important;
+        }
+
+        /* Taille de police 32px pour les markdown rendus */
+        .rendered_html {
+            font-size: 32px !important;
+        }
+
+        /* Taille de police pour tous les contenus */
+        #notebook-container, .notebook-container {
+            font-size: 32px !important;
+        }
+
+        /* Pour les inputs et prompts */
+        .input_prompt, .output_prompt {
+            font-size: 32px !important;
+        }
+        """
+    
+    with open(f"{css_dir}/custom.css", "w") as f:
+        f.write(css_content)
+    
+    print("? CSS personnalisé créé avec succès!")
+
+# Appeler au démarrage
+setup_custom_css()
 #------------------------------------------------------------------------------
 # Application(SingletonConfigurable) configuration
 #------------------------------------------------------------------------------
