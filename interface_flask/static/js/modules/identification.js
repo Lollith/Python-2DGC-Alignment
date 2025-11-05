@@ -58,9 +58,16 @@ export function initializeIdentificationTab() {
     }
 // Lancer l'analyse
     if (identificationForm) {
+        let currentEventSource = null;
+
         identificationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-        
+             if (currentEventSource) {
+                console.log('🔄 Fermeture ancienne EventSource');
+                currentEventSource.close();
+                currentEventSource = null;
+            }
+
             const formData = new FormData(identificationForm);
             const data = {
                 input_path: formData.get('identInputPath'),
@@ -83,17 +90,17 @@ export function initializeIdentificationTab() {
             }
 
             try {
-            const nistCheck = await fetch('/nist/health');
-            displayMessage('Vérification du statut du moteur NIST...');
-            const nistStatus = await nistCheck.json();
+                const nistCheck = await fetch('/nist/health');
+                displayMessage('Vérification du statut du moteur NIST...');
+                const nistStatus = await nistCheck.json();
             
-            if (nistStatus.nist_status !== 'available') {
-                displayMessage('❌ Moteur NIST indisponible. Vérifiez le statut dans l\'onglet Monitoring.', 'error');
-                cleanupUI();
-                return;
-            } else {
-                displayMessage('✨ Moteur NIST actif.');
-            }
+                if (nistStatus.nist_status !== 'available') {
+                    displayMessage('❌ Moteur NIST indisponible. Vérifiez le statut dans l\'onglet Monitoring.', 'error');
+                    cleanupUI();
+                    return;
+                } else {
+                    displayMessage('⚡ Moteur NIST actif.');
+                }
             } catch (error) {
                 displayMessage('❌ Impossible de vérifier le statut NIST: ' + error.message, 'error');
                 cleanupUI();
@@ -104,76 +111,54 @@ export function initializeIdentificationTab() {
             loadingDiv.style.display = 'block';
             showProgress(true);
             
-            // ✅ NOUVEAU : EventSource pour streaming
             const params = new URLSearchParams(data);
-            const eventSource = new EventSource(`/api/identify?${params}`);
-            
-            eventSource.onmessage = function(event) {
-                const messageData = JSON.parse(event.data);
-                
-                // ✅ Chaque message arrive IMMÉDIATEMENT !
-                switch(messageData.type) {
-                    case 'message':
-                        displayMessage(messageData.content, messageData.message_type);
-                        break;
-                    case 'error':
-                        displayMessage(messageData.content, messageData.message_type);
-                        eventSource.close();
-                        loadingDiv.style.display = 'none';
-                        showProgress(false);
-                        break;
-                    case 'complete':
-                        displayMessage(messageData.content, messageData.message_type);
-                        eventSource.close();
-                        loadingDiv.style.display = 'none';
-                        showProgress(false);
-                        break;
+            currentEventSource = new EventSource(`/api/identify?${params}`);
+
+            currentEventSource.onopen = function(event) {
+            };
+
+            currentEventSource.onmessage = function(event) {
+                try {
+                    const messageData = JSON.parse(event.data);
+                    switch(messageData.type) {
+                        case 'message':
+                            displayMessage(messageData.content, messageData.message_type);
+                            break;
+                        case 'error':
+                            displayMessage(messageData.content, messageData.message_type);
+                            currentEventSource.close();
+                            loadingDiv.style.display = 'none';
+                            showProgress(false);
+                            break;
+                        case 'complete':
+                            displayMessage(messageData.content, messageData.message_type);
+                            currentEventSource.close();
+                            loadingDiv.style.display = 'none';
+                            showProgress(false);
+                            break;
+
+                        default:
+                            console.warn('⚠️ Message type inconnu:', messageData.type);
+                            displayMessage(messageData.content || 'Message reçu', 'info');
+                    }
+                } catch (e) {
+                    console.error('❌ Erreur parsing JSON:', e);
+                    console.error('❌ Data reçue:', event.data);
                 }
             };
 
-            eventSource.onerror = function() {
+            currentEventSource.onerror = function(event) {
+                console.error('❌ EventSource error:', event);
                 displayMessage('❌ Erreur de connexion au stream', 'error');
-                eventSource.close();
-                loadingDiv.style.display = 'none';
-                showProgress(false);
+                currentEventSource.close();
+                cleanupUI();
             };
 
-            // ✅ Nettoyer si l'utilisateur quitte la page
+            // Nettoyer si l'utilisateur quitte la page
             window.addEventListener('beforeunload', function() {
                 eventSource.close();
             });
         });
     }
 }
-
-//             try {
-//                 const response = await fetch('/api/identify', {
-//                     method: 'POST',
-//                     headers: { 'Content-Type': 'application/json' },
-//                     body: JSON.stringify(data)
-//                 });
-                
-//                 const result = await response.json();
-                
-//                 if (result.success) {
-
-//                     if (result.messages && result.messages.length > 0) {
-//                         result.messages.forEach(message => {
-//                             displayMessage(message, 'info');  // Afficher message app.py
-//                         });
-//                     }
-//                     displayMessage(`✨ Identification terminée!`, 'success');
-                    
-//                 } else {
-//                     displayMessage('❌ L\'identification a échoué: ' + result.message, 'error');
-//                 }
-            
-//             } catch (error) {
-//                 displayMessage('❌ Erreur de connexion: ' + error.message, 'error');
-//             } finally {
-//                 cleanupUI();
-//             }
-//      });
-//     }
-// }
     

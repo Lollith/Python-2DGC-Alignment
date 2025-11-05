@@ -115,7 +115,7 @@ def list_files():
         if extension == '.cdf':
             files = converter.get_files_from_folder(path)
         elif extension == '.csv' and only_peak_info:
-            files = nist_local.get_peak_info_files_from_folders(path)
+            files = nist_local.get_files_from_folder(path)
         else:
             files = []
             for filename in os.listdir(path):
@@ -534,8 +534,6 @@ def get_logs():
             'logs': [f"❌ Erreur lors de la récupération des logs: {str(e)}"],
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
-from flask_cors import CORS, cross_origin 
-CORS(app)
 
 @app.route('/api/identify', methods=['GET'])
 def identify_compounds():
@@ -551,27 +549,10 @@ def identify_compounds():
                 yield f"data: {json.dumps({'type': 'error', 'content': '❌ Aucun chemin d\'entrée spécifié !', 'message_type': 'error'})}\n\n"
                 return
             
-            yield f"data: {json.dumps({'type': 'message', 'content': '🔍 Vérification des fichiers...', 'message_type': 'info'})}\n\n"
+            for message in nist_local.matching_nist(input_path, output_path, files):
+                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n" 
             
-            # ✅ Check files avec messages temps réel
-            files_param = files.strip() if files and files.strip() else None
-            files_list, check_messages = nist_local.check_files(input_path, files_param)
-            for message in check_messages:
-                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
-            
-            # ✅ Arrêter si pas de fichiers
-            if files_list is None:
-                yield f"data: {json.dumps({'type': 'error', 'content': '❌ Analyse annulée - aucun fichier à traiter', 'message_type': 'error'})}\n\n"
-                return
-            
-            yield f"data: {json.dumps({'type': 'message', 'content': '🚀 Démarrage de l\'analyse NIST...', 'message_type': 'info'})}\n\n"
-            search_messages = nist_local.matching_nist(input_path, output_path, files_list)
-            
-            # ✅ Afficher tous les messages NIST d'un coup 
-            for message in search_messages:
-                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n"
-            
-            yield f"data: {json.dumps({'type': 'complete', 'content': '🎉 Identification terminée!', 'message_type': 'success'})}\n\n"
+            yield f"data: {json.dumps({'type': 'complete', 'content': '✨ Identification terminée!', 'message_type': 'success'})}\n\n"
             
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': f'❌ Erreur: {str(e)}', 'message_type': 'error'})}\n\n"
