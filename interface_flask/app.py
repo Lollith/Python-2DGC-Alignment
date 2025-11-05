@@ -3,12 +3,13 @@ from datetime import datetime
 from waitress import serve
 from flask import Flask, render_template, request, jsonify, send_file, Response
 from data_converter import DataConverter
+from nist_local import NistLocal
 from datetime import datetime
 import os
 import time
 import sys
 import docker
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, Response
 import os
 import threading
 import shutil
@@ -22,6 +23,8 @@ from flask import Flask, jsonify
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
 import nist_engine
+import json
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -55,6 +58,7 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 
 # Instances
 converter = DataConverter()
+nist_local = NistLocal()
 compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml") #DEBUG
 # nist_wrapper = nist_search.NISTSearchWrapper()
 
@@ -101,7 +105,8 @@ def list_files():
     """API pour lister les fichiers avec extension spécifiée dans un dossier."""
     data = request.get_json()
     path = data.get('path', '')
-    extension = data.get('extension', '.cdf')  # Extension par défaut
+    extension = data.get('extension', '.cdf')  # .cdf: Extension par défaut
+    only_peak_info = data.get('peak_info_only', False)
 
     if not path or not os.path.isdir(path):
         return jsonify({'success': False, 'message': 'Chemin invalide'})
@@ -109,14 +114,17 @@ def list_files():
     try:
         if extension == '.cdf':
             files = converter.get_files_from_folder(path)
+        elif extension == '.csv' and only_peak_info:
+            files = nist_local.get_files_from_folder(path)
         else:
             files = []
             for filename in os.listdir(path):
                 if filename.lower().endswith(extension.lower()):
                     files.append(filename)
             files.sort()
+        
 
-        return jsonify({'success': True, 'files': files})
+        return jsonify({'success': True, 'files': files,  'filter': 'peak_info only'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'})
 
@@ -527,6 +535,29 @@ def get_logs():
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
 
+@app.route('/api/identify', methods=['GET'])
+def identify_compounds():
+    input_path = request.args.get('input_path')
+    output_path = request.args.get('output_path')
+    files = request.args.get('files', '')
+
+    # pour recuperer les messages au fur et a mesure
+    def generate_identification():
+        try:
+            # ✅ Validation
+            if not input_path or not input_path.strip():
+                yield f"data: {json.dumps({'type': 'error', 'content': '❌ Aucun chemin d\'entrée spécifié !', 'message_type': 'error'})}\n\n"
+                return
+            
+            for message in nist_local.matching_nist(input_path, output_path, files):
+                yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n" 
+            
+            yield f"data: {json.dumps({'type': 'complete', 'content': '✨ Identification terminée!', 'message_type': 'success'})}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': f'❌ Erreur: {str(e)}', 'message_type': 'error'})}\n\n"
+
+    return Response(generate_identification(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
 

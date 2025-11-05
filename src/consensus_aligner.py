@@ -627,39 +627,6 @@ class ChromatographicAligner:
             # self._update_rt_group(identifications)
             # self._update_alignment_matrix(identifications)
 
-        # --- CAS 2 ou 3 : résultats déjà sauvegardés ---
-        # elif self._csv_results_exist():
-        #     print("👉 Cas 2/3 : résultats chargés depuis CSV")
-
-        #     alignment_matrix, peak_info, rt_group, spectra_group = self._load_csv_results()
-        #     identifications_exist = "Compounds" in peak_info.columns
-        #     if identifications_exist: # and not nist:
-        #         print("✅ Identifications déjà présentes, rien à faire.")
-        #         return {
-        #             "Alignment_Matrix": alignment_matrix,
-        #             "Peak_Info": peak_info,
-        #             "RT_group": rt_group,
-        #             "spectra_group": spectra_group,
-        #         }
-
-        #     # Relancer identifications (cas 2, ou cas 3 avec nist=True)
-        #     identifications = self._run_nist_on_spectra(spectra_group,
-        #                                                 #True,
-        #                                                 match_factor_min)
-
-        #     # Mettre à jour les CSV
-        #     self._update_csv_results_with_identifications(
-        #         alignment_matrix, peak_info, rt_group, spectra_group, identifications
-        #     )
-        #     print("✅ Identifications NIST ajoutées aux CSV.")
-
-            # return {
-            #     "Alignment_Matrix": alignment_matrix,
-            #     "Peak_Info": peak_info,
-            #     "RT_group": rt_group,
-            #     "spectra_group": spectra_group,
-            # }
-
         else:
             raise ValueError("❌ No alignment results available. Run alignment first.")
 
