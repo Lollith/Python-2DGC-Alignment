@@ -17,45 +17,54 @@ c.ServerApp.port = 8888
 
 c.ServerApp.extra_static_paths = ["/root/.jupyter/custom"]
 
+
 def setup_custom_css():
     import os
     css_dir = "/root/.jupyter/custom"
     os.makedirs(css_dir, exist_ok=True)
     css_content = """
-        /* Taille de police 32px pour le code et les cellules */
-        .CodeMirror, .CodeMirror-lines, .CodeMirror-line {
+        /* JupyterLab 4.x - CodeMirror 6 selectors */
+        
+        /* Code cells */
+        .jp-Cell .jp-Editor .cm-editor .cm-scroller {
             font-size: 32px !important;
             line-height: 1.2 !important;
         }
-
-        /* Taille de police 32px pour les outputs */
-        .output_area, .output_text, .output_subarea {
+        
+        .jp-Cell .jp-Editor .cm-content {
             font-size: 32px !important;
         }
-
-        /* Taille de police 32px pour les markdown rendus */
-        .rendered_html {
+        
+        /* Output area */
+        .jp-OutputArea-output {
             font-size: 32px !important;
         }
-
-        /* Taille de police pour tous les contenus */
-        #notebook-container, .notebook-container {
+        
+        /* Markdown rendered */
+        .jp-MarkdownOutput {
             font-size: 32px !important;
         }
-
-        /* Pour les inputs et prompts */
-        .input_prompt, .output_prompt {
+        
+        /* Cell prompts */
+        .jp-InputPrompt, .jp-OutputPrompt {
             font-size: 32px !important;
         }
-        """
-    
+        
+        /* Console */
+        .jp-CodeConsole-content .cm-editor {
+            font-size: 32px !important;
+        }
+    """
+
     with open(f"{css_dir}/custom.css", "w") as f:
         f.write(css_content)
-    
-    print("? CSS personnalisé créé avec succès!")
+
+    print("✅ CSS personnalisé créé avec succès!")
+
 
 # Appeler au démarrage
 setup_custom_css()
+
 #------------------------------------------------------------------------------
 # Application(SingletonConfigurable) configuration
 #------------------------------------------------------------------------------

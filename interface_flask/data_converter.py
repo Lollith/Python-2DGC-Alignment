@@ -78,17 +78,21 @@ class DataConverter:
         except Exception as e:
             print(f"❌ Erreur lors de l'écriture de {var_name} : {e}")
 
-    def verify_converted_file(self, hdf5_path):
+    def verify_converted_file(self, hdf5_path, file_name=None):
         """Vérifier l'intégrité du fichier H5 converti."""
         try:
             with h5py.File(hdf5_path, 'r') as h5f:
                 # Vérifier que toutes les variables existent
-                required_vars = ['scan_acquisition_time', 'mass_values', 'intensity_values', 
-                            'total_intensity', 'point_count']
+                required_vars = ['scan_acquisition_time', 'mass_values',
+                                 'intensity_values', 'total_intensity',
+                                 'point_count']
                 
                 for var in required_vars:
                     if var not in h5f:
-                        return False, f"Variable {var} manquante"
+                        error_msg = f"Variable {var} manquante"
+                        if file_name:
+                            error_msg = f"[{file_name}] {error_msg}"
+                        return False, error_msg
                 
                 # Vérifier la cohérence des tailles
                 point_count = h5f['point_count'][:]
@@ -97,14 +101,24 @@ class DataConverter:
                 actual_intensity_size = h5f['intensity_values'].size
                 
                 if actual_mass_size != expected_size:
-                    return False, f"Incohérence tailles: {actual_mass_size} vs {expected_size}"
+                    error_msg = f"Incohérence tailles: {actual_mass_size} vs {expected_size}"
+                    if file_name:
+                        error_msg = f"[{file_name}] {error_msg}"
+                    return False, error_msg
 
                 if actual_intensity_size != expected_size:
-                    return False, f"Incohérence intensity_values: {actual_intensity_size} vs {expected_size} attendu"                
+                    error_msg = f"Incohérence intensity_values: {actual_intensity_size} vs {expected_size} attendu"
+                    if file_name:
+                        error_msg = f"[{file_name}] {error_msg}"
+                    return False, error_msg
+
                 return True, "OK"
-            
+
         except Exception as e:
-            return False, f"Erreur lecture: {e}"
+            error_msg = f"Erreur lecture: {e}"
+            if file_name:
+                error_msg = f"[{file_name}] {error_msg}"
+            return False, error_msg
 
     def convert_single_file_optimized(self, file_info):
         """Convert a single CDF file to HDF5 with float32 optimization."""
@@ -118,10 +132,9 @@ class DataConverter:
                 h5_file_size = os.path.getsize(hdf5_path)
 
                 if h5_file_size > 0:  # Fichier non vide
-                    #Vérifier l'intégrité
-                    is_valid, integrity_msg = self.verify_converted_file(hdf5_path)
+                    # Vérifier l'intégrité
+                    is_valid, integrity_msg = self.verify_converted_file(hdf5_path, file_name)
                     if is_valid:
-                        #messages.append(f"ℹ️ Fichier déjà créé: {file_name[:-4]}.h5 ({h5_file_size // 1024 // 1024}MB)")
                         messages.append(f"ℹ️ [{file_idx+1}/{total_files}] {file_name} - Déjà converti")
                         return True, messages, hdf5_path
                     else:
@@ -164,10 +177,10 @@ class DataConverter:
                         h5f.attrs['scan_number_size'] = size
 
             # Vérifier après conversion
-            is_valid, integrity_msg = self.verify_converted_file(hdf5_path)
+            is_valid, integrity_msg = self.verify_converted_file(hdf5_path, file_name)
             if not is_valid:
                 messages.append(f"❌ Fichier converti corrompu: {integrity_msg}")
-                if os.path.exists(hdf5_path): 
+                if os.path.exists(hdf5_path):
                     os.remove(hdf5_path)
                 return False, messages, None
 
@@ -192,7 +205,8 @@ class DataConverter:
         return min(len(files), max_allowed)
 
     def convert_cdf_to_hdf5_threaded(self, path, files_list, output_path):
-        """Convert CDF files to HDF5 with float32 optimization and with threading."""
+        """Convert CDF files to HDF5 with float32 optimization and with
+        threading."""
         messages = []
         converted_files = []
         self.completed = 0
