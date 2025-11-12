@@ -73,7 +73,11 @@ class Interface:
 
     def _create_output_widgets(self):
         """Create output path widgets."""
-        self.output_label = widgets.HTML(value='<b>Output Directory</b>')
+        self.output_label = widgets.HTML(value=f'''
+                <b>Output Directory</b><br>
+                <i>💡 If no output folder is selected, results will 
+                be saved in an <b>/output/</b> folder created in the 
+                same location as your input.</i><br>.''')
         self.add_output_button = widgets.Button(
             description="Add Output Path", 
             button_style='success',
@@ -312,11 +316,23 @@ class Interface:
         return widgets.HBox([bold_label, widget])
 
     def get_output_path(self):
-        """Get the output path from the output chooser."""
-        if hasattr(self, 'output_chooser') and self.output_chooser.selected:
-            selected = self.output_chooser.selected
-            # print(f"📁 Output path selected: {selected}")
-            return selected
+        """Get the output path from the output chooser, or auto-generate from first input."""
+        # ✅ Si l'output_chooser existe et a une sélection, l'utilise
+        if hasattr(self, 'output_chooser'):
+            path = self.output_chooser.selected_path or self.output_chooser.default_path
+            if path:
+                return path
+        
+        # ✅ SINON, génère automatiquement depuis le premier input
+        if len(self._choosers) > 0 and self._choosers[0].selected_path:
+            input_path = str(self._choosers[0].selected_path)
+            normalized_path = input_path.replace('\\', '/')
+            if normalized_path.endswith('/'):
+                normalized_path = normalized_path[:-1]
+            auto_output = f"{normalized_path}/output"
+            print(f"📁 Auto-generated output path: {auto_output}")
+            return auto_output
+        
         return None
 
     def get_all_files_from_selections(self):
