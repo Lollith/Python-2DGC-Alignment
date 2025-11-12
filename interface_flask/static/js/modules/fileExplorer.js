@@ -25,38 +25,50 @@ export function initializeFileExplorer() {
     // Initialisation du bouton de sélection de dossier
     const selectFolderBtn = document.getElementById('selectFolder');
     if (selectFolderBtn) {
-        selectFolderBtn.onclick = () => {
-            const targetInput = getTargetInput();
-            const currentPath = getCurrentPath();
+         selectFolderBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const targetInput = window.getTargetInput ? window.getTargetInput() : null;
+            const currentPath = window.getCurrentPath ? window.getCurrentPath() : null;
+            
             if (targetInput) {
-                targetInput.value = currentPath;
+                const normalizedPath = currentPath.replace(/\\/g, '/');
+                targetInput.value = normalizedPath;
+
+                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                
                 const modalElement = document.getElementById('fileExplorerModal');
                 if (modalElement && typeof bootstrap !== 'undefined') {
                     bootstrap.Modal.getInstance(modalElement)?.hide();
                 }
                 displayMessage(`Dossier sélectionné: ${currentPath}`, 'info');
+                } else {
+                console.error('❌ targetInput est null!');
             }
-        };
+        });
     }
 }
 
 export async function loadDirectoryContent(path) {
     try {
+        const normalizedPath = path.replace(/\\/g, '/');
+
         const response = await fetch('/api/browse_files', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: path })
+            body: JSON.stringify({ path: normalizedPath })
         });
         
         const data = await response.json();
 
-        setCurrentPath(path);
+        setCurrentPath(normalizedPath);
         
         if (data.success) {
-            displayFileList(data.folders || [], data.files || [], path);
+            displayFileList(data.folders || [], data.files || [], normalizedPath);
             const currentPathElement = document.getElementById('currentPath');
             if (currentPathElement) {
-                currentPathElement.textContent = `Dossier: ${path}`;
+                currentPathElement.textContent = `Dossier: ${normalizedPath}`;
             }
         } else {
             displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');

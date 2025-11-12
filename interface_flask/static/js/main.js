@@ -2,7 +2,7 @@ import { openFileExplorer, initializeFileExplorer } from './modules/fileExplorer
 import { initializeConverterTab } from './modules/converter.js';
 import { initializeAnalysisTab } from './modules/analysis.js';
 import { initializeIdentificationTab } from './modules/identification.js';
-import {initializeMonitoringTab} from './modules/monitoring.js';
+import { initializeMonitoringTab } from './modules/monitoring.js';
 
 export let selectedH5Files = [];
 export let currentPath = '';
@@ -41,12 +41,73 @@ function fillDefaultPaths() {
     const cleanupPath = document.getElementById('cleanupPath');
     
     if (inputPath) inputPath.value = dockerPath;
-    if (outputPath) outputPath.value = dockerPath;
     if (analysisPath) analysisPath.value = dockerPath;
     if (identInputPath) identInputPath.value = dockerPath;
-    if (identOutputPath) identOutputPath.value = dockerPath;
     if (cleanupPath) cleanupPath.value = dockerPath ;
-    
+   
+    if (inputPath.value) {
+        const inputPathValue = inputPath.value.trim();
+        const normalizedPath = inputPathValue.replace(/\\/g, '/');
+        const defaultOutput = normalizedPath.endsWith('/') 
+            ? normalizedPath + 'output' 
+            : normalizedPath + '/output';
+        outputPath.value = defaultOutput;
+    }
+    if (identInputPath.value) {
+        const identInputPathValue = identInputPath.value.trim();
+        const normalizedIdentInputPath = identInputPathValue.replace(/\\/g, '/');
+        const defaultOutput = normalizedIdentInputPath.endsWith('/') 
+            ? normalizedIdentInputPath + 'output' 
+            : normalizedIdentInputPath + '/output';
+        identOutputPath.value = defaultOutput;
+    }
+
+    if (outputPath && !outputPath.dataset.listenerAdded) {
+        outputPath.addEventListener('input', function() {
+            this.dataset.userModified = 'true';
+        });
+        outputPath.dataset.listenerAdded = 'true';
+    }
+     if (identOutputPath && !identOutputPath.dataset.listenerAdded) {
+        identOutputPath.addEventListener('input', function() {
+            this.dataset.userModified = 'true';
+        });
+        identOutputPath.dataset.listenerAdded = 'true';
+    }
+
+    if (inputPath && outputPath && !inputPath.dataset.listenerAdded) {
+        inputPath.addEventListener('input', function() {
+            const inputValue = this.value.trim();
+            // Seulement si pas modifié manuellement par l'utilisateur
+            if (inputValue && !outputPath.dataset.userModified) {
+                const normalizedPath = inputValue.replace(/\\/g, '/');
+                const defaultOutput = normalizedPath.endsWith('/') 
+                    ? normalizedPath + 'output' 
+                    : normalizedPath + '/output';
+                outputPath.value = defaultOutput;
+                console.log('✅ Output mis à jour:', defaultOutput); // Debug
+            }
+        });
+        inputPath.dataset.listenerAdded = 'true';
+    }
+
+    if (identInputPath && identOutputPath && !identInputPath.dataset.listenerAdded) {
+        identInputPath.addEventListener('input', function() {
+            const inputValue = this.value.trim();
+            console.log('📝 Input changé:', inputValue); // Debug
+            console.log('   userModified?', identOutputPath.dataset.userModified); // Debug
+            // Seulement si pas modifié manuellement par l'utilisateur
+            if (inputValue && !identOutputPath.dataset.userModified) {
+                const normalizedPath = inputValue.replace(/\\/g, '/');
+                const defaultOutput = normalizedPath.endsWith('/') 
+                    ? normalizedPath + 'output' 
+                    : normalizedPath + '/output';
+                identOutputPath.value = defaultOutput;
+                console.log('✅ Output mis à jour:', defaultOutput); // Debug
+            }
+        });
+        identInputPath.dataset.listenerAdded = 'true';
+    }
     displayMessage('Chemins par défaut remplis', 'info');
 }
 
@@ -162,6 +223,10 @@ export async function viewLogs() {
 window.fillDefaultPaths = fillDefaultPaths;
 window.showTab = showTab;
 window.openFileExplorer = openFileExplorer;
+window.getCurrentPath = getCurrentPath;
+window.getTargetInput = getTargetInput;
+window.setCurrentPath = setCurrentPath;
+window.setTargetInput = setTargetInput;
 
 document.addEventListener('DOMContentLoaded', async function() {
     // ✅ Rendre les fonctions globales pour les onclick HTML
