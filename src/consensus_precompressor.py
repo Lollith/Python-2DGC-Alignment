@@ -19,7 +19,6 @@ class PeakPrecompressor:
                  common_ions=None,
                  quant_method="T",
                  area_selection="area_mod_max",
-                #  output_files=False
                 ):
         self.rt1_penalty = rt1_penalty
         self.rt2_penalty = rt2_penalty
@@ -28,7 +27,6 @@ class PeakPrecompressor:
         self.common_ions = common_ions
         self.quant_method = quant_method
         self.area_selection = area_selection
-        # self.output_files = output_files
         self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
     def check_file_parameters(self, current_raw_file):
@@ -51,11 +49,11 @@ class PeakPrecompressor:
             # ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
 
             if self.area_selection == "area_deconvo":
-                print("📊 Utilisation de l'aire déconvolution pour l'alignement")
+                # print("📊 Utilisation de l'aire déconvolution pour l'alignement")
                 selected_area = current_raw_file["Area.Deconv"]
             else:  # area_mod_max
                 selected_area = current_raw_file["Area.Mod.Max"]
-                print("📊 Utilisation de l'aire modulation max pour l'alignement")
+                # print("📊 Utilisation de l'aire modulation max pour l'alignement")
         
             standardized_df = pd.DataFrame({
                 "Name": current_raw_file["Name"],
@@ -202,7 +200,7 @@ class PeakPrecompressor:
         return arr[:, 1]
 
     def precompress_files(self, input_file_list, output_dir):
-        print(f"Precompressing {len(input_file_list)} files using {self.num_cores} cores...", flush=True)
+        # print(f"Precompressing {len(input_file_list)} files...", flush=True)
         if self.common_ions is None:
             common_ions = []
         combined_list = {}
@@ -253,7 +251,7 @@ class PeakPrecompressor:
                         if m is not None:
                             area_i = current_df.iloc[i, 2]
                             area_m = current_df.iloc[m, 2]
-                            print(f"[COMBINE] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
+                            # print(f"[COMBINE] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
                     # Sum peak areas
                     to_bind.loc[:, to_bind.columns[2]] += binding_areas
                     # Ensure only one peak combination gets included in output
@@ -306,11 +304,9 @@ class PeakPrecompressor:
 
                             valid_mates = [m for m in mates if m is not None and not pd.isna(m)]
                             n_mates = len(valid_mates)
-                            print("valid_mates 2", valid_mates)
 
                             # DataFrame des mates
                             mates_df = df.iloc[valid_mates, :].reset_index(drop=True)
-                            # print("mates_df", mates_df)
 
                             # S'assurer que to_bind a le même nombre de lignes que mates_df
                             if len(to_bind) == 1:
@@ -333,12 +329,6 @@ class PeakPrecompressor:
                                 [combined_list[input_file_list[samp_num]], new_combined],
                                 ignore_index=True
                             )
-                            #DEBUG
-                            for i, m in enumerate(mates):
-                                if m is not None:
-                                    area_i = df.iloc[i, 2]
-                                    area_m = df.iloc[m, 2]
-                                    print(f"[REP {rep}] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
                             # --- Mettre à jour to_bind avec les aires combinées ---
                             binding_areas = df.iloc[valid_mates, 2].values
                             to_bind.loc[:, to_bind.columns[2]] += binding_areas
@@ -369,11 +359,8 @@ class PeakPrecompressor:
         else:
             combined_frame = pd.DataFrame()
 
-        #If outputFiles==TRUE, write processed files out to the input file directory
-        # if self.output_files:
         for samp_num, imp in enumerate(imported_files):
             out_name = (
-                # input_file_list[samp_num][:-4] + "_Py_Processed1.csv"
                 output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "#P.txt"
             )
             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
