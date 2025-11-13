@@ -486,7 +486,7 @@ def visualizer(
     if (save):
         plt.savefig("figs/chromato_" + title + ".png")
 
-    plt.show(block=False)
+    plt.show()
     if (plotly):
         fig = go.Figure(data=go.Contour(
             z=np.transpose(chromato),
@@ -597,7 +597,6 @@ def visualizer2(chromato_obj, mod_time = 1.25, rt1 = None, rt2 = None, rt1_windo
         if (rt2plusrt2window > mod_time):
             rt2plusrt2window = mod_time
             rt2minusrt2window = rt2 - rt2_window
-        position_in_chromato = np.array([[rt1minusrt1window, rt2minusrt2window], [rt1plusrt1window, rt2plusrt2window]])
         indexrt1= [ i for i ,(rt) in enumerate(X) if  rt1minusrt1window <= rt <= rt1plusrt1window]
         indexrt2= [ i for i ,(rt) in enumerate(Y) if  rt2minusrt2window <= rt <= rt2plusrt2window]
         indexes = np.array(([min(indexrt1),min(indexrt2)],[max(indexrt1),max(indexrt2)]))

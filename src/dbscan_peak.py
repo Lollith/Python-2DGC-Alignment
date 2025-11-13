@@ -21,11 +21,9 @@ import deconvolution
 #seuil db scan inter mass
 
 # peak detection
-# savitzky golay filter 
+#fenetre pour la déconvolution (élargir pour les pics saturé)
 # correction ligne de base 
 # relative threshold per mass 
-# abs seuil (dependant du chorma)
-# max number of peaks per mass
 # sigma Dog parameter 
  
 def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
@@ -148,7 +146,7 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
         coordinates_in_chromato = projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
 
         # 2. Identifier les lignes à supprimer (bound = up_bound + low_bound)
-        mask = (coordinates_in_chromato[:, 1] > (mod_time - 0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+        mask = (coordinates_in_chromato[:, 1] > (mod_time - 0.1)) | (coordinates_in_chromato[:, 1] < 0.1)
         bound = coordinates[mask]
 
         # 3. Clustering sans pénalité RT2
@@ -158,6 +156,8 @@ def detection_mass_par_mass_Dog(chromato_cube,chromato_obj,mod_time,
         # 4. Vérification et traitement des clusters
         if clusters_bound and all([len(x) == 2 for x in clusters_bound]):
             label_f = []
+
+
             index_delete = []
 
             for pair in label_bound:
@@ -417,7 +417,7 @@ def cluster_per_mass(coordinate,radius,chromato_cube,time_rn, mod_time,rt1_delta
             # merge peaks cut but the modulation
             coordinates_in_chromato=projection.matrix_to_chromato(coord_cluster, time_rn,mod_time, tmp.shape)
             # 1.Identifier les lignes à supprimer (bound = up_bound + low_bound)
-            mask = (coordinates_in_chromato[:, 1] > (mod_time-0.05)) | (coordinates_in_chromato[:, 1] < 0.05)
+            mask = (coordinates_in_chromato[:, 1] > (mod_time-0.1)) | (coordinates_in_chromato[:, 1] < 0.1)
             if(any(mask)):
                 bound= coord_cluster[mask] 
                 radius_bound= rad_cluster[mask]      
