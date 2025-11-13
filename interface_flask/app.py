@@ -113,18 +113,30 @@ def list_files():
 
     try:
         if extension == '.cdf':
-            files = converter.get_files_from_folder(path)
+            files_tuples, messages = converter.get_files_from_folder(path)
+            files = []
+            for file, subfolder in files_tuples:
+                if subfolder:
+                    files.append(f"{subfolder}/{file}")
+                else:
+                    files.append(file)
         elif extension == '.csv' and only_peak_info:
             files = nist_local.get_files_from_folder(path)
+            messages = []
         else:
             files = []
+            messages = []
             for filename in os.listdir(path):
                 if filename.lower().endswith(extension.lower()):
                     files.append(filename)
             files.sort()
         
-
-        return jsonify({'success': True, 'files': files,  'filter': 'peak_info only'})
+        return jsonify({
+            'success': True,
+            'files': files,
+            'messages': messages,
+            'filter': 'peak_info only'
+            })
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'})
 

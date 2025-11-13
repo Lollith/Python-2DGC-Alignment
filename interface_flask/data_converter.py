@@ -10,6 +10,7 @@ import netCDF4 as nc
 import h5py
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+from datetime import datetime
 
 
 class DataConverter:
@@ -20,11 +21,71 @@ class DataConverter:
         self.completed = 0
 
     def get_files_from_folder(self, path):
-        """Get all CDF files from a folder."""
+        """Get all CDF files from a folder and its subfolders, preserving structure."""
+        cdf_files = {} # {filename: [(full_path, subfolder, acq_timestamp, acq_date_str), ...]}
+        messages = []
         if os.path.isdir(path):
-            return [f for f in os.listdir(path) if f.endswith(".cdf")]
-        else:
-            return []
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    if file.endswith(".cdf"):
+                        relative_path = os.path.relpath(root, path)
+                        subfolder = relative_path if relative_path != '.' else ''
+                        full_path = os.path.join(root, file)
+                        
+                        acq_timestamp = self.get_acquisition_date(full_path)
+                        acq_date_str = datetime.fromtimestamp(acq_timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        if file not in cdf_files:
+                            cdf_files[file] = []
+                        
+                        cdf_files[file].append((full_path, subfolder, acq_timestamp, acq_date_str))
+
+        # ✅ Traiter les doublons
+        final_files = []
+        for filename, file_list in cdf_files.items():
+            if len(file_list) == 1:
+                # Pas de doublon
+                final_files.append((filename, file_list[0][1]))
+            else:
+                # Grouper par date d'acquisition (arrondir à la seconde)
+                by_date = {}
+                for full_path, subfolder, acq_timestamp, acq_date_str in file_list:
+                    # Arrondir à la seconde près
+                    rounded_timestamp = int(acq_timestamp)
+                    if rounded_timestamp not in by_date:
+                        by_date[rounded_timestamp] = []
+                    by_date[rounded_timestamp].append((full_path, subfolder, acq_date_str))
+                
+                if len(by_date) == 1:
+                    # ✅ MÊME DATE = Vraie copie, garder la première
+                    date_str = file_list[0][3]
+                    messages.append(f"⚠️ Doublon détecté: {filename} (acquisition: {date_str})")
+                    locations = " et ".join([f[1] or 'racine' for f in file_list])
+                    messages.append(f"   Trouvé dans: {locations}")
+                    messages.append(f"   → Conservation de la première version")
+                    final_files.append((filename, file_list[0][1]))
+                else:
+                    # ✅ DATES DIFFÉRENTES = Acquisitions différentes
+                    messages.append(f"⚠️ Fichiers avec même nom mais dates d'acquisitions différentes: {filename}")
+                    for timestamp, paths in sorted(by_date.items()):
+                        full_path, subfolder, acq_date_str = paths[0]
+                        messages.append(f"   - {subfolder or 'racine'}: acquisition {acq_date_str}")
+                        final_files.append((filename, subfolder))
+        
+        return final_files, messages
+
+    def get_acquisition_date(self, cdf_path):
+        """Get acquisition date from CDF file."""
+        try:
+            with nc.Dataset(cdf_path, 'r', encoding="latin-1") as dataset:
+                if 'experiment_date_time_stamp' in dataset.ncattrs():
+                    date_str = dataset.getncattr('experiment_date_time_stamp')
+                    # Extraire seulement la partie date/heure (ignorer le timezone)
+                    date_part = date_str[:14]  # "20250703063346"
+                    dt = datetime.strptime(date_part, "%Y%m%d%H%M%S")
+                return dt.timestamp()
+        except Exception as e:
+            print(f"⚠️ Erreur lecture date pour {cdf_path}: {e}")
 
     def check_path(self, path, files_list, output_path):
         """Check if the files exist and are readable."""
@@ -45,10 +106,18 @@ class DataConverter:
         if not path:
             messages.append("Erreur : Aucun chemin sélectionné.")
             return None, messages
+        
         if files_list is None:
-            files_list = self.get_files_from_folder(path)
-        files_list = [file.strip() for file in files_list if file.strip()]
-        messages.append(f"Fichiers à analyser : {files_list}")
+            files_list, folder_messages = self.get_files_from_folder(path)
+            messages.extend(folder_messages)
+            messages.append(f"Tous les fichiers CDF du dossier seront analysés.")
+            messages.append(f"Fichiers à analyser : {files_list}")
+        # files_list = [file.strip() for file in files_list if file.strip()]
+        if files_list and isinstance(files_list[0], tuple):
+            files_list = [f for f in files_list if f[0].strip()]
+        else:
+            files_list = [(file.strip(), '') for file in files_list if file.strip()]
+        messages.append(f"📋 {len(files_list)} fichier(s) à analyser")
         return files_list, messages
 
     def get_free_space(self, path):
@@ -122,11 +191,19 @@ class DataConverter:
 
     def convert_single_file_optimized(self, file_info):
         """Convert a single CDF file to HDF5 with float32 optimization."""
-        full_path, file_name, output_path, file_idx, total_files = file_info
+        full_path, file_name,subfolder, output_path, file_idx, total_files = file_info
         messages = []
 
         try:
-            hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
+            if subfolder:
+                output_subfolder = os.path.join(output_path, subfolder)
+                os.makedirs(output_subfolder, exist_ok=True)
+                hdf5_path = os.path.join(output_subfolder, f'{file_name[:-4]}.h5')
+                display_path = f"{subfolder}/{file_name}"
+            else:
+                hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
+                display_path = file_name
+
             if os.path.exists(hdf5_path):
                 print(f"Le fichier {hdf5_path} existe déjà. Vérification...")
                 h5_file_size = os.path.getsize(hdf5_path)
@@ -224,20 +301,31 @@ class DataConverter:
         messages.append(f"👥 Workers: {max_workers}")
 
         valid_files = []
-        for file in files_list_checked:
-            full_path = os.path.join(path, file)
+        for file_tuple in files_list_checked:
+            file, subfolder = file_tuple
+            if subfolder:
+                full_path = os.path.join(path, subfolder, file)
+            else:
+                full_path = os.path.join(path, file)
+
             if os.path.isfile(full_path) and os.access(full_path, os.R_OK) and file.endswith('.cdf'):
-                valid_files.append(file)
+                valid_files.append((file,subfolder))
             else:
                 messages.append(f"Erreur : Le fichier '{file}' est introuvable ou n'est pas accessible dans '{path}'")
+
         if not valid_files:
             return False, messages + ["❌ Aucun fichier CDF valide trouvé"], []
         total_files = len(valid_files)
-        # Préparation des tâches
-        file_infos = [
-            (os.path.join(path, file), file, output_path, idx, total_files)
-            for idx, file in enumerate(valid_files)
-        ]
+
+        # Préparation des tâches avec sous dossiers
+        file_infos = []
+        for idx, (file, subfolder) in enumerate(valid_files):
+            if subfolder:
+                full_path = os.path.join(path, subfolder, file)
+            else:
+                full_path = os.path.join(path, file)
+            file_infos.append((full_path, file, subfolder, output_path, idx, total_files))
+        
         start_total = time.time()
         with ThreadPoolExecutor(max_workers=max_workers,
                                 thread_name_prefix="CDFConverter") as executor:
