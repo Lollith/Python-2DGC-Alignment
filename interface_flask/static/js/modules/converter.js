@@ -18,7 +18,7 @@ export function initializeConverterTab() {
                 if (modalElement && typeof bootstrap !== 'undefined') {
                     bootstrap.Modal.getInstance(modalElement)?.hide();
                 }
-                displayMessage(`Dossier sélectionné: ${currentPath}`, 'info');
+                // displayMessage(`Dossier sélectionné: ${currentPath}`, 'info');
             }
         };
     }

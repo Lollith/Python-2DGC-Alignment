@@ -72,6 +72,17 @@ class NistLocal:
         match_factor_min = 650 #TODO parametre ??
 
         yield "🚀 Starting NIST local search..."
+
+        try:
+            if not os.path.exists(output_path):
+                os.makedirs(output_path, exist_ok=True)
+                yield f"📁 Created output directory: {output_path}"
+            else:
+                yield f"📁 Using existing output directory: {output_path}"
+        except Exception as e:
+            yield f"❌ Failed to create output directory: {e}"
+            return
+
         files_list, check_messages = self.check_files(input_path, files)
         for message in check_messages:
             yield f"{message}"
