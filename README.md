@@ -169,6 +169,13 @@ VENV_PATH=C:/path/to/venv
 
 # IP of the computer running the project
 IP_SERVER=...
+
+# Set to 'development' for local development with hot-reload and debug mode.
+# Set to 'production' for deployment with optimized settings.
+APP_ENV=production
+
+# Jupyter Lab Configuration
+JUPYTER_FONT_SIZE=16
  
 ```
 ### Run the FLASK API
