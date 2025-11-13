@@ -33,8 +33,8 @@ def main():
             quant_method=args.quant_method,
             area_selection=args.area_selection
         )
-        print(f"🔍 Starting analysis of {len(args.input)} files: {args.input}...", flush=True)
-        print(f"\n{'='*60}", flush=True)
+        # print(f"🔍 Starting analysis of {len(args.input)} files: {args.input}...", flush=True)
+        # print(f"\n{'='*60}", flush=True)
         for i, f in enumerate(args.input, 1):
             if f.startswith(precompressedFiles.docker_volume_path):
                 display_path = f.replace(precompressedFiles.docker_volume_path, "")
