@@ -75,9 +75,9 @@ class Interface:
         """Create output path widgets."""
         self.output_label = widgets.HTML(value=f'''
                 <b>Output Directory</b><br>
-                <i>💡 If no output folder is selected, results will 
-                be saved in an <b>/output/</b> folder created in the 
-                same location as your input.</i><br>.''')
+                <i>💡 By default, results will be saved in an 
+                <b>'output/'</b> folder created at the same location 
+                as your input data..</i><br>''')
         self.add_output_button = widgets.Button(
             description="Add Output Path", 
             button_style='success',
@@ -260,7 +260,7 @@ class Interface:
                     # Mettre à jour l'affichage
                     current_children = list(self._vbox2.children)
                     if self.output_chooser not in current_children:
-                        current_children.insert(-1, self.output_chooser)  # Insérer avant le widget de création
+                        current_children.insert(-1, self.output_chooser)
                         self._vbox2.children = tuple(current_children)
                 
                 print(f"📁 Nouveau dossier créé: {user_path}")
