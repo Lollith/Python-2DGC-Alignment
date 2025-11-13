@@ -72,7 +72,8 @@ export function initializeIdentificationTab() {
             const data = {
                 input_path: formData.get('identInputPath'),
                 output_path: formData.get('identOutputPath'),
-                files: formData.get('csvFiles')
+                files: formData.get('csvFiles'),
+                match_factor_min: formData.get('matchFactorMin')
             };
             
             if (!data.input_path?.trim()) {

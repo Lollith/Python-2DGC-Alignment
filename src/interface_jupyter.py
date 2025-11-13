@@ -330,7 +330,7 @@ class Interface:
             if normalized_path.endswith('/'):
                 normalized_path = normalized_path[:-1]
             auto_output = f"{normalized_path}/output"
-            print(f"📁 Auto-generated output path: {auto_output}")
+            # print(f"📁 Auto-generated output path: {auto_output}")
             return auto_output
         
         return None

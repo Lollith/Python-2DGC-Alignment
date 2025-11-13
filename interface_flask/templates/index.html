@@ -210,9 +210,19 @@
                                         📁 Parcourir
                                     </button>
                                 </div>
-                            </div> 
-
-
+                            </div>
+                        <div class="mb-3">
+                            <label for="matchFactorMin" class="form-label">Match Factor Minimum</label>
+                            <input type="number" 
+                                class="form-control" 
+                                id="matchFactorMin" 
+                                name="matchFactorMin" 
+                                value="650" 
+                                min="0" 
+                                max="1000"
+                                step="10">
+                            <small class="form-text text-muted">Minimum similarity threshold between experimental and reference spectra (0-1000).</small>
+                        </div> 
 
                         <div class="button-group">
                             <button type="button" id="listCsvBtn" class="btn btn-secondary">

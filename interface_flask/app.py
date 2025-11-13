@@ -38,6 +38,7 @@ except Exception as e:
 
 
 load_dotenv()
+ENV_MODE = os.getenv('APP_ENV', 'production')
 auth = HTTPBasicAuth()
 
 app = Flask(__name__)
@@ -59,9 +60,10 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 # Instances
 converter = DataConverter()
 nist_local = NistLocal()
-compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml") #DEBUG
-# nist_wrapper = nist_search.NISTSearchWrapper()
 
+compose_file = "../docker-compose.dev.yml" if ENV_MODE == 'development' else "../docker-compose.yml"
+compose_manager = docker_manager.create_docker_manager(compose_file)
+print(f"🚀 Docker Mode: {ENV_MODE}")
 
 #def check_auth(username, password):
  #    return username == USERNAME and password == PASSWORD
@@ -552,6 +554,7 @@ def identify_compounds():
     input_path = request.args.get('input_path')
     output_path = request.args.get('output_path')
     files = request.args.get('files', '')
+    match_factor_min = int(request.args.get('match_factor_min', 650))
 
     # pour recuperer les messages au fur et a mesure
     def generate_identification():
@@ -561,7 +564,7 @@ def identify_compounds():
                 yield f"data: {json.dumps({'type': 'error', 'content': '❌ Aucun chemin d\'entrée spécifié !', 'message_type': 'error'})}\n\n"
                 return
             
-            for message in nist_local.matching_nist(input_path, output_path, files):
+            for message in nist_local.matching_nist(input_path, output_path, files, match_factor_min):
                 yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n" 
             
             yield f"data: {json.dumps({'type': 'complete', 'content': '✨ Identification terminée!', 'message_type': 'success'})}\n\n"

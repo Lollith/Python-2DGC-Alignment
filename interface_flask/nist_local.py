@@ -61,7 +61,7 @@ class NistLocal:
         messages.append(f"🎯 Fichiers peak_info à traiter: {files_list}")
         return files_list, messages
 
-    def matching_nist(self, input_path, output_path, files):
+    def matching_nist(self, input_path, output_path, files, match_factor_min):
         """
             Perform a local NIST search operation.
 
@@ -69,9 +69,19 @@ class NistLocal:
             :param output_path: Path to save the output results.
             :param files: List of files to process.
         """
-        match_factor_min = 650 #TODO parametre ??
-
         yield "🚀 Starting NIST local search..."
+        yield f"📍 match_factor_min: {match_factor_min}"
+
+        try:
+            if not os.path.exists(output_path):
+                os.makedirs(output_path, exist_ok=True)
+                yield f"📁 Created output directory: {output_path}"
+            else:
+                yield f"📁 Using existing output directory: {output_path}"
+        except Exception as e:
+            yield f"❌ Failed to create output directory: {e}"
+            return
+
         files_list, check_messages = self.check_files(input_path, files)
         for message in check_messages:
             yield f"{message}"
