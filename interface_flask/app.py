@@ -552,6 +552,7 @@ def identify_compounds():
     input_path = request.args.get('input_path')
     output_path = request.args.get('output_path')
     files = request.args.get('files', '')
+    match_factor_min = int(request.args.get('match_factor_min', 650))
 
     # pour recuperer les messages au fur et a mesure
     def generate_identification():
@@ -561,7 +562,7 @@ def identify_compounds():
                 yield f"data: {json.dumps({'type': 'error', 'content': '❌ Aucun chemin d\'entrée spécifié !', 'message_type': 'error'})}\n\n"
                 return
             
-            for message in nist_local.matching_nist(input_path, output_path, files):
+            for message in nist_local.matching_nist(input_path, output_path, files, match_factor_min):
                 yield f"data: {json.dumps({'type': 'message', 'content': message, 'message_type': 'info'})}\n\n" 
             
             yield f"data: {json.dumps({'type': 'complete', 'content': '✨ Identification terminée!', 'message_type': 'success'})}\n\n"
