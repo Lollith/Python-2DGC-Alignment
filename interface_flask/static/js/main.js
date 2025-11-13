@@ -85,7 +85,6 @@ function fillDefaultPaths() {
                     ? normalizedPath + 'output' 
                     : normalizedPath + '/output';
                 outputPath.value = defaultOutput;
-                console.log('✅ Output mis à jour:', defaultOutput); // Debug
             }
         });
         inputPath.dataset.listenerAdded = 'true';
@@ -94,8 +93,6 @@ function fillDefaultPaths() {
     if (identInputPath && identOutputPath && !identInputPath.dataset.listenerAdded) {
         identInputPath.addEventListener('input', function() {
             const inputValue = this.value.trim();
-            console.log('📝 Input changé:', inputValue); // Debug
-            console.log('   userModified?', identOutputPath.dataset.userModified); // Debug
             // Seulement si pas modifié manuellement par l'utilisateur
             if (inputValue && !identOutputPath.dataset.userModified) {
                 const normalizedPath = inputValue.replace(/\\/g, '/');
@@ -103,7 +100,6 @@ function fillDefaultPaths() {
                     ? normalizedPath + 'output' 
                     : normalizedPath + '/output';
                 identOutputPath.value = defaultOutput;
-                console.log('✅ Output mis à jour:', defaultOutput); // Debug
             }
         });
         identInputPath.dataset.listenerAdded = 'true';

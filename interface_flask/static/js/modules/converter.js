@@ -47,8 +47,55 @@ export function initializeConverterTab() {
             const data = await response.json();
             
             if (data.success) {
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                    const isWarning = msg.includes('⚠️') || msg.includes('ATTENTION');
+                    displayMessage(msg, isWarning ? 'warning' : 'info');
+                    });
+                }
+
                 if (data.files.length > 0) {
-                    availableFilesDiv.innerHTML = `<strong>Fichiers CDF trouvés:</strong><br>${data.files.join(', ')}`;
+                    // ✅ Affichage groupé par dossier
+                    const filesByFolder = {};
+                    data.files.forEach(file => {
+                        if (file.includes('/')) {
+                            const parts = file.split('/');
+                            const folder = parts.slice(0, -1).join('/');
+                            const filename = parts[parts.length - 1];
+                            if (!filesByFolder[folder]) {
+                                filesByFolder[folder] = [];
+                            }
+                            filesByFolder[folder].push(filename);
+                        } else {
+                            if (!filesByFolder['root']) {
+                                filesByFolder['root'] = [];
+                            }
+                            filesByFolder['root'].push(file);
+                        }
+                    });
+                    
+                    let html = '<div class="files-list"><strong>Fichiers CDF trouvés:</strong><br>';
+                    
+                    // Fichiers à la racine
+                    if (filesByFolder['root']) {
+                        filesByFolder['root'].forEach(file => {
+                            html += `<div style="margin-left: 10px;">📄 ${file}</div>`;
+                        });
+                    }
+                    
+                    // Fichiers dans les sous-dossiers
+                    Object.keys(filesByFolder).forEach(folder => {
+                        if (folder !== 'root') {
+                            html += `<div style="margin-top: 10px; font-weight: bold;">📁 ${folder}/</div>`;
+                            filesByFolder[folder].forEach(file => {
+                                html += `<div style="margin-left: 20px;">📄 ${file}</div>`;
+                            });
+                        }
+                    });
+                    
+                    html += '</div>';
+                    availableFilesDiv.innerHTML = html;
+                    // availableFilesDiv.innerHTML = `<strong>Fichiers CDF trouvés:</strong><br>${data.files.join(', ')}`;
                     availableFilesDiv.style.display = 'block';
                     displayMessage(`${data.files.length} fichier(s) CDF trouvé(s)`);
                 } else {
@@ -157,6 +204,11 @@ export function initializeConverterTab() {
                 const data = await response.json();
                 
                 if (data.success) {
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(msg => {
+                            displayMessage(msg, msg.includes('⚠️') || msg.includes('ATTENTION') ? 'warning' : 'info');
+                        });
+                    }
                     if (data.files.length > 0) {
                         h5FilesList.innerHTML = `<strong>Fichiers .h5 trouvés (${data.files.length}):</strong><br>${data.files.join('<br>')}`;
                         h5FilesList.style.display = 'block';
