@@ -7,22 +7,104 @@ import sys
 logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
-# base_dir = os.path.dirname(os.path.abspath(__file__))
-# dotenv_path = os.path.join(base_dir, ".env")
-# load_dotenv(dotenv_path)
 
 c = get_config()  #noqa
-
-# c.NotebookApp.password = os.getenv("JUPYTER_PASSWORD_HASH")
-# c.NotebookApp.token = ''
-# c.NotebookApp.ip = '0.0.0.0'
-# c.NotebookApp.open_browser = False
-# c.NotebookApp.port = 8888
 c.ServerApp.password = os.getenv("JUPYTER_PASSWORD_HASH")
 c.ServerApp.token = ''  # désactive le token
 c.ServerApp.ip = '0.0.0.0'
 c.ServerApp.open_browser = False
 c.ServerApp.port = 8888
+
+c.ServerApp.extra_static_paths = ["/root/.jupyter/custom"]
+
+FONT_SIZE = 16
+
+def setup_custom_css():
+    import os
+    css_dir = "/root/.jupyter/custom"
+    os.makedirs(css_dir, exist_ok=True)
+    
+    # Utilise la variable FONT_SIZE définie en haut
+    css_content = f'''
+        /* Variable CSS globale pour la taille de police */
+        :root {{
+            --custom-font-size: {FONT_SIZE}px;
+        }}
+        
+        /* Code cells */
+        .jp-Cell .jp-Editor .cm-editor .cm-scroller {{
+            font-size: var(--custom-font-size) !important;
+            line-height: 1.2 !important;
+        }}
+        
+        .jp-Cell .jp-Editor .cm-content {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* Output area */
+        .jp-OutputArea-output {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* Markdown rendered */
+        .jp-MarkdownOutput {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* Cell prompts */
+        .jp-InputPrompt, .jp-OutputPrompt {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* Console */
+        .jp-CodeConsole-content .cm-editor {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* ===== AJOUT POUR LES WIDGETS IPYWIDGETS ===== */
+        
+        /* Labels des widgets */
+        .widget-label {{
+            font-size: var(--custom-font-size) !important;
+            line-height: 1.5 !important;
+        }}
+        
+        /* Boutons */
+        .widget-button button {{
+            font-size: var(--custom-font-size) !important;
+            padding: 10px 20px !important;
+        }}
+        
+        /* Radio buttons et checkboxes */
+        .widget-radio-box label, .widget-checkbox label {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* Text inputs */
+        .widget-text input, .widget-textarea textarea, 
+        .widget-dropdown select {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* HTML dans les widgets */
+        .widget-html-content {{
+            font-size: var(--custom-font-size) !important;
+        }}
+        
+        /* Titre H1 dans les widgets */
+        .widget-html-content h1 {{
+            font-size: 2.5em !important;
+        }}
+    '''
+
+    with open(f"{css_dir}/custom.css", "w") as f:
+        f.write(css_content)
+
+    print(f"✅ CSS créé avec taille de police: {FONT_SIZE}px")
+
+
+# Appeler au démarrage
+setup_custom_css()
 
 #------------------------------------------------------------------------------
 # Application(SingletonConfigurable) configuration
