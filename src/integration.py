@@ -238,7 +238,7 @@ def peak_pool_similarity_check(chromato, coordinates, coordinate,
     coordinate_label = labels[coordinate[0]][coordinate[1]]
     blob = np.where(labels != coordinate_label, 0, 1)
 
-    if coordinate[1]<10 :
+    if coordinate[1]<20 :
         coordinates_compl= [coordinate[0]-1,(chromato.shape[1]-1)]
         mask = np.zeros(chromato.shape, dtype=bool)
         mask[tuple(coordinates.T)] = True
@@ -251,7 +251,7 @@ def peak_pool_similarity_check(chromato, coordinates, coordinate,
             plot.visualizer((labels, time_rn), log_chromato=False)'''
         coordinate_label = labels[coordinates_compl[0]][coordinates_compl[1]]
         blob = blob + np.where(labels != coordinate_label, 0, 1)
-    if coordinate[1]>(chromato.shape[1]-10):
+    if coordinate[1]>(chromato.shape[1]-20):
         coordinates_compl= [coordinate[0]+1,0]
         mask = np.zeros(chromato.shape, dtype=bool)
         mask[tuple(coordinates.T)] = True

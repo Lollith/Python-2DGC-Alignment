@@ -137,7 +137,7 @@ def detection_mass_par_mass_Dog(chromato_cube,
         coordinates_in_chromato = projection.matrix_to_chromato(coordinates, time_rn, mod_time, chromato.shape)
 
         # 2. Identifier les lignes à supprimer (bound = up_bound + low_bound)
-        mask = (coordinates_in_chromato[:, 1] > (mod_time - 0.1)) | (coordinates_in_chromato[:, 1] < 0.1)
+        mask = (coordinates_in_chromato[:, 1] > (mod_time - 0.15)) | (coordinates_in_chromato[:, 1] < 0.15)
         bound = coordinates[mask]
 
         # 3. Clustering sans pénalité RT2

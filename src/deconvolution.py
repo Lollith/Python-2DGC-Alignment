@@ -116,6 +116,9 @@ def estimate_sigma_from_FWHM_asym(image, center):
 
 # --------- 3. Multi-gaussienne pour lmfit ---------
 
+def total_sum_asymmetric_gaussian(h, sx1, sx2, sy1, sy2):
+    return h * (np.pi / 2) * (sx1 + sx2) * (sy1 + sy2)
+
 def twoD_Gaussian_bi_asym_fixed_center(coords, amp, sx1, sx2, sy1, sy2, xo, yo):
     x, y = coords
     dx = x - xo
@@ -184,10 +187,10 @@ def fit_all_peaks_fixed_centers(tmp, coords, bounds, plot=False):
         # Bornes un peu plus larges pour stabiliser le fit (évite un plafonnement trop tôt)
         local_max = float(sub_tmp.max())
         params.add(f'amp_{i}', value=amp0, min=0.0, max=max(amp0*3.0, local_max*1.2) + 1e-6)
-        params.add(f'sx1_{i}',  value=sx1, min=0, max=max(sx1*2, 1e-6))
-        params.add(f'sx2_{i}',  value=sx2, min=0, max=max(sx2*2, 1e-6))
-        params.add(f'sy1_{i}',  value=sy1, min=0, max=max(sy1*2, 1e-6))
-        params.add(f'sy2_{i}',  value=sy2, min=0, max=max(sy2*2, 1e-6))
+        params.add(f'sx1_{i}',  value=sx1, min=0, max=max(sx1*3, 1e-6))
+        params.add(f'sx2_{i}',  value=sx2, min=0, max=max(sx2*3, 1e-6))
+        params.add(f'sy1_{i}',  value=sy1, min=0, max=max(sy1*3, 1e-6))
+        params.add(f'sy2_{i}',  value=sy2, min=0, max=max(sy2*3, 1e-6))
 
         fixed_centers.append((yy0, xx0))  # centres en repère local
 
@@ -219,16 +222,15 @@ def fit_all_peaks_fixed_centers(tmp, coords, bounds, plot=False):
         # renvoi des centres en coordonnées globales (utile pour la suite du pipeline)
         yy_g = yy0 + min_y
         xx_g = (xx0 + min_x) % nx
-
+        area=  total_sum_asymmetric_gaussian(amp, sx1, sx2, sy1, sy2)
         fitted_results.append({
             "group_id": i,
             "center": (yy_g, xx_g),
             "params": (amp, sx1, sx2, sy1, sy2),
-            "area": float(np.sum(peak))
+            "area": float(area)
         })
 
     fitted_data = np.sum(fitted_peak_list, axis=0) if fitted_peak_list else np.zeros_like(sub_tmp)
-
     y_true = sub_tmp.ravel().astype(float)
     y_pred = fitted_data.ravel().astype(float)
     sst = np.sum((y_true - y_true.mean())**2)
