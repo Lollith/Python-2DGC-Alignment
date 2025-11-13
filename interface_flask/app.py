@@ -38,6 +38,7 @@ except Exception as e:
 
 
 load_dotenv()
+ENV_MODE = os.getenv('APP_ENV', 'production')
 auth = HTTPBasicAuth()
 
 app = Flask(__name__)
@@ -59,9 +60,10 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
 # Instances
 converter = DataConverter()
 nist_local = NistLocal()
-compose_manager = docker_manager.create_docker_manager("../docker-compose.dev.yml") #DEBUG
-# nist_wrapper = nist_search.NISTSearchWrapper()
 
+compose_file = "../docker-compose.dev.yml" if ENV_MODE == 'development' else "../docker-compose.yml"
+compose_manager = docker_manager.create_docker_manager(compose_file)
+print(f"🚀 Docker Mode: {ENV_MODE}")
 
 #def check_auth(username, password):
  #    return username == USERNAME and password == PASSWORD
