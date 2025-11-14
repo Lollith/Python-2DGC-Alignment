@@ -1,12 +1,12 @@
 # Configuration file for notebook.
 import os
 from traitlets.config import get_config
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import logging
 import sys
 logging.basicConfig(level=logging.INFO)
 
-load_dotenv()
+# load_dotenv()
 
 c = get_config()  #noqa
 c.ServerApp.password = os.getenv("JUPYTER_PASSWORD_HASH")

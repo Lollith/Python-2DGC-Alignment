@@ -16,7 +16,7 @@ import shutil
 import requests
 import webbrowser
 import docker_manager
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from flask import Flask, jsonify
@@ -37,7 +37,7 @@ except Exception as e:
     nist = None
 
 
-load_dotenv()
+# load_dotenv()
 ENV_MODE = os.getenv('APP_ENV', 'production')
 auth = HTTPBasicAuth()
 

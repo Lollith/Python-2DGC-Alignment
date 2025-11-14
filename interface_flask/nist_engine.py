@@ -4,9 +4,9 @@ import pyms_nist_search
 import numpy as np
 import os
 import pyms.Spectrum
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 class NistEngine:
     """
