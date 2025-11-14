@@ -429,7 +429,9 @@ class Interface:
         stop_button = widgets.Button(
             description="Stop Analysis",
             button_style='danger',
-            icon='stop'
+            icon='stop',
+            disabled=True,  # désactivé
+            tooltip="Feature temporarily disabled"
         )
 
         clear_button = widgets.Button(

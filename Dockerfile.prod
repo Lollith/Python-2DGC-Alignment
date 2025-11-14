@@ -7,9 +7,13 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY config/jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
+#RUN mkdir -p /root/.jupyter/custom
 
 COPY . .
+
+COPY config/jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
+
+#RUN python3 -c "import sys; sys.path.insert(0, '/root/.jupyter'); from jupyter_notebook_config import setup_custom_css; setup_custom_css()"
 
 EXPOSE 8888
 
@@ -17,4 +21,5 @@ CMD ["jupyter", "lab", \
     "--notebook-dir=/app/notebooks", \
     "--ip=0.0.0.0", \
     "--port=8888", \
-    "--allow-root"]
+    "--allow-root",\
+    "--custom-css"]

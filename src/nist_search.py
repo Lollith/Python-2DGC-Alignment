@@ -8,9 +8,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 # from nist_utils.reference_data import ReferenceData
 from nist_utils.search_result import SearchResult
 import requests
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 class NISTSearchWrapper:
 
@@ -22,6 +22,7 @@ class NISTSearchWrapper:
         self.url = f"http://{self.ip_server}:8080/"
 
     def check_nist_health(self):
+        print(f"🔍 DEBUG: NIST URL = {self.url}", flush=True)
         endpoint = f'{self.url}nist/health'
         try:
             #TODO

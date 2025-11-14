@@ -360,9 +360,12 @@ class PeakPrecompressor:
             combined_frame = pd.DataFrame()
 
         for samp_num, imp in enumerate(imported_files):
-            out_name = (
-                output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "#P.txt"
-            )
+            # out_name = (
+            #     output_dir + input_file_list[samp_num].split("/")[-1][:-4] + "#P.txt"
+            # )
+            base_filename = os.path.basename(input_file_list[samp_num])
+            output_filename = base_filename.replace('.txt', '#P.txt')
+            out_name = os.path.join(output_dir, output_filename)
             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
             print(f"✅ Fichier {input_file_list[samp_num]} traité, résultat: {out_name}")
 

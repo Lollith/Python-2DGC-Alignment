@@ -18,6 +18,7 @@ c.ServerApp.port = 8888
 c.ServerApp.extra_static_paths = ["/root/.jupyter/custom"]
 
 FONT_SIZE = os.getenv('JUPYTER_FONT_SIZE', '16')
+# FONT_SIZE = 16
 
 def setup_custom_css():
     import os
