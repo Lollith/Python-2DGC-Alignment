@@ -88,6 +88,16 @@ export function initializeAnalysisTab() {
                     const isError = msg.toLowerCase().includes('erreur');
                     displayMessage(msg, isError ? 'error' : 'success');
                 });
+
+            // ✅ Ouvrir JupyterLab dans le navigateur LOCAL si l'analyse réussit
+              
+                if (result.success && result.jupyter_url) {
+                    window.open(result.jupyter_url, '_blank');
+                    displayMessage('✅ Jupyter Lab ouvert dans un nouvel onglet', 'success');
+                }
+
+
+
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
             } finally {

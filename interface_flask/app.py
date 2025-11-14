@@ -343,37 +343,41 @@ def analyze_files():
             time.sleep(5)
         
         # 2. Vérifier que Jupyter Lab est accessible et l'ouvrir
-        jupyter_url = f"http://{ip_server}:8888/lab/tree/run_interfaces.ipynb"
-        messages.append("🔍 Vérification de la disponibilité de Jupyter Lab...")
+        # jupyter_url = f"http://{ip_server}:8888/lab/tree/run_interfaces.ipynb"
+        # messages.append("🔍 Vérification de la disponibilité de Jupyter Lab...")
 
-        def wait_and_open_jupyter():
-            """Fonction pour attendre que Jupyter soit prêt et l'ouvrir"""
-            max_attempts = 30  
-            attempt = 0
+        # def wait_and_open_jupyter():
+        #     """Fonction pour attendre que Jupyter soit prêt et l'ouvrir"""
+        #     max_attempts = 30  
+        #     attempt = 0
 
-            while attempt < max_attempts:
-                try:
-                    response = requests.get(jupyter_url, timeout=2)
-                    if response.status_code == 200:
-                        print(f"✅ Jupyter Lab est accessible, ouverture du navigateur...")
-                        webbrowser.open(jupyter_url)
-                        break
-                except requests.exceptions.RequestException:
-                    pass
+        #     while attempt < max_attempts:
+        #         try:
+        #             response = requests.get(jupyter_url, timeout=2)
+        #             if response.status_code == 200:
+        #                 print(f"✅ Jupyter Lab est accessible, ouverture du navigateur...")
+        #                 webbrowser.open(jupyter_url)
+        #                 break
+        #         except requests.exceptions.RequestException:
+        #             pass
 
-                attempt += 1
-                time.sleep(1)
+        #         attempt += 1
+        #         time.sleep(1)
 
-            if attempt >= max_attempts:
-                print("❌ Impossible d'accéder à Jupyter Lab après 30 secondes")
+        #     if attempt >= max_attempts:
+        #         print("❌ Impossible d'accéder à Jupyter Lab après 30 secondes")
 
-        # Lancer la vérification et l'ouverture de Jupyter en arrière-plan
-        jupyter_thread = threading.Thread(target=wait_and_open_jupyter)
-        jupyter_thread.daemon = True
-        jupyter_thread.start()
+        # # Lancer la vérification et l'ouverture de Jupyter en arrière-plan
+        # jupyter_thread = threading.Thread(target=wait_and_open_jupyter)
+        # jupyter_thread.daemon = True
+        # jupyter_thread.start()
 
-        messages.append(f"🌐 Ouverture de Jupyter Lab sur {jupyter_url}...")
-
+        # messages.append(f"🌐 Ouverture de Jupyter Lab sur {jupyter_url}...")
+        server_ip = request.host.split(':')[0]
+        jupyter_url = f"http://{server_ip}:8888/lab/tree/run_interfaces.ipynb"
+        
+        messages.append(f"🌐 Jupyter Lab prêt sur {jupyter_url}")
+        
         return jsonify({
             'success': True,
             'messages': messages,
