@@ -53,7 +53,7 @@ class PeakPrecompressor:
                 selected_area = current_raw_file["Area.Deconv"]
             else:  # area_mod_max
                 selected_area = current_raw_file["Area.Mod.Max"]
-                # print("📊 Utilisation de l'aire modulation max pour l'alignement")
+                # print("📊 Utilisatfion de l'aire modulation max pour l'alignement")
         
             standardized_df = pd.DataFrame({
                 "Name": current_raw_file["Name"],

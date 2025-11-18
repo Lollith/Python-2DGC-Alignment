@@ -1,16 +1,16 @@
 import os
 import ipywidgets as widgets
-from IPython.display import display
-from identification import sample_identification
-import netCDF4 as nc
-import h5py
+# from IPython.display import display
+# from identification import sample_identification
+# import netCDF4 as nc
+# import h5py
 from ipyfilechooser import FileChooser
-import traceback
+# import traceback
 from pathlib import Path
-import subprocess
-from IPython.display import display, HTML, clear_output
-import asyncio
-import time
+# import subprocess
+# from IPython.display import display, HTML, clear_output
+# import asyncio
+# import time
 
 class Interface:
     """

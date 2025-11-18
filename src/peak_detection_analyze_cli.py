@@ -114,7 +114,9 @@ def main():
     successful_analyses = 0
     failed_analyses = 0
 
-    print(f"🔍 Starting analysis of {len(args.input)} files: {args.input}...")
+    print(f"🔍 \n Starting analysis...")
+    for i, f in enumerate(args.input, 1):
+        print(f"\n i. f")
     print(f"\n{'='*60}")
     for i, f in enumerate(args.input, 1):
         if f.startswith(docker_volume_path):

@@ -12,8 +12,6 @@ import requests
 
 # load_dotenv()
 
-print(f"? [MODULE LEVEL] IP_SERVER at import = {os.getenv('IP_SERVER')}", flush=True)
-
 class NISTSearchWrapper:
 
     def __init__(self):
@@ -22,13 +20,6 @@ class NISTSearchWrapper:
         self.password = os.getenv("FLASK_PASSWORD")
         self.ip_server = os.getenv("IP_SERVER")
         self.url = f"http://{self.ip_server}:8080/"
-
-        docker_volume_path = os.getenv("DOCKER_VOLUME_PATH")
-        print(f"🔍 DEBUG: NIST URL = {self.url}", flush=True)
-        print(f"🔍 DEBUG: USERNAME = {self.username}", flush=True)
-        print(f"🔍 DEBUG: docker volume path = {docker_volume_path}", flush=True)
-        
-
 
     def check_nist_health(self):
         print(f"🔍 DEBUG: NIST URL = {self.url}", flush=True)
