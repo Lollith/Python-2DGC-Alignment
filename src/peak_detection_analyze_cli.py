@@ -116,14 +116,18 @@ def main():
 
     print(f"🔍 \n Starting analysis...")
     for i, f in enumerate(args.input, 1):
-        print(f"\n i. f")
+        if f.startswith(docker_volume_path):
+            display_path = f.replace(docker_volume_path, "")
+        else:
+            display_path = f
+        print(f"  {i}. {display_path}")
     print(f"\n{'='*60}")
+
     for i, f in enumerate(args.input, 1):
         if f.startswith(docker_volume_path):
             display_path = f.replace(docker_volume_path, "")
         else:
             display_path = f
-
         print(f"  {i}. {display_path}")
         try:
             path = os.path.dirname(f)
