@@ -341,7 +341,22 @@ def visualizer(
     chromato, time_rn = chromato_obj
     shape = chromato.shape
     #X = np.linspace(time_rn[0], time_rn[1], shape[0])
-    X = np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
+    # X = np.arange(time_rn[0], time_rn[1], mod_time/60)[:-1]
+    step = mod_time / 60
+    X = np.arange(time_rn[0], time_rn[1], step)
+    
+    # Vérifier et ajuster la longueur de X si nécessaire
+    if len(X) != shape[0]:
+        print(f"⚠️ Dimension mismatch: X={len(X)}, shape[0]={shape[0]}, ajustement...", flush=True)
+        # Si trop long, tronquer
+        if len(X) > shape[0]:
+            X = X[:shape[0]]
+        # Si trop court, ajouter le dernier point
+        elif len(X) < shape[0]:
+            # Fallback: utiliser linspace pour garantir la dimension
+            X = np.linspace(time_rn[0], time_rn[1], shape[0])
+            print(f"   → Fallback sur linspace", flush=True)
+    
     Y = np.linspace(0, mod_time, shape[1])
     if (rt1 is not None and rt2 is not None):
         rt1minusrt1window = rt1 - rt1_window
@@ -417,9 +432,21 @@ def visualizer(
     chromato = np.transpose(chromato)
     fig, ax = plt.subplots(figsize=(15, 4))
     # print("save")
-
+    
+        # ✅ Vérification finale avant le plot
+    if chromato.shape != (len(Y), len(X)):
+        print(f"⚠️ Erreur dimensions: chromato={chromato.shape}, X={len(X)}, Y={len(Y)}", flush=True)
+        print(f"   → Utilisation de pcolormesh au lieu de contourf", flush=True)
+        tmp = ax.pcolormesh(X, Y, chromato)
+    else:
+        try:
+            tmp = ax.contourf(X, Y, chromato)
+        except Exception as e:
+            print(f"⚠️ Erreur contourf: {e}", flush=True)
+            print(f"   → Fallback sur pcolormesh", flush=True)
+            tmp = ax.pcolormesh(X, Y, chromato)
     #tmp = ax.pcolormesh(X, Y, chromato)
-    tmp = ax.contourf(X, Y, chromato)
+    # tmp = ax.contourf(X, Y, chromato)
     plt.colorbar(tmp)
     if (title != ""):
         plt.title(title)
