@@ -3,7 +3,6 @@ import { displayMessage, loadingDiv, outputDiv, showProgress } from '../main.js'
 export function initializeIdentificationTab() {
     
     const listCsvBtn = document.getElementById('listCsvBtn');
-    const csvFilesInput = document.getElementById('csvFiles');
     const availableCsvFilesDiv = document.getElementById('availableCsvFiles');
     const identificationForm = document.getElementById('identificationForm');
 
@@ -54,7 +53,6 @@ export function initializeIdentificationTab() {
                 listCsvBtn.textContent = '📋 Lister fichiers';
             }
         });
-   
     }
 // Lancer l'analyse
     if (identificationForm) {
@@ -108,7 +106,7 @@ export function initializeIdentificationTab() {
                 return;
             }
             
-        // ✅ UI loading
+        // UI loading
             loadingDiv.style.display = 'block';
             showProgress(true);
             

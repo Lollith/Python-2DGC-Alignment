@@ -3,7 +3,7 @@ import time
 import os
 import docker
 import yaml
-from typing import Dict, List, Optional
+from typing import Dict, List
 from pathlib import Path
 
 

@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from waitress import serve
-from flask import Flask, render_template, request, jsonify, send_file, Response
+from flask import Flask, render_template, request, jsonify, Response
 from data_converter import DataConverter
 from nist_local import NistLocal
 from datetime import datetime
@@ -9,26 +9,33 @@ import os
 import time
 import sys
 import docker
-from flask import Flask, render_template, request, jsonify, redirect, url_for, Response
 import os
 import threading
 import shutil
 import requests
 import webbrowser
 import docker_manager
-# from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import logging
-from flask import Flask, jsonify
-from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import check_password_hash
 import nist_engine
 import json
 
+ENV_MODE = os.getenv('APP_ENV', 'production')
+
+app = Flask(__name__)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
+
+ip_server = os.getenv("IP_SERVER")
+host_volume_path = os.getenv("HOST_VOLUME_PATH")
+
+client = docker.from_env()
+nist_executor = ThreadPoolExecutor(max_workers=8)
+converter = DataConverter()
+nist_local = NistLocal()
 try:
     nist = nist_engine.NistEngine()
     print("✅ Moteur NIST initialisé avec succès")
@@ -36,52 +43,27 @@ except Exception as e:
     print(f"❌ Erreur initialisation NIST: {e}")
     nist = None
 
-
-# load_dotenv()
-ENV_MODE = os.getenv('APP_ENV', 'production')
-auth = HTTPBasicAuth()
-
-app = Flask(__name__)
-
-# USERNAME = os.getenv("FLASK_USERNAME")
-# PASSWORD = os.getenv("FLASK_PASSWORD")
-hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
-username_env = os.getenv('USERNAME')
-ip_server = os.getenv("IP_SERVER")
-host_volume_path = os.getenv("HOST_VOLUME_PATH")
-
-client = docker.from_env()
-
-nist_executor = ThreadPoolExecutor(max_workers=8)
-
-app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024  # 3GB max file size
-
-
-# Instances
-converter = DataConverter()
-nist_local = NistLocal()
-
 compose_file = "../docker-compose.dev.yml" if ENV_MODE == 'development' else "../docker-compose.yml"
 compose_manager = docker_manager.create_docker_manager(compose_file)
 print(f"🚀 Docker Mode: {ENV_MODE}")
 
-#def check_auth(username, password):
- #    return username == USERNAME and password == PASSWORD
 
-@auth.verify_password
-def verify_password(username, password):
-    return username == username_env and check_password_hash(hashed_password, password)
+######## pour reconfigurer le password de flask, si passe sur le web ########
+#from flask_httpauth import HTTPBasicAuth
+#from werkzeug.security import check_password_hash
 
-# @app.route('/nist/health')
-# @auth.login_required
-# def nist_health():
-#     return jsonify({"status": "available"})
+#auth = HTTPBasicAuth()
+#hashed_password = os.getenv('FLASK_HASHED_PASSWORD')
+#username_env = os.getenv('USERNAME')
+
+#@auth.verify_password
+#def verify_password(username, password):
+#    return username == username_env and check_password_hash(hashed_password, password)
 
 # def authenticate():
 #     return Response(
 #         'Authentification requise.', 401,
 #         {'WWW-Authenticate': 'Basic realm="Login Required"'})
-
 
 # def requires_auth(f):
 #     @wraps(f)
@@ -91,8 +73,9 @@ def verify_password(username, password):
 #             return authenticate()
 #         return f(*args, **kwargs)
 #     return decorated
+##############################################################################
 
-@auth.login_required
+#@auth.login_required
 @app.route('/')
 def index():
     """Page principale avec le formulaire."""
@@ -187,7 +170,7 @@ def convert_files():
     else:
         files_list = None
 
-    # Vérifier l'espace disque avant de commencer
+    # Vérifier l'espace disque
     try:
         free_space = shutil.disk_usage(output_path).free
         if free_space < 5 * 1024 * 1024 * 1024:  # Moins de 5GB libre
@@ -263,7 +246,6 @@ def check_containers():
         status_messages = []
         for container_name, status in services_status.items():
             print(f"Service: {container_name}, Status: {status}")
-            # logger.info(f"Service: {container_name}, Status: {status}")
             if status['running']:
                 status_messages.append(f"🟢 {container_name}: En cours d'exécution")
             else:
@@ -306,7 +288,6 @@ def start_containers():
     })
 
 
-
 @app.route('/api/analyze', methods=['POST'])
 def analyze_files():
     """API pour lancer l'analyse des fichiers .h5."""
@@ -325,7 +306,6 @@ def analyze_files():
     try:
         # 1. Vérifier et démarrer les conteneurs Docker si nécessaire
         messages.append("🔍 Vérification des conteneurs Docker...")
-        # container_status = rundocker.check_containers_status()
         services_status = compose_manager.get_services_status()
 
         services_to_start = []
@@ -347,41 +327,9 @@ def analyze_files():
             # Attendre que les services soient complètement démarrés
             messages.append("⏳ Attente du démarrage complet des conteneurs...")
             time.sleep(5)
-        
-        # 2. Vérifier que Jupyter Lab est accessible et l'ouvrir
-        # jupyter_url = f"http://{ip_server}:8888/lab/tree/run_interfaces.ipynb"
-        # messages.append("🔍 Vérification de la disponibilité de Jupyter Lab...")
 
-        # def wait_and_open_jupyter():
-        #     """Fonction pour attendre que Jupyter soit prêt et l'ouvrir"""
-        #     max_attempts = 30  
-        #     attempt = 0
-
-        #     while attempt < max_attempts:
-        #         try:
-        #             response = requests.get(jupyter_url, timeout=2)
-        #             if response.status_code == 200:
-        #                 print(f"✅ Jupyter Lab est accessible, ouverture du navigateur...")
-        #                 webbrowser.open(jupyter_url)
-        #                 break
-        #         except requests.exceptions.RequestException:
-        #             pass
-
-        #         attempt += 1
-        #         time.sleep(1)
-
-        #     if attempt >= max_attempts:
-        #         print("❌ Impossible d'accéder à Jupyter Lab après 30 secondes")
-
-        # # Lancer la vérification et l'ouverture de Jupyter en arrière-plan
-        # jupyter_thread = threading.Thread(target=wait_and_open_jupyter)
-        # jupyter_thread.daemon = True
-        # jupyter_thread.start()
-
-        # messages.append(f"🌐 Ouverture de Jupyter Lab sur {jupyter_url}...")
         server_ip = request.host.split(':')[0]
         jupyter_url = f"http://{server_ip}:8888/lab/tree/run_interfaces.ipynb"
-        
         messages.append(f"🌐 Jupyter Lab prêt sur {jupyter_url}")
         
         return jsonify({
@@ -569,7 +517,6 @@ def identify_compounds():
     # pour recuperer les messages au fur et a mesure
     def generate_identification():
         try:
-            # ✅ Validation
             if not input_path or not input_path.strip():
                 yield f"data: {json.dumps({'type': 'error', 'content': '❌ Aucun chemin d\'entrée spécifié !', 'message_type': 'error'})}\n\n"
                 return

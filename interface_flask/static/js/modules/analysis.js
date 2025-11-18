@@ -30,34 +30,6 @@ export function initializeAnalysisTab() {
                 });
                 
                 const data = await response.json();
-                
-        //         if (data.success) {
-        //             h5FilesSelect.innerHTML = '';
-        //             if (data.files.length > 0) {
-        //                 data.files.forEach(file => {
-        //                     const option = document.createElement('option');
-        //                     option.value = file;
-        //                     option.textContent = file;
-        //                     h5FilesSelect.appendChild(option);
-        //                 });
-        //                 displayMessage(`${data.files.length} fichier(s) .h5 trouvé(s)`);
-        //             } else {
-        //                 const option = document.createElement('option');
-        //                 option.textContent = 'Aucun fichier .h5 trouvé';
-        //                 option.disabled = true;
-        //                 h5FilesSelect.appendChild(option);
-        //                 displayMessage('Aucun fichier .h5 trouvé', 'error');
-        //             }
-        //         } else {
-        //             displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
-        //         }
-        //     } catch (error) {
-        //         displayMessage('Erreur de connexion: ' + error.message, 'error');
-        //     } finally {
-        //         listH5Btn.disabled = false;
-        //         listH5Btn.textContent = '📋 Lister fichiers HDF5';
-        //     }
-        // });
             
                 if (data.success) {
                     if (data.messages && data.messages.length > 0) {
@@ -67,7 +39,7 @@ export function initializeAnalysisTab() {
                         });
                     }
                     if (data.files.length > 0) {
-                        // ✅ Affichage groupé par dossier
+                        // Affichage groupé par dossier
                         const filesByFolder = {};
                         data.files.forEach(file => {
                             if (file.includes('/')) {
@@ -107,7 +79,6 @@ export function initializeAnalysisTab() {
                         
                         html += '</div>';
                         availableFilesDiv.innerHTML = html;
-                        // availableFilesDiv.innerHTML = `<strong>Fichiers CDF trouvés:</strong><br>${data.files.join(', ')}`;
                         availableFilesDiv.style.display = 'block';
                         displayMessage(`${data.files.length} fichier(s) .h5 trouvé(s)`);
                     } else {
@@ -126,10 +97,7 @@ export function initializeAnalysisTab() {
                 listH5Btn.textContent = '📋 Lister fichiers HDF5';
             }
         });        
-
-
-
-        
+     
 // Lancer l'analyse
         analysisForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -137,7 +105,6 @@ export function initializeAnalysisTab() {
             const analysisPath = document.getElementById('analysisPath').value;
             const selectedFiles = Array.from(h5FilesSelect.selectedOptions).map(option => option.value);
             loadingDiv.style.display = 'block';
-            // outputDiv.innerHTML = '';
             
             const data = {
                 analysis_path: analysisPath,
@@ -154,21 +121,17 @@ export function initializeAnalysisTab() {
                 });
                 
                 const result = await response.json();
-                
-                // Afficher tous les messages
+
                 result.messages.forEach(msg => {
                     const isError = msg.toLowerCase().includes('erreur');
                     displayMessage(msg, isError ? 'error' : 'success');
                 });
 
-            // ✅ Ouvrir JupyterLab dans le navigateur LOCAL si l'analyse réussit
-              
+            // Ouvrir JupyterLab dans le navigateur LOCAL si l'analyse réussit
                 if (result.success && result.jupyter_url) {
                     window.open(result.jupyter_url, '_blank');
                     displayMessage('✅ Jupyter Lab ouvert dans un nouvel onglet', 'success');
                 }
-
-
 
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
@@ -180,7 +143,6 @@ export function initializeAnalysisTab() {
 
         // Vérifier l'état Docker au chargement de la page
         window.addEventListener('load', function() {
-            // Vérification automatique discrète
             fetch('/api/check_containers', {
                 method: 'POST',
                 headers: {

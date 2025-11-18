@@ -74,7 +74,7 @@ function fillDefaultPaths() {
         });
         identOutputPath.dataset.listenerAdded = 'true';
     }
-
+    //converter
     if (inputPath && outputPath && !inputPath.dataset.listenerAdded) {
         inputPath.addEventListener('input', function() {
             const inputValue = this.value.trim();
@@ -90,6 +90,7 @@ function fillDefaultPaths() {
         inputPath.dataset.listenerAdded = 'true';
     }
 
+    //identification
     if (identInputPath && identOutputPath && !identInputPath.dataset.listenerAdded) {
         identInputPath.addEventListener('input', function() {
             const inputValue = this.value.trim();
@@ -141,11 +142,9 @@ function showTab(tabName) {
     });
     
     const tabContent = document.getElementById(tabName);
-    const output = document.getElementById('output');
     
     if (tabContent) tabContent.classList.add('active');
     if (event && event.target) event.target.classList.add('active');
-    // if (output) output.innerHTML = '';
     
     showProgress(false);
 }
@@ -175,7 +174,7 @@ export function displayMessage(message, type = 'success') {
     outputDiv.scrollTop = outputDiv.scrollHeight;
 }
 
-// // récupérer les logs via l'API
+// récupérer les logs via l'API
 export async function viewLogs() {
     const viewLogsBtn = document.getElementById('viewLogsBtn');
     if (!viewLogsBtn) return;
@@ -188,7 +187,6 @@ export async function viewLogs() {
         const data = await response.json();
         
         if (outputDiv) {
-            // outputDiv.innerHTML = '';
             displayMessage('=== LOGS SYSTÈME ===', 'info');
             
             if (data.success) {
@@ -207,7 +205,6 @@ export async function viewLogs() {
         
     } catch (error) {
         if (outputDiv) {
-            // outputDiv.innerHTML = '';
             displayMessage('❌ Erreur de connexion pour récupérer les logs', 'error');
         }
     } finally {
@@ -225,7 +222,7 @@ window.setCurrentPath = setCurrentPath;
 window.setTargetInput = setTargetInput;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // ✅ Rendre les fonctions globales pour les onclick HTML
+    // Rendre les fonctions globales pour les onclick HTML
     window.fillDefaultPaths = fillDefaultPaths;
     window.showTab = showTab;
     window.openFileExplorer = openFileExplorer;

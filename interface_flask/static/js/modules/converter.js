@@ -18,7 +18,6 @@ export function initializeConverterTab() {
                 if (modalElement && typeof bootstrap !== 'undefined') {
                     bootstrap.Modal.getInstance(modalElement)?.hide();
                 }
-                // displayMessage(`Dossier sélectionné: ${currentPath}`, 'info');
             }
         };
     }
@@ -55,7 +54,7 @@ export function initializeConverterTab() {
                 }
 
                 if (data.files.length > 0) {
-                    // ✅ Affichage groupé par dossier
+                    // Affichage groupé par dossier
                     const filesByFolder = {};
                     data.files.forEach(file => {
                         if (file.includes('/')) {
@@ -95,7 +94,6 @@ export function initializeConverterTab() {
                     
                     html += '</div>';
                     availableFilesDiv.innerHTML = html;
-                    // availableFilesDiv.innerHTML = `<strong>Fichiers CDF trouvés:</strong><br>${data.files.join(', ')}`;
                     availableFilesDiv.style.display = 'block';
                     displayMessage(`${data.files.length} fichier(s) CDF trouvé(s)`);
                 } else {
@@ -137,7 +135,6 @@ export function initializeConverterTab() {
             }
             
             loadingDiv.style.display = 'block';
-            // outputDiv.innerHTML = '';
             showProgress(true);
             
             try {
@@ -239,7 +236,6 @@ export function initializeConverterTab() {
                 return;
             }
 
-            // Confirmation de suppression
             if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUS les fichiers .h5 dans ce dossier ?\nCette action est irréversible !')) {
                 return;
             }
@@ -271,5 +267,4 @@ export function initializeConverterTab() {
         });
     }
     displayMessage('🚀 Interface DataLab 2DGC initialisée', 'success');
-
 }

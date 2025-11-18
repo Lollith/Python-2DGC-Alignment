@@ -53,7 +53,6 @@ export function initializeMonitoringTab() {
 
                 if (!data.all_running) {
                 // 2️.Lancer Docker seulement si nécessaire
-
                 const response = await fetch('/api/start_containers', {
                     method: 'POST',
                     headers: {

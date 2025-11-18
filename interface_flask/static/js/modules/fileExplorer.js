@@ -1,4 +1,4 @@
-import { displayMessage, setCurrentPath, setTargetInput, getCurrentPath, getTargetInput } from '../main.js';
+import { displayMessage, setCurrentPath, setTargetInput, getCurrentPath } from '../main.js';
 
 export function openFileExplorer(inputId) {
     const input = document.getElementById(inputId);

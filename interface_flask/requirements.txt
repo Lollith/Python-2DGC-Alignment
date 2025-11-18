@@ -3,8 +3,7 @@ flask
 netCDF4==1.7.2
 numpy
 docker
-python-dotenv
 h5py
-Flask-HTTPAuth
+# Flask-HTTPAuth
 pyms-nist-search==0.7.2
 pyyaml

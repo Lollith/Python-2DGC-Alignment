@@ -40,7 +40,7 @@ class DataConverter:
                         
                         cdf_files[file].append((full_path, subfolder, acq_timestamp, acq_date_str))
 
-        # ✅ Traiter les doublons
+        # Traiter les doublons
         final_files = []
         for filename, file_list in cdf_files.items():
             if len(file_list) == 1:
@@ -57,7 +57,7 @@ class DataConverter:
                     by_date[rounded_timestamp].append((full_path, subfolder, acq_date_str))
                 
                 if len(by_date) == 1:
-                    # ✅ MÊME DATE = Vraie copie, garder la première
+                    # MÊME DATE = Vraie copie, garder la première
                     date_str = file_list[0][3]
                     messages.append(f"⚠️ Doublon détecté: {filename} (acquisition: {date_str})")
                     locations = " et ".join([f[1] or 'racine' for f in file_list])
@@ -65,7 +65,7 @@ class DataConverter:
                     messages.append(f"   → Conservation de la première version")
                     final_files.append((filename, file_list[0][1]))
                 else:
-                    # ✅ DATES DIFFÉRENTES = Acquisitions différentes
+                    # DATES DIFFÉRENTES = Acquisitions différentes
                     messages.append(f"⚠️ Fichiers avec même nom mais dates d'acquisitions différentes: {filename}")
                     for timestamp, paths in sorted(by_date.items()):
                         full_path, subfolder, acq_date_str = paths[0]
@@ -112,7 +112,7 @@ class DataConverter:
             messages.extend(folder_messages)
             messages.append(f"Tous les fichiers CDF du dossier seront analysés.")
             messages.append(f"Fichiers à analyser : {files_list}")
-        # files_list = [file.strip() for file in files_list if file.strip()]
+
         if files_list and isinstance(files_list[0], tuple):
             files_list = [f for f in files_list if f[0].strip()]
         else:
@@ -199,10 +199,8 @@ class DataConverter:
                 output_subfolder = os.path.join(output_path, subfolder)
                 os.makedirs(output_subfolder, exist_ok=True)
                 hdf5_path = os.path.join(output_subfolder, f'{file_name[:-4]}.h5')
-                display_path = f"{subfolder}/{file_name}"
             else:
                 hdf5_path = os.path.join(output_path, f'{file_name[:-4]}.h5')
-                display_path = file_name
 
             if os.path.exists(hdf5_path):
                 print(f"Le fichier {hdf5_path} existe déjà. Vérification...")

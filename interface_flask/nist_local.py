@@ -1,12 +1,8 @@
 import pyms_nist_search
 import os
 import pyms.Spectrum
-# from dotenv import load_dotenv
 import time
 import pandas as pd
-# import json
-
-# load_dotenv()
 
 
 class NistLocal:
@@ -97,7 +93,7 @@ class NistLocal:
             
             for file in files_list:
                 filepath = os.path.join(input_path, file)
-                yield f"🎯 Processing file: {filepath}"  #  Message immédiat !
+                yield f"🎯 Processing file: {filepath}"  #  Message immédiat
 
                 df = pd.read_csv(filepath, sep=";")
                 df['compound_name'] = ""
@@ -149,7 +145,7 @@ class NistLocal:
 
                     if row % progress_interval == 0 or row == total_rows - 1:
                         progress = (row / total_rows) * 100
-                        yield f"⏳ {file}: {row}/{total_rows} traités ({progress:.1f}%)"  # ✅ Message immédiat !
+                        yield f"⏳ {file}: {row}/{total_rows} traités ({progress:.1f}%)"
 
                 output_filepath = os.path.join(output_path, f"identified_{file}")
                 df.to_csv(output_filepath, sep=";", index=False, encoding="utf-8-sig") #compatibilite avec excel
