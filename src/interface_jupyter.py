@@ -317,20 +317,20 @@ class Interface:
 
     def get_output_path(self):
         """Get the output path from the output chooser, or auto-generate from first input."""
-        # ✅ Si l'output_chooser existe et a une sélection, l'utilise
+        # Si l'output_chooser existe et a une sélection, l'utilise
         if hasattr(self, 'output_chooser'):
             path = self.output_chooser.selected_path or self.output_chooser.default_path
             if path:
                 return path
         
-        # ✅ SINON, génère automatiquement depuis le premier input
+        #  SINON, génère automatiquement depuis le premier input
         if len(self._choosers) > 0 and self._choosers[0].selected_path:
             input_path = str(self._choosers[0].selected_path)
             normalized_path = input_path.replace('\\', '/')
             if normalized_path.endswith('/'):
                 normalized_path = normalized_path[:-1]
             auto_output = f"{normalized_path}/output"
-            # print(f"📁 Auto-generated output path: {auto_output}")
+            print(f"📁 Auto-generated output path: {auto_output}")
             return auto_output
         
         return None

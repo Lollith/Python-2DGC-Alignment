@@ -22,7 +22,6 @@ class NISTSearchWrapper:
         self.url = f"http://{self.ip_server}:8080/"
 
     def check_nist_health(self):
-        print(f"🔍 DEBUG: NIST URL = {self.url}", flush=True)
         endpoint = f'{self.url}nist/health'
         try:
             #TODO

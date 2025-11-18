@@ -3,9 +3,34 @@ import argparse
 import os
 import sys
 from consensus_aligner import ChromatographicAligner
+import logging
 # from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
+def setup_logging(output_path):
+    """Configure logging pour le subprocess CLI avec flush automatique"""
+    log_file = os.path.join(output_path, "align.log")
+    
+    # Handler personnalisé avec flush automatique
+    class FlushStreamHandler(logging.StreamHandler):
+        def emit(self, record):
+            super().emit(record)
+            self.flush()
+    
+    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter('%(message)s'))
+    
+    console_handler = FlushStreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[file_handler, console_handler],
+        force=True
+    )
+    
+    return logging.getLogger('gcgc_cli')
 
 def main():
     parser = argparse.ArgumentParser(description="GC×GC-MS Peak Alignment CLI")
@@ -25,9 +50,11 @@ def main():
     parser.add_argument('--area_selection', type=str, default="area_mod_max", help="Area selection method")
     args = parser.parse_args()
 
+    logger = setup_logging(args.output_path)
     if not args.input:
-        print("❌ Error: No files selected for analysis.")
+        logger.error("❌ Error: No files selected for analysis.")
         return
+    # print(f"📁 CLI received output_path: {args.output_path}", flush=True)
     try:
         aligner = ChromatographicAligner(
             rt1_penalty=args.rt1_penalty,
@@ -48,8 +75,10 @@ def main():
         aligner.filter_alignment_matrix()
         aligner.nist_identification(args.nist, match_factor_min=650)
         aligner.save_results()
+        logger.info("Alignment log saved: " + os.path.join(args.output_path, "align.log"))
+        # logger.info("✅ Alignment completed successfully.")
     except Exception as e:
-        print(f"Error during alignment: {e}")
+        logger.error(f"Error during alignment: {e}")
 
 
 if __name__ == "__main__":

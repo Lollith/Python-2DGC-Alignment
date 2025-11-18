@@ -9,6 +9,7 @@ from datetime import datetime
 import matching
 import nist_search
 import time
+import logging
 
 
 class ChromatographicAligner:
@@ -79,7 +80,8 @@ class ChromatographicAligner:
         self.nist_api = nist_api
         self.output_path = output_path
         self.input_filter_path = input_filter_path
-        self.area_selection = area_selection
+        self.area_selection = area_selection,
+        self.logger = logging.getLogger('gcgc_cli')
 
         # results storage
         self.imported_files = None
@@ -109,10 +111,11 @@ class ChromatographicAligner:
 
             if self.area_selection == "area_deconvo":
                 selected_area = current_raw_file["Area.Deconv"]
-                print("📊 Utilisation de l'aire déconvolution pour l'alignement")
+                self.logger.info("📊 Utilisation de l'aire déconvolution pour l'alignement")
+                
             else:  # area_mod_max
                 selected_area = current_raw_file["Area.Mod.Max"]
-                print("📊 Utilisation de l'aire modulation max pour l'alignement")
+                self.logger.info("📊 Utilisation de l'aire modulation max pour l'alignement")
         
             standardized_df = pd.DataFrame({
                 "Name": current_raw_file["Name"],
@@ -364,7 +367,7 @@ class ChromatographicAligner:
         dict : Dictionary containing alignment results with keys:
             'Alignment_Matrix', 'Peak_Info', 'RT_group', 'spectra_group'
         """
-        print("🚀 Initializing alignment matrix...", flush=True)
+        self.logger.info("🚀 Initializing alignment matrix...")
         # Set default values
         if self.disimilarity_cutoff is None:
             self.disimilarity_cutoff = self.similarity_cutoff - 90
@@ -373,7 +376,7 @@ class ChromatographicAligner:
 
         # Import files if not provided
         if self.imported_files is None:
-            print("📂 Importing files...")
+            self.logger.info("📂 Importing files...")
             self.import_files(input_file_list)
 
         # total_samples = len(self.imported_files)
@@ -413,7 +416,7 @@ class ChromatographicAligner:
 
         # Process each sample
         for samp_num in range(len(self.imported_files)):
-            print(f"Processing sample: {col_names[samp_num]}")
+            self.logger.info(f"Processing sample: {col_names[samp_num]}")
             # sample_name = col_names[samp_num]
 
             # Generate similarity frames (this function needs to be implemented)
@@ -530,7 +533,7 @@ class ChromatographicAligner:
                 'spectra_group': final_matrix_spectra
             }
 
-        print("  ✅ Alignment complete.", flush=True)
+        self.logger.info("  ✅ Alignment complete.")
         return self.alignment_results
 
     def load_csv_results(self):
@@ -540,7 +543,7 @@ class ChromatographicAligner:
         csvs = self._csv_results_exist()
         if not csvs:
             raise ValueError("No alignment results available. CSV files not found.")
-        print("📂 Loading CSV results...", flush=True)
+        self.logger.info("📂 Loading CSV results...")
        
         alignment_matrix = pd.read_csv(csvs["alignment_matrix"], sep=";", index_col=0)
         peak_info = pd.read_csv(csvs["peak_info"], sep=";", index_col=None)  # Pas d'index car sauvé avec index=False
@@ -553,7 +556,7 @@ class ChromatographicAligner:
                 'RT_group': rt_group,
                 'spectra_group': spectra_group,
             }
-        print("✅ CSV results loaded successfully.")
+        self.logger.info("✅ CSV results loaded successfully.")
     
     def filter_alignment_matrix(self, missing_value_threshold=None):
         """
@@ -569,10 +572,10 @@ class ChromatographicAligner:
         --------
         pd.DataFrame : Filtered alignment matrix
         """
-        print("🔍 Filtering alignment matrix ...", flush=True)
+        self.logger.info("🔍 Filtering alignment matrix ...")
         if missing_value_threshold is None:
             missing_value_threshold = self.missing_value_limit
-            print(f"Using default missing value threshold: {missing_value_threshold}", flush=True)
+            self.logger.info(f"Using default missing value threshold: {missing_value_threshold}")
         else:
             self.missing_value_limit = missing_value_threshold
 
@@ -585,7 +588,7 @@ class ChromatographicAligner:
         threshold = missing_value_threshold * alignment_matrix.shape[1]
         mask_keep = non_na_count > threshold
 
-        print(f"Filtering: kept {mask_keep.sum()} rows out of {alignment_matrix.shape[0]} "
+        self.logger.info(f"Filtering: kept {mask_keep.sum()} rows out of {alignment_matrix.shape[0]} "
             f"(threshold: {missing_value_threshold*100:.0f}% non-missing values)")
 
         # Application du masque booléen (même position, pas besoin d'utiliser .loc avec labels)
@@ -607,16 +610,16 @@ class ChromatographicAligner:
         - Cas 3: fichiers CSV sauvegardés avec identifications (re-lancement si nist=True).
         """
         if not nist:
-            print("⏭️ NIST désactivé, pas d'identification", flush=True)
+            self.logger.info("⏭️ NIST désactivé, pas d'identification")
             return self.filtered_results
 
         self.nist_api = nist_search.NISTSearchWrapper()
 
         if not self.nist_api.check_nist_health():
-            print("⚠️ Service NIST indisponible")
+            self.logger.warning("⚠️ Service NIST indisponible")
             return self.filtered_results
 
-        print("🔍 Service NIST actif, identification en cours...", flush=True)
+        self.logger.info("🔍 Service NIST actif, identification en cours...")
 
         # --- CAS 1 : résultats en mémoire ---
         if self.alignment_results is not None:
@@ -682,7 +685,7 @@ class ChromatographicAligner:
                                 scores.append(str(getattr(search_result, "match_factor", -1)))
                             
                 except Exception as e:
-                    print(f"Warning; Nist search failed for {analyte_id}: {e}")
+                    self.logger.warning(f"Warning; Nist search failed for {analyte_id}: {e}")
                     continue
 
             if compounds:
@@ -710,7 +713,7 @@ class ChromatographicAligner:
         total_unidentified = len(mapping) - total_identified
         end = time.time() - start
 
-        print(f"NIST matching completed in {end:.2f} seconds. Identified: {total_identified}, Unidentified: {total_unidentified}", flush=True)
+        self.logger.info(f"NIST matching completed in {end:.2f} seconds. Identified: {total_identified}, Unidentified: {total_unidentified}")
 
         return pd.DataFrame(mapping).set_index("AnalyteID")
 
@@ -803,11 +806,11 @@ class ChromatographicAligner:
 
             if len(matching_files) == 1:
                 found[keyword] = matching_files[0]
-                print(f"✅ {keyword}: {os.path.basename(matching_files[0])}")
+                self.logger.info(f"✅ {keyword}: {os.path.basename(matching_files[0])}")
             elif len(matching_files) == 0:
-                print(f"❌ {keyword}: Non trouvé")
+                self.logger.warning(f"❌ {keyword}: Non trouvé")
             else:
-                print(f"⚠️ {keyword}: {len(matching_files)} fichiers trouvés")
+                self.logger.warning(f"⚠️ {keyword}: {len(matching_files)} fichiers trouvés")
         return found
 
     def _update_csv_results_with_identifications(
@@ -826,7 +829,7 @@ class ChromatographicAligner:
         # rt_group["Compounds"] = compounds
         # spectra_group["Compounds"] = compounds
         # spectra_group["Scores"] = scores
-        print("NIST identifications ajoutées aux DataFrames chargés depuis CSV.")
+        self.logger.info("NIST identifications ajoutées aux DataFrames chargés depuis CSV.")
 
         # Sauvegarde
         # alignment_matrix.to_csv(self.output_dir / "alignment_matrix.csv")
@@ -846,7 +849,7 @@ class ChromatographicAligner:
         filtered_results : dict, optional
             Dictionary containing filtered versions of all matrices
         """
-        print("Saving results ...", flush=True)
+        self.logger.info("Saving results ...")
         timestamp = datetime.now().strftime("%Y%m%d")
 
         # if self.alignment_results is None:
@@ -871,15 +874,15 @@ class ChromatographicAligner:
                     
                     # print(f"✅ {key} saved.")
                 except Exception as e:
-                    print(f"❌ Impossible de sauvegarder {key} en CSV: {e}")
+                    self.logger.error(f"❌ Impossible de sauvegarder {key} en CSV: {e}")
             else:
-                print(f"⚠ {key} n'existe pas dans filtered_results.")
+                self.logger.warning(f"⚠ {key} n'existe pas dans filtered_results.")
 
         if self.output_path.startswith(self.docker_volume_path):
             display_path = self.output_path.replace(self.docker_volume_path, "")
         else:
             display_path = self.output_path
-        print(f"Results saved to directory: {display_path}", flush=True)
+        self.logger.info(f"Results saved to directory: {display_path}")
 
 
 if __name__ == "__main__":
@@ -908,7 +911,7 @@ if __name__ == "__main__":
     # #     "c:\\Users\\adeli\\Documents\\programmation\\uvsq\\app\\output\\aout_before_align_without_nist\\P-L-007-801838-Tedla.txt"
     #     ]
     
-    print("Importing files...", file)
+    # self.logger.info("Importing files...", file)
     aligner = ChromatographicAligner(
         rt1_penalty=1,
         rt2_penalty=5,

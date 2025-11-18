@@ -125,12 +125,18 @@ def list_files():
         elif extension == '.csv' and only_peak_info:
             files = nist_local.get_files_from_folder(path)
             messages = []
-        else:
+        else: # .h5 or other extensions
             files = []
             messages = []
-            for filename in os.listdir(path):
-                if filename.lower().endswith(extension.lower()):
-                    files.append(filename)
+            for root, dirs, filenames in os.walk(path):
+                for filename in filenames:
+                    if filename.lower().endswith(extension.lower()):
+                        relative_path = os.path.relpath(root, path)
+                        subfolder = relative_path if relative_path != '.' else ''
+                        if subfolder:
+                            files.append(f"{subfolder}/{filename}")
+                        else:
+                            files.append(filename)
             files.sort()
         
         return jsonify({

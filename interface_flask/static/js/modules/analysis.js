@@ -6,6 +6,7 @@ export function initializeAnalysisTab() {
     const analysisForm = document.getElementById('analysisForm');
     const h5FilesSelect = document.getElementById('h5Files');
     const dockerStatusDiv = document.getElementById('dockerStatus');
+    const availableFilesDiv = document.getElementById('availableFilesH5');
     
 
     listH5Btn.addEventListener('click', async function() {
@@ -30,25 +31,93 @@ export function initializeAnalysisTab() {
                 
                 const data = await response.json();
                 
+        //         if (data.success) {
+        //             h5FilesSelect.innerHTML = '';
+        //             if (data.files.length > 0) {
+        //                 data.files.forEach(file => {
+        //                     const option = document.createElement('option');
+        //                     option.value = file;
+        //                     option.textContent = file;
+        //                     h5FilesSelect.appendChild(option);
+        //                 });
+        //                 displayMessage(`${data.files.length} fichier(s) .h5 trouvé(s)`);
+        //             } else {
+        //                 const option = document.createElement('option');
+        //                 option.textContent = 'Aucun fichier .h5 trouvé';
+        //                 option.disabled = true;
+        //                 h5FilesSelect.appendChild(option);
+        //                 displayMessage('Aucun fichier .h5 trouvé', 'error');
+        //             }
+        //         } else {
+        //             displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
+        //         }
+        //     } catch (error) {
+        //         displayMessage('Erreur de connexion: ' + error.message, 'error');
+        //     } finally {
+        //         listH5Btn.disabled = false;
+        //         listH5Btn.textContent = '📋 Lister fichiers HDF5';
+        //     }
+        // });
+            
                 if (data.success) {
-                    h5FilesSelect.innerHTML = '';
-                    if (data.files.length > 0) {
-                        data.files.forEach(file => {
-                            const option = document.createElement('option');
-                            option.value = file;
-                            option.textContent = file;
-                            h5FilesSelect.appendChild(option);
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(msg => {
+                        const isWarning = msg.includes('⚠️') || msg.includes('ATTENTION');
+                        displayMessage(msg, isWarning ? 'warning' : 'info');
                         });
+                    }
+                    if (data.files.length > 0) {
+                        // ✅ Affichage groupé par dossier
+                        const filesByFolder = {};
+                        data.files.forEach(file => {
+                            if (file.includes('/')) {
+                                const parts = file.split('/');
+                                const folder = parts.slice(0, -1).join('/');
+                                const filename = parts[parts.length - 1];
+                                if (!filesByFolder[folder]) {
+                                    filesByFolder[folder] = [];
+                                }
+                                filesByFolder[folder].push(filename);
+                            } else {
+                                if (!filesByFolder['root']) {
+                                    filesByFolder['root'] = [];
+                                }
+                                filesByFolder['root'].push(file);
+                            }
+                        });
+                        
+                        let html = '<div class="files-list"><strong>Fichiers .h5 trouvés:</strong><br>';
+                        
+                        // Fichiers à la racine
+                        if (filesByFolder['root']) {
+                            filesByFolder['root'].forEach(file => {
+                                html += `<div style="margin-left: 10px;">📄 ${file}</div>`;
+                            });
+                        }
+                        
+                        // Fichiers dans les sous-dossiers
+                        Object.keys(filesByFolder).forEach(folder => {
+                            if (folder !== 'root') {
+                                html += `<div style="margin-top: 10px; font-weight: bold;">📁 ${folder}/</div>`;
+                                filesByFolder[folder].forEach(file => {
+                                    html += `<div style="margin-left: 20px;">📄 ${file}</div>`;
+                                });
+                            }
+                        });
+                        
+                        html += '</div>';
+                        availableFilesDiv.innerHTML = html;
+                        // availableFilesDiv.innerHTML = `<strong>Fichiers CDF trouvés:</strong><br>${data.files.join(', ')}`;
+                        availableFilesDiv.style.display = 'block';
                         displayMessage(`${data.files.length} fichier(s) .h5 trouvé(s)`);
                     } else {
-                        const option = document.createElement('option');
-                        option.textContent = 'Aucun fichier .h5 trouvé';
-                        option.disabled = true;
-                        h5FilesSelect.appendChild(option);
+                        availableFilesDiv.innerHTML = '<strong>Aucun fichier .h5 trouvé dans ce dossier</strong>';
+                        availableFilesDiv.style.display = 'block';
                         displayMessage('Aucun fichier .h5 trouvé', 'error');
                     }
                 } else {
                     displayMessage(data.message || 'Erreur lors de la lecture du dossier', 'error');
+                    availableFilesDiv.style.display = 'none';
                 }
             } catch (error) {
                 displayMessage('Erreur de connexion: ' + error.message, 'error');
@@ -56,7 +125,10 @@ export function initializeAnalysisTab() {
                 listH5Btn.disabled = false;
                 listH5Btn.textContent = '📋 Lister fichiers HDF5';
             }
-        });
+        });        
+
+
+
         
 // Lancer l'analyse
         analysisForm.addEventListener('submit', async function(e) {

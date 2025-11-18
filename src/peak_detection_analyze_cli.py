@@ -4,10 +4,34 @@ import os
 import sys
 import h5py
 import netCDF4 as nc
+import logging
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from identification import sample_identification
 
 docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
+
+def setup_logging(output_path):
+    """Configure logging pour le subprocess CLI avec flush automatique"""
+    log_file = os.path.join(output_path, "peak_detection.log")
+    
+    # Handler personnalisé avec flush automatique
+    class FlushStreamHandler(logging.StreamHandler):
+        def emit(self, record):
+            super().emit(record)
+            self.flush()
+    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter('%(message)s'))
+    
+    console_handler = FlushStreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[file_handler, console_handler],
+        force=True
+    )
+    
+    return logging.getLogger('gcgc_cli')
 
 
 def save_parameters(selected_files, output_path, method, mode, noise_factor,
@@ -66,10 +90,10 @@ def get_mod_time(file_path):
     }
     if scan_number in modulation_times:
         mod_time, data_type = modulation_times[scan_number]
-        print(f"   Data type: {data_type}")
+        logging.info(f"   Data type: {data_type}")
         return mod_time
     else:
-        print(f"   ⚠️  Unknown scan_number: {scan_number}, using default modulation time")
+        logging.warning(f"   ⚠️  Unknown scan_number: {scan_number}, using default modulation time")
         return
 
 
@@ -100,8 +124,9 @@ def main():
     parser.add_argument("--is_area_deconvolution", action="store_true", help="Use area from deconvolution in addition to mod_max")
     args = parser.parse_args()
     
+    logger = setup_logging(args.output)
     if not args.input:
-        print("❌ Error: No files selected for analysis.")
+        logger.error("❌ Error: No files selected for analysis.")
         return
     save_parameters(
             args.input, args.output, args.method, args.mode, args.noise_factor,
@@ -113,31 +138,34 @@ def main():
         )
     successful_analyses = 0
     failed_analyses = 0
-
-    print(f"🔍 \n Starting analysis...")
-    for i, f in enumerate(args.input, 1):
-        print(f"\n i. f")
-    print(f"\n{'='*60}")
     for i, f in enumerate(args.input, 1):
         if f.startswith(docker_volume_path):
             display_path = f.replace(docker_volume_path, "")
         else:
             display_path = f
+        logger.info(f"  {i}. {display_path}")
+    logger.info(f"\n{'='*60}")
+    logger.info("\n🔍 Starting analysis...")
 
-        print(f"  {i}. {display_path}")
+    for i, f in enumerate(args.input, 1):
+        if f.startswith(docker_volume_path):
+            display_path = f.replace(docker_volume_path, "")
+        else:
+            display_path = f
+        logger.info(f"\n{i}. {display_path}")
         try:
             path = os.path.dirname(f)
             file = os.path.basename(f)
 
             if args.mod_time and args.mod_time > 0:
                 mod_time = args.mod_time
-                print(f"⏱️  Using manual modulation time: {mod_time} seconds")
+                logger.info(f"⏱️  Using manual modulation time: {mod_time} seconds")
             else:
                 mod_time = get_mod_time(f)
                 if mod_time is None:
-                    print("   ⚠️ Modulation time not specified, using default value of 1.25 seconds")
+                    logger.warning("   ⚠️ Modulation time not specified, using default value of 1.25 seconds")
                     mod_time = 1.25
-                print(f"⏱️  Modulation time: {mod_time} seconds")
+                logger.info(f"⏱️  Modulation time: {mod_time} seconds")
 
             results = sample_identification(
                 path,
@@ -165,7 +193,7 @@ def main():
                 args.is_area_deconvolution
             )
             if isinstance(results, str) and (results.startswith("❌") or results.startswith("⚠️")):
-                print(results)  # Afficher le message d'erreur
+                logger.error(results)  # Afficher le message d'erreur
                 failed_analyses += 1
             elif isinstance(results, list):
             # affichage du path
@@ -173,31 +201,32 @@ def main():
                     display_path = args.output.replace(docker_volume_path, "")
                 else:
                     display_path = args.output
-                print(f"📂 Parameters saved to '{display_path}analysis.params'")
+                logger.info(f"📂 Parameters saved to '{display_path}analysis.params'")
 
                 for result in results:
                     if result.startswith(docker_volume_path):
                         display_path = result.replace(docker_volume_path, "")
                     else:
                         display_path = result
-                    print(f"✅ Fichier {file} traité, résultats: /{display_path}")
+                    logger.info(f"✅ Fichier {file} traité, résultats: {display_path}")
                 successful_analyses += 1
-                print(f"✅ Analysis completed successfully!")
+                logger.info("✅ Analysis completed successfully!")
             else:
-                print(results)
+                logger.info(results)
                 successful_analyses += 1
         except Exception as e:
-            print(f"❌ Analysis failed for {f}:")
-            print(f"   Error: {str(e)}")
+            logger.error(f"❌ Analysis failed for {f}:")
+            logger.error(f"   Error: {str(e)}")
             failed_analyses += 1
             
-        print(f"\n{'='*60}")
-        print(f"📊 ANALYSIS SUMMARY")
-        print(f"{'='*60}")
-        print(f"✅ Réussies: {successful_analyses}")
-        print(f"❌ Échouées: {failed_analyses}")
-        print(f"📈 Taux de succès: {successful_analyses}/{len(args.input)} ({100*successful_analyses/len(args.input):.1f}%)")
-        print(f"\n{'-'*60}")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"📊 ANALYSIS SUMMARY")
+        logger.info(f"{'='*60}")
+        logger.info(f"✅ Réussies: {successful_analyses}")
+        logger.info(f"❌ Échouées: {failed_analyses}")
+        logger.info(f"📈 Taux de succès: {successful_analyses}/{len(args.input)} ({100*successful_analyses/len(args.input):.1f}%)")
+        logger.info("Peak Detection log saved: " + os.path.join(args.output, "peak_detection.log"))
+        logger.info(f"\n{'-'*60}")
 
 
 if __name__ == "__main__":
