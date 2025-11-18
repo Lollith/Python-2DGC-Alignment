@@ -141,11 +141,11 @@ def save_comparison_report(results, df1, df2, output_path):
                     f.write(f"    Fichier 1: {values['file1']}\n")
                     f.write(f"    Fichier 2: {values['file2']}\n")
 
-# Exemple d'utilisation
+
 if __name__ == "__main__":
-    # Remplace par tes chemins de fichiers
-    file1 = "/home/camille/Documents/app/data/output/output_align/new/spectra_group_20250917_120536.csv"
-    file2 = "/home/camille/Documents/app/data/output/output_align/spectra_group_20250828_150258.csv"
+    
+    file1 = r"d:/GCxGC_MS/DATA/testgamme/test0311/deconvolution/751350_gamme_50ppm#Dt#Dc.txt"
+    file2 = r"d:\GCxGC_MS\DATA\testgamme\test0311\deconvolution\751350_gamme_50ppm#Dt#Dc - Copie.txt"
     rapport = "rapport_comparaison.txt"
     
     results = compare_csv_files(file1, file2, rapport)
