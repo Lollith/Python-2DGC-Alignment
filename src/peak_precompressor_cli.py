@@ -5,9 +5,32 @@ import sys
 import h5py
 import netCDF4 as nc
 from consensus_precompressor import PeakPrecompressor
+import logging
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
+def setup_logging(output_path):
+    """Configure logging pour le subprocess CLI avec flush automatique"""
+    log_file = os.path.join(output_path, "precompress.log")
+    
+    # Handler personnalisé avec flush automatique
+    class FlushStreamHandler(logging.StreamHandler):
+        def emit(self, record):
+            super().emit(record)
+            self.flush()
+    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter('%(message)s'))
+    
+    console_handler = FlushStreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[file_handler, console_handler],
+        force=True
+    )
+    
+    return logging.getLogger('gcgc_cli')
 
 def main():
     print("Starting Peak Precompressor ...", flush=True)
@@ -23,6 +46,7 @@ def main():
     # parser.add_argument("--output", type=bool, required=True, help="")
     parser.add_argument('--area_selection', type=str, default="area_mod_max", help="Area selection method")
     args = parser.parse_args()
+    logger = setup_logging(args.output_dir)
     try:
         precompressedFiles = PeakPrecompressor(
             rt1_penalty=args.rt1_penalty,
@@ -33,19 +57,19 @@ def main():
             quant_method=args.quant_method,
             area_selection=args.area_selection
         )
-        print(f"🔍 Starting analysis of {len(args.input)} files: {args.input}...", flush=True)
-        print(f"\n{'='*60}", flush=True)
+        logger.info(f"\n{'='*60}")
+        # logger.info(f"\n🔍 Starting analysis...")
         for i, f in enumerate(args.input, 1):
             if f.startswith(precompressedFiles.docker_volume_path):
                 display_path = f.replace(precompressedFiles.docker_volume_path, "")
             else:
                 display_path = f
-            print(f"  {i}. {display_path}")
+            logger.info(f"  {i}. {display_path}")
         precompressedFiles.precompress_files(args.input, args.output_dir)
-
-        print(f"✅ Analysis completed successfully!", flush=True)
+        logger.info("Precompress log saved: " + os.path.join(args.output_dir, "precompress.log"))
+        # logger.info(f"✅ Analysis completed successfully!")
     except Exception as e:
-        print(f"Error occurred: {e}")
+        logger.error(f"Error occurred: {e}")
         sys.exit(1)
 
 

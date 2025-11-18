@@ -4,6 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 import numpy as np
 import os
+import logging
 
 class PeakPrecompressor:
     """This Class is an optional pre-processing step before running consensus
@@ -28,6 +29,7 @@ class PeakPrecompressor:
         self.quant_method = quant_method
         self.area_selection = area_selection
         self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
+        self.logger = logging.getLogger('gcgc_cli')
 
     def check_file_parameters(self, current_raw_file):
         """Check if the file contains deconvolution area and mod_max area or just one area.
@@ -367,7 +369,7 @@ class PeakPrecompressor:
             output_filename = base_filename.replace('.txt', '#P.txt')
             out_name = os.path.join(output_dir, output_filename)
             imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
-            print(f"✅ Fichier {input_file_list[samp_num]} traité, résultat: {out_name}")
+            self.logger.info(f"✅ Fichier {input_file_list[samp_num]} traité, résultat: {out_name}")
 
         return combined_frame
 
