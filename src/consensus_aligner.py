@@ -42,7 +42,7 @@ class ChromatographicAligner:
         nist_api=None,
         output_path="",
         input_filter_path="",
-        area_selection="area_mod_max"
+        # area_selection="area_mod_max"
             ):
         """
         Initialize the chromatographic aligner with parameters.
@@ -80,58 +80,21 @@ class ChromatographicAligner:
         self.nist_api = nist_api
         self.output_path = output_path
         self.input_filter_path = input_filter_path
-        self.area_selection = area_selection,
+        # self.area_selection = area_selection,
         self.logger = logging.getLogger('gcgc_cli')
 
         # results storage
         self.imported_files = None
         self.alignment_results = None
         self.filtered_results = None
+        self.area_backup = None
 
         self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
-    def check_file_parameters(self, current_raw_file):
-        """Check if the file contains deconvolution area and mod_max area or just one area.
-        Parameters:
-        -----------
-        file : str
-            Path to the chromatographic data file
-        """
-         # DÉTECTION DU FORMAT
-        columns = current_raw_file.columns.tolist()
-        
-        # Déterminer si on a le nouveau format (6 colonnes) ou l'ancien (5 colonnes)
-        has_area_deconvo = "Area.Deconv" in columns
-        has_area_mod_max = "Area.Mod.Max" in columns
 
-        if has_area_deconvo and has_area_mod_max:
-            # print("🆕 Nouveau format détecté (6 colonnes)")
-            # Nouveau format: Name, R.T...s., Area.Deconv, Area.Mod.Max, Quant.Masses, Spectra
-            # ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
 
-            if self.area_selection == "area_deconvo":
-                selected_area = current_raw_file["Area.Deconv"]
-                self.logger.info("📊 Utilisation de l'aire déconvolution pour l'alignement")
-                
-            else:  # area_mod_max
-                selected_area = current_raw_file["Area.Mod.Max"]
-                self.logger.info("📊 Utilisation de l'aire modulation max pour l'alignement")
-        
-            standardized_df = pd.DataFrame({
-                "Name": current_raw_file["Name"],
-                "R.T...s.": current_raw_file["R.T...s."],
-                "Area": selected_area,
-                "Quant.Masses": current_raw_file["Quant.Masses"],
-                "Spectra": current_raw_file["Spectra"]
-            })
 
-            current_raw_file = standardized_df
-            return current_raw_file
-
-        else:
-            # print("📰 Ancien format détecté (5 colonnes)")
-            return current_raw_file
-
+   
     def importFile(self, file):
         """Import and process chromatographic data file
         Parameters:
@@ -145,11 +108,10 @@ class ChromatographicAligner:
         missing_standards = []
 
         #read the file    
-        current_raw_file = pd.read_csv(file, sep="\t", header=0,skipinitialspace=True)
+        current_raw_file = pd.read_csv(file, sep="\t", header=0, skipinitialspace=True)
         current_raw_file = current_raw_file.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else x))
 
-        # verifie si .txt contient aire deconvolution + aire mod_max ou juste 1 aire
-        current_raw_file = self.check_file_parameters(current_raw_file)
+        # verifie si .txt contient aire deconvolution + aire mod_max ou juste 1 aire et uniformise pour import_file et consensus qui n ont pas besoin de laire
 
         # Convert columns to string
         current_raw_file.iloc[:, 4] = current_raw_file.iloc[:, 4].astype(str)
@@ -173,7 +135,7 @@ class ChromatographicAligner:
 
         #     spectra_split.append(np.array(sorted_intensities))
         for i, row in current_raw_file.iterrows():
-            spectrum = row.iloc[4]  # Column 5 in R = index 4 in Python
+            spectrum = row.iloc[5]  # Column 5 in R = index 4 in Python
             if pd.isna(spectrum) or spectrum == '':
                 spectra_split.append(np.array([]))
                 continue
@@ -365,7 +327,7 @@ class ChromatographicAligner:
         Returns:
         --------
         dict : Dictionary containing alignment results with keys:
-            'Alignment_Matrix', 'Peak_Info', 'RT_group', 'spectra_group'
+            'Alignment_Matrix','Alignment_Deconvo', 'Peak_Info', 'RT_group', 'spectra_group'
         """
         self.logger.info("🚀 Initializing alignment matrix...")
         # Set default values
@@ -405,6 +367,9 @@ class ChromatographicAligner:
         col_names = [os.path.splitext(os.path.basename(f))[0].split('#')[0] for f in input_file_list]
 
         final_matrix = pd.DataFrame(
+            np.full((n_rows, n_cols), np.nan),
+            index=row_names, columns=col_names, dtype=float)
+        final_matrix_deconvo = pd.DataFrame(
             np.full((n_rows, n_cols), np.nan),
             index=row_names, columns=col_names, dtype=float)
         final_matrix_rt = pd.DataFrame(
@@ -462,12 +427,14 @@ class ChromatographicAligner:
                 for sample_idx in valid_indices:
                     seed_idx = final_mates[sample_idx]
                     if seed_idx < len(final_matrix):
-                        # Fill Area (column 3 in R = index 2 in Python)
-                        final_matrix.iloc[seed_idx, samp_num] = float(self.imported_files[samp_num][0].iloc[sample_idx, 2])
+                        # Fill Area_mode_max (column 3 in R = index 2 in Python)
+                        final_matrix.iloc[seed_idx, samp_num] = float(self.imported_files[samp_num][0].iloc[sample_idx, 3])
+                        # Fill Area_deconvo (column 3 in R = index 2 in Python)
+                        final_matrix_deconvo.iloc[seed_idx, samp_num] = float(self.imported_files[samp_num][0].iloc[sample_idx, 2])
                         # Fill RT (column 2 in R = index 1 in Python) 
                         final_matrix_rt.iloc[seed_idx, samp_num] = str(self.imported_files[samp_num][0].iloc[sample_idx, 1])
-                        # Fill Spectra (column 5 in R = index 4 in Python)
-                        final_matrix_spectra.iloc[seed_idx, samp_num] = str(self.imported_files[samp_num][0].iloc[sample_idx, 4])
+                        # Fill Spectra (column 5 in R = indpeut etre  recuperer backu[_area en meme tps que backup_data, un seule dataframe ex 4 in Python)
+                        final_matrix_spectra.iloc[seed_idx, samp_num] = str(self.imported_files[samp_num][0].iloc[sample_idx, 5])
 
             # Handle dissimilar matches - add new rows
             if len(dissmatch) > 0:
@@ -485,6 +452,9 @@ class ChromatographicAligner:
                 new_rows_area = pd.DataFrame(
                     np.full((len(new_row_names), len(col_names)), np.nan), 
                     index=new_row_names, columns=col_names, dtype=float)
+                new_rows_area_deconvo = pd.DataFrame(
+                    np.full((len(new_row_names), len(col_names)), np.nan), 
+                    index=new_row_names, columns=col_names, dtype=float)
                 new_rows_rt = pd.DataFrame(
                     np.full((len(new_row_names), len(col_names)), None), 
                     index=new_row_names, columns=col_names, dtype=object)
@@ -494,12 +464,14 @@ class ChromatographicAligner:
                 
                 # Fill with current sample data
                 for i, dissim_idx in enumerate(dissmatch):
-                    new_rows_area.iloc[i, samp_num] = float(self.imported_files[samp_num][0].iloc[dissim_idx, 2])  # Area
+                    new_rows_area.iloc[i, samp_num] = float(self.imported_files[samp_num][0].iloc[dissim_idx, 3])  # Area
+                    new_rows_area_deconvo.iloc[i, samp_num] = float(self.imported_files[samp_num][0].iloc[dissim_idx, 2])  # Area deconvo
                     new_rows_rt.iloc[i, samp_num] = str(self.imported_files[samp_num][0].iloc[dissim_idx, 1])      # RT
                     new_rows_spectra.iloc[i, samp_num] = str(self.imported_files[samp_num][0].iloc[dissim_idx, 4]) # Spectra
                    
                 # Append new rows to matrices
                 final_matrix = pd.concat([final_matrix, new_rows_area])
+                final_matrix_deconvo = pd.concat([final_matrix_deconvo, new_rows_area_deconvo])
                 final_matrix_rt = pd.concat([final_matrix_rt, new_rows_rt])
                 final_matrix_spectra = pd.concat([final_matrix_spectra, new_rows_spectra])
 
@@ -521,6 +493,7 @@ class ChromatographicAligner:
             order_rt = seed_sample[0]['RT1'].argsort()
             self.alignment_results = {
                 'Alignment_Matrix': final_matrix.iloc[order_rt],
+                'Alignment_Deconvo': final_matrix_deconvo.iloc[order_rt],
                 'Peak_Info': seed_sample[0].iloc[order_rt],
                 'RT_group': final_matrix_rt.iloc[order_rt],
                 'spectra_group': final_matrix_spectra.iloc[order_rt],
@@ -528,6 +501,7 @@ class ChromatographicAligner:
         else:
             self.alignment_results = {
                 'Alignment_Matrix': final_matrix,
+                'alignment_deconvo': final_matrix_deconvo,
                 'Peak_Info': seed_sample[0],
                 'RT_group': final_matrix_rt,
                 'spectra_group': final_matrix_spectra
@@ -535,7 +509,10 @@ class ChromatographicAligner:
 
         self.logger.info("  ✅ Alignment complete.")
         return self.alignment_results
+    
 
+
+    
     def load_csv_results(self):
         """
         Recharge les CSV d'alignement (cas 2/3).
@@ -546,12 +523,14 @@ class ChromatographicAligner:
         self.logger.info("📂 Loading CSV results...")
        
         alignment_matrix = pd.read_csv(csvs["alignment_matrix"], sep=";", index_col=0)
+        alignment_matrix_deconvo = pd.read_csv(csvs["alignment_deconvo"], sep=";", index_col=0)
         peak_info = pd.read_csv(csvs["peak_info"], sep=";", index_col=None)  # Pas d'index car sauvé avec index=False
         rt_group = pd.read_csv(csvs["rt_group"], sep=";", index_col=0)
         spectra_group = pd.read_csv(csvs["spectra_group"], sep=";", index_col=0)
 
         self.alignment_results = {
                 'Alignment_Matrix': alignment_matrix,
+                'Alignment_Deconvo': alignment_matrix_deconvo,
                 'Peak_Info': peak_info,
                 'RT_group': rt_group,
                 'spectra_group': spectra_group,
@@ -594,6 +573,7 @@ class ChromatographicAligner:
         # Application du masque booléen (même position, pas besoin d'utiliser .loc avec labels)
         self.filtered_results = {
             'Alignment_Matrix': alignment_matrix[mask_keep],
+            'Alignment_Deconvo': self.alignment_results['Alignment_Deconvo'].iloc[mask_keep.values],
             'Peak_Info': self.alignment_results['Peak_Info'].iloc[mask_keep.values].reset_index(drop=True),
             'RT_group': self.alignment_results['RT_group'].iloc[mask_keep.values],
             'spectra_group': self.alignment_results['spectra_group'].iloc[mask_keep.values]
@@ -604,10 +584,7 @@ class ChromatographicAligner:
                             match_factor_min=650):
         """
         Inject NIST identifications into Alignment_Matrix, Peak_Info, RT_group, and spectra_group.
-
-        - Cas 1: self.alignment_results existe en mémoire (pas encore sauvegardé).
-        - Cas 2: fichiers CSV sauvegardés sans identifications.
-        - Cas 3: fichiers CSV sauvegardés avec identifications (re-lancement si nist=True).
+            self.alignment_results existe en mémoire (pas encore sauvegardé).
         """
         if not nist:
             self.logger.info("⏭️ NIST désactivé, pas d'identification")
@@ -621,7 +598,6 @@ class ChromatographicAligner:
 
         self.logger.info("🔍 Service NIST actif, identification en cours...")
 
-        # --- CAS 1 : résultats en mémoire ---
         if self.alignment_results is not None:
             identifications = self._run_nist(match_factor_min)
             self._update_peak_info(identifications)
@@ -634,6 +610,8 @@ class ChromatographicAligner:
             raise ValueError("❌ No alignment results available. Run alignment first.")
 
 
+    
+        
 # ----------------------------------------------------------------------
 # Fonctions utilitaires
 # ----------------------------------------------------------------------
@@ -789,6 +767,7 @@ class ChromatographicAligner:
         """
         keywords = [
             "alignment_matrix",
+            "alignment_deconvo",
             "peak_info",
             "rt_group",
             "spectra_group",
@@ -861,7 +840,7 @@ class ChromatographicAligner:
         if with_filter:
             name_filter = f"#F#{self.missing_value_limit}"
         
-        for key in ['Alignment_Matrix', 'Peak_Info', 'RT_group', 'spectra_group']:
+        for key in ['Alignment_Matrix', 'Alignment_Deconvo','Peak_Info', 'RT_group', 'spectra_group']:
             obj = self.filtered_results.get(key)
             if obj is not None:
                 try:

@@ -19,7 +19,7 @@ class PeakPrecompressor:
                  num_cores=1,
                  common_ions=None,
                  quant_method="T",
-                 area_selection="area_mod_max",
+                 #area_selection="area_mod_max",
                 ):
         self.rt1_penalty = rt1_penalty
         self.rt2_penalty = rt2_penalty
@@ -27,51 +27,9 @@ class PeakPrecompressor:
         self.num_cores = num_cores
         self.common_ions = common_ions
         self.quant_method = quant_method
-        self.area_selection = area_selection
+        #self.area_selection = area_selection
         self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
         self.logger = logging.getLogger('gcgc_cli')
-
-    def check_file_parameters(self, current_raw_file):
-        """Check if the file contains deconvolution area and mod_max area or just one area.
-        Parameters:
-        -----------
-        file : str
-            Path to the chromatographic data file
-        """
-         # DÉTECTION DU FORMAT
-        columns = current_raw_file.columns.tolist()
-        
-        # Déterminer si on a le nouveau format (6 colonnes) ou l'ancien (5 colonnes)
-        has_area_deconvo = "Area.Deconv" in columns
-        has_area_mod_max = "Area.Mod.Max" in columns
-
-        if has_area_deconvo and has_area_mod_max:
-            #print("🆕 Nouveau format détecté (6 colonnes)")
-            # Nouveau format: Name, R.T...s., Area.Deconv, Area.Mod.Max, Quant.Masses, Spectra
-            # ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
-
-            if self.area_selection == "area_deconvo":
-                # print("📊 Utilisation de l'aire déconvolution pour l'alignement")
-                selected_area = current_raw_file["Area.Deconv"]
-            else:  # area_mod_max
-                selected_area = current_raw_file["Area.Mod.Max"]
-                # print("📊 Utilisatfion de l'aire modulation max pour l'alignement")
-        
-            standardized_df = pd.DataFrame({
-                "Name": current_raw_file["Name"],
-                "R.T...s.": current_raw_file["R.T...s."],
-                "Area": selected_area,
-                "Quant.Masses": current_raw_file["Quant.Masses"],
-                "Spectra": current_raw_file["Spectra"]
-            })
-
-            current_raw_file = standardized_df
-            spectra_col_index = 4
-            return current_raw_file, spectra_col_index
-
-        else:
-            #print("📰 Ancien format détecté (5 colonnes)")
-            return current_raw_file, 4
 
     def importFile(self, file):
         """Import and process chromatographic data file
@@ -90,10 +48,10 @@ class PeakPrecompressor:
         current_raw_file = current_raw_file.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else x))
         
         # verifie si .txt contient aire deconvolution + aire mod_max ou juste 1 aire
-        current_raw_file, spectra_col_index = self.check_file_parameters(current_raw_file)
+        #current_raw_file, spectra_col_index = self.check_file_parameters(current_raw_file)
 
         # Convert columns to string
-        current_raw_file.iloc[:, 4] = current_raw_file.iloc[:, 4].astype(str)
+        current_raw_file.iloc[:, 5] = current_raw_file.iloc[:, 5].astype(str)
         current_raw_file.iloc[:, 1] = current_raw_file.iloc[:, 1].astype(str)
 
         rt_split = current_raw_file.iloc[:, 1].str.replace('"', '', regex=False).str.split(' , ', expand=True)
@@ -114,7 +72,7 @@ class PeakPrecompressor:
 
         #     spectra_split.append(np.array(sorted_intensities))
         for i, row in current_raw_file.iterrows():
-            spectrum = row.iloc[4]  # Column 5 in R = index 4 in Python
+            spectrum = row.iloc[5]  # Column 5 in R = index 4 in Python
             if pd.isna(spectrum) or spectrum == '':
                 spectra_split.append(np.array([]))
                 continue
@@ -278,7 +236,7 @@ class PeakPrecompressor:
     
                     #Repeat similarity scores with combined peaks
                     df = imported_files[samp_num][0].copy()
-                    spectra_split = [self.parse_spectrum(row.iloc[4]) for _, row in df.iterrows()]
+                    spectra_split = [self.parse_spectrum(row.iloc[5]) for _, row in df.iterrows()]
                     spectra_matrix = np.vstack([
                         vec / np.sqrt(np.sum(vec ** 2)) for vec in spectra_split
                     ])
@@ -297,8 +255,11 @@ class PeakPrecompressor:
                     if any(len(arr) > 0 for arr in new_matches):
                         if self.quant_method == "T":
                             mates = [m[0]  if len(m) > 0 else None for m in new_matches]
-                            binding_areas = df.iloc[
+                            binding_areas_deconvo = df.iloc[
                                 [m for m in mates if m is not None], 2
+                            ].values
+                            binding_areas = df.iloc[
+                                [m for m in mates if m is not None], 3
                             ].values
                             to_bind = df.iloc[
                                 [i for i, m in enumerate(mates) if m is not None], :
@@ -332,8 +293,10 @@ class PeakPrecompressor:
                                 ignore_index=True
                             )
                             # --- Mettre à jour to_bind avec les aires combinées ---
-                            binding_areas = df.iloc[valid_mates, 2].values
-                            to_bind.loc[:, to_bind.columns[2]] += binding_areas
+                            binding_areas = df.iloc[valid_mates, 3].values
+                            binding_areas_deconvo = df.iloc[valid_mates, 2].values
+                            to_bind.loc[:, to_bind.columns[3]] += binding_areas
+                            to_bind.loc[:, to_bind.columns[2]] += binding_areas_deconvo
                             to_bind["Bound"] = [f"{min(m, i)}" for i, m in enumerate(mates) if m is not None]
                             to_bind = to_bind.drop_duplicates(subset=["Bound"])
 
