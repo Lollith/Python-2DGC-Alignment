@@ -47,7 +47,7 @@ def main():
     parser.add_argument('--missing_peak_finder_similarity_lax', type=float, default=0.85, help="Missing peak finder similarity lax")
     parser.add_argument('--auto_tune_match_stringency', action='store_true', help="Auto-tune match stringency")
     parser.add_argument('--nist', action='store_true', help="Enable NIST database matching")
-    parser.add_argument('--area_selection', type=str, default="area_mod_max", help="Area selection method")
+    # parser.add_argument('--area_selection', type=str, default="area_mod_max", help="Area selection method")
     args = parser.parse_args()
 
     logger = setup_logging(args.output_path)
@@ -67,11 +67,12 @@ def main():
             auto_tune_match_stringency=args.auto_tune_match_stringency,
             missing_peak_finder_similarity_lax=args.missing_peak_finder_similarity_lax,
             output_path=args.output_path,
-            area_selection=args.area_selection
+            # area_selection=args.area_selection
         )
-        aligner.consensus_align_bis(args.input, args.seed_file,
+        results = aligner.consensus_align_with_both_areas(args.input, args.seed_file,
                                     common_ions=None,
                                     )
+        logger.info("results" + str(results))
         aligner.filter_alignment_matrix()
         aligner.nist_identification(args.nist, match_factor_min=650)
         aligner.save_results()

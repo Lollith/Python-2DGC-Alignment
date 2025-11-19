@@ -42,7 +42,7 @@ class ChromatographicAligner:
         nist_api=None,
         output_path="",
         input_filter_path="",
-        area_selection="area_mod_max"
+        # area_selection="area_mod_max"
             ):
         """
         Initialize the chromatographic aligner with parameters.
@@ -80,57 +80,106 @@ class ChromatographicAligner:
         self.nist_api = nist_api
         self.output_path = output_path
         self.input_filter_path = input_filter_path
-        self.area_selection = area_selection,
+        # self.area_selection = area_selection,
         self.logger = logging.getLogger('gcgc_cli')
 
         # results storage
         self.imported_files = None
         self.alignment_results = None
         self.filtered_results = None
+        self.area_backup = None
 
         self.docker_volume_path = os.environ.get("DOCKER_VOLUME_PATH", "/app/data/")
 
-    def check_file_parameters(self, current_raw_file):
-        """Check if the file contains deconvolution area and mod_max area or just one area.
-        Parameters:
-        -----------
-        file : str
-            Path to the chromatographic data file
-        """
-         # DÉTECTION DU FORMAT
-        columns = current_raw_file.columns.tolist()
+    # def check_file_parameters(self, current_raw_file):
+    #     """Check if the file contains deconvolution area and mod_max area or just one area.
+    #     Parameters:
+    #     -----------
+    #     file : str
+    #         Path to the chromatographic data file
+    #     """
+    #      # DÉTECTION DU FORMAT
+    #     columns = current_raw_file.columns.tolist()
         
-        # Déterminer si on a le nouveau format (6 colonnes) ou l'ancien (5 colonnes)
-        has_area_deconvo = "Area.Deconv" in columns
-        has_area_mod_max = "Area.Mod.Max" in columns
+    #     # Déterminer si on a le nouveau format (6 colonnes) ou l'ancien (5 colonnes)
+    #     has_area_deconvo = "Area.Deconv" in columns
+    #     has_area_mod_max = "Area.Mod.Max" in columns
 
-        if has_area_deconvo and has_area_mod_max:
-            # print("🆕 Nouveau format détecté (6 colonnes)")
-            # Nouveau format: Name, R.T...s., Area.Deconv, Area.Mod.Max, Quant.Masses, Spectra
-            # ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
+    #     if has_area_deconvo and has_area_mod_max:
+    #         # print("🆕 Nouveau format détecté (6 colonnes)")
+    #         # Nouveau format: Name, R.T...s., Area.Deconv, Area.Mod.Max, Quant.Masses, Spectra
+    #         # ADAPTATION DES COLONNES pour uniformiser sur le format 5 colonnes (ancien)
 
-            if self.area_selection == "area_deconvo":
-                selected_area = current_raw_file["Area.Deconv"]
-                self.logger.info("📊 Utilisation de l'aire déconvolution pour l'alignement")
+    #         if self.area_selection == "area_deconvo":
+    #             selected_area = current_raw_file["Area.Deconv"]
+    #             self.logger.info("📊 Utilisation de l'aire déconvolution pour l'alignement")
                 
-            else:  # area_mod_max
-                selected_area = current_raw_file["Area.Mod.Max"]
-                self.logger.info("📊 Utilisation de l'aire modulation max pour l'alignement")
+    #         else:  # area_mod_max
+    #             selected_area = current_raw_file["Area.Mod.Max"]
+    #             self.logger.info("📊 Utilisation de l'aire modulation max pour l'alignement")
         
-            standardized_df = pd.DataFrame({
-                "Name": current_raw_file["Name"],
-                "R.T...s.": current_raw_file["R.T...s."],
-                "Area": selected_area,
-                "Quant.Masses": current_raw_file["Quant.Masses"],
-                "Spectra": current_raw_file["Spectra"]
+    #         standardized_df = pd.DataFrame({
+    #             "Name": current_raw_file["Name"],
+    #             "R.T...s.": current_raw_file["R.T...s."],
+    #             "Area": selected_area,
+    #             "Quant.Masses": current_raw_file["Quant.Masses"],
+    #             "Spectra": current_raw_file["Spectra"]
+    #         })
+
+    #         current_raw_file = standardized_df
+    #         return current_raw_file
+
+    #     else:
+    #         # print("📰 Ancien format détecté (5 colonnes)")
+    #         return current_raw_file
+
+    def preprocess_files_with_dual_areas(self, input_file_list):
+        """
+        Prétraite les fichiers avec 6 colonnes (2 aires) avant l'import.
+        Sauvegarde la 2ème aire dans self.area_backup pour l'utiliser après l'alignement.
+        
+        Parameters
+        ----------
+        input_file_list : list
+            Liste des fichiers à traiter
+            
+        Returns
+        -------
+        bool
+            True si les fichiers ont 2 aires, False sinon
+        """
+        # Vérifier si le premier fichier a 6 colonnes
+        first_file = pd.read_csv(input_file_list[0], sep='\t', header=0, skipinitialspace=True)
+        columns = first_file.columns.tolist()
+        has_both_areas = 'Area.Deconv' in columns and 'Area.Mod.Max' in columns
+        
+        if not has_both_areas:
+            self.logger.info("Une seule aire détectée - mode classique")
+            self.area_backup = None
+            return False
+        
+        # Sauvegarder la 2ème aire pour tous les fichiers
+        self.logger.info("Deux aires détectées - sauvegarde de la 2ème aire")
+        self.area_backup = []
+        
+        for file_path in input_file_list:
+            current_raw_file = pd.read_csv(file_path, sep='\t', header=0, skipinitialspace=True)
+            current_raw_file = current_raw_file.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else x))
+
+            # On utilise Area.Mod.Max → sauvegarder Area.Deconv
+            backup_area = current_raw_file['Area.Deconv'].copy()
+            self.logger.info(f"Sauvegarde de Area.Deconv pour {os.path.basename(file_path)}")
+            
+            # Sauvegarder aussi les identifiants (Name + RT) pour la correspondance
+            backup_data = pd.DataFrame({
+                'Name': current_raw_file['Name'],
+                'R.T.(s)': current_raw_file['R.T.(s)'],
+                'Area_Backup': backup_area
             })
-
-            current_raw_file = standardized_df
-            return current_raw_file
-
-        else:
-            # print("📰 Ancien format détecté (5 colonnes)")
-            return current_raw_file
+            
+            self.area_backup.append(backup_data)
+        
+        return True
 
     def importFile(self, file):
         """Import and process chromatographic data file
@@ -145,7 +194,7 @@ class ChromatographicAligner:
         missing_standards = []
 
         #read the file    
-        current_raw_file = pd.read_csv(file, sep="\t", header=0,skipinitialspace=True)
+        current_raw_file = pd.read_csv(file, sep="\t", header=0, skipinitialspace=True)
         current_raw_file = current_raw_file.apply(lambda col: col.map(lambda x: x.strip() if isinstance(x, str) else x))
 
         # verifie si .txt contient aire deconvolution + aire mod_max ou juste 1 aire
@@ -466,7 +515,7 @@ class ChromatographicAligner:
                         final_matrix.iloc[seed_idx, samp_num] = float(self.imported_files[samp_num][0].iloc[sample_idx, 2])
                         # Fill RT (column 2 in R = index 1 in Python) 
                         final_matrix_rt.iloc[seed_idx, samp_num] = str(self.imported_files[samp_num][0].iloc[sample_idx, 1])
-                        # Fill Spectra (column 5 in R = index 4 in Python)
+                        # Fill Spectra (column 5 in R = indpeut etre  recuperer backu[_area en meme tps que backup_data, un seule dataframe ex 4 in Python)
                         final_matrix_spectra.iloc[seed_idx, samp_num] = str(self.imported_files[samp_num][0].iloc[sample_idx, 4])
 
             # Handle dissimilar matches - add new rows
@@ -535,7 +584,80 @@ class ChromatographicAligner:
 
         self.logger.info("  ✅ Alignment complete.")
         return self.alignment_results
+    
+    def expand_alignment_with_backup_areas(self):
+        """
+        Ajoute la 2ème aire à l'AlignmentMatrix en utilisant les données sauvegardées.
 
+        Returns
+        -------
+        pd.DataFrame
+            AlignmentMatrix étendu avec multi-index (Sample, Area_Type)
+        """
+        
+        if self.area_backup is None:
+            self.logger.warning("Pas de 2ème aire sauvegardée - retour de l'AlignmentMatrix standard")
+            return self.alignment_results['AlignmentMatrix']
+        
+        self.logger.info("Expansion de l'AlignmentMatrix avec la 2ème aire...")
+        
+        alignment_matrix = self.alignment_results['AlignmentMatrix'].copy()
+        peak_info = self.alignment_results['PeakInfo'].copy()
+        
+        first_area_name = 'Area.Mod.Max'
+        second_area_name = 'Area.Deconv'
+        
+        # Créer le multi-index
+        new_columns = []
+        for sample_name in alignment_matrix.columns:
+            new_columns.append((sample_name, first_area_name))
+            new_columns.append((sample_name, second_area_name))
+        
+        multi_cols = pd.MultiIndex.from_tuples(new_columns, names=['Sample', 'Area_Type'])
+        
+        # Créer la matrice étendue
+        expanded_matrix = pd.DataFrame(
+            np.nan,
+            index=alignment_matrix.index,
+            columns=multi_cols,
+            dtype=float
+        )
+        
+        # Remplir la 1ère aire (celle utilisée pour l'alignement)
+        for sampnum, sample_name in enumerate(alignment_matrix.columns):
+            expanded_matrix[(sample_name, first_area_name)] = alignment_matrix[sample_name]
+        
+        # Remplir la 2ème aire depuis area_backup
+        for sampnum, sample_name in enumerate(alignment_matrix.columns):
+            backup_df = self.area_backup[sampnum]
+            
+            # Pour chaque composé aligné
+            for compound_idx, compound_name in enumerate(alignment_matrix.index):
+                # Extraire Name et RT depuis Peak_Info
+                compound_info = peak_info.iloc[compound_idx]
+                name = compound_info['Name']
+                rt = compound_info['R.T.(s)']
+                
+                # Chercher dans backup_df
+                match = backup_df[
+                    (backup_df['Name'] == name) & 
+                    (backup_df['R.T.(s)'] == rt)
+                ]
+                
+                if not match.empty:
+                    area_value = match.iloc[0]['Area_Backup']
+                    expanded_matrix.loc[compound_name, (sample_name, second_area_name)] = area_value
+                else:
+                    # Pas de correspondance → NaN
+                    expanded_matrix.loc[compound_name, (sample_name, second_area_name)] = np.nan
+        
+        # Mettre à jour les résultats
+        self.alignment_results['AlignmentMatrix_Expanded'] = expanded_matrix
+        self.logger.info("AlignmentMatrix étendu avec succès")
+        
+        return expanded_matrix
+
+    
     def load_csv_results(self):
         """
         Recharge les CSV d'alignement (cas 2/3).
@@ -604,10 +726,7 @@ class ChromatographicAligner:
                             match_factor_min=650):
         """
         Inject NIST identifications into Alignment_Matrix, Peak_Info, RT_group, and spectra_group.
-
-        - Cas 1: self.alignment_results existe en mémoire (pas encore sauvegardé).
-        - Cas 2: fichiers CSV sauvegardés sans identifications.
-        - Cas 3: fichiers CSV sauvegardés avec identifications (re-lancement si nist=True).
+            self.alignment_results existe en mémoire (pas encore sauvegardé).
         """
         if not nist:
             self.logger.info("⏭️ NIST désactivé, pas d'identification")
@@ -621,7 +740,6 @@ class ChromatographicAligner:
 
         self.logger.info("🔍 Service NIST actif, identification en cours...")
 
-        # --- CAS 1 : résultats en mémoire ---
         if self.alignment_results is not None:
             identifications = self._run_nist(match_factor_min)
             self._update_peak_info(identifications)
@@ -634,6 +752,39 @@ class ChromatographicAligner:
             raise ValueError("❌ No alignment results available. Run alignment first.")
 
 
+    def consensus_align_with_both_areas(self, input_file_list, seed_file=0, common_ions=None):
+        """
+        Wrapper pour faire l'alignement avec les 2 aires sans modifier les fonctions existantes.
+        
+        Workflow:
+        1. Prétraite les fichiers et sauvegarde la 2ème aire
+        2. Appelle importFile() normalement (avec 5 colonnes)
+        3. Appelle consensus_align_bis() normalement
+        4. Ajoute la 2ème aire à l'AlignmentMatrix
+        
+        Returns
+        -------
+        dict
+            Résultats d'alignement avec AlignmentMatrix_Expanded si 2 aires disponibles
+        """
+        # Étape 1 : Prétraiter et sauvegarder la 2ème aire
+        has_dual_areas = self.preprocess_files_with_dual_areas(input_file_list)
+        
+        # Étape 2 : Import classique (importFile sélectionne automatiquement 1 aire)
+        self.logger.info("Import des fichiers...")
+        self.import_files(input_file_list)
+        
+        # Étape 3 : Alignement classique
+        self.logger.info("Alignement consensus...")
+        results = self.consensus_align_bis(input_file_list, seed_file, common_ions)
+        
+        # Étape 4 : Si 2 aires, ajouter la 2ème aire
+        if has_dual_areas:
+            self.logger.info("Ajout de la 2ème aire...")
+            expanded_matrix = self.expand_alignment_with_backup_areas()
+            results['AlignmentMatrix_Expanded'] = expanded_matrix
+        
+        return results
 # ----------------------------------------------------------------------
 # Fonctions utilitaires
 # ----------------------------------------------------------------------
