@@ -433,7 +433,7 @@ def visualizer(
     fig, ax = plt.subplots(figsize=(15, 4))
     # print("save")
     
-        # ✅ Vérification finale avant le plot
+        #  Vérification finale avant le plot
     if chromato.shape != (len(Y), len(X)):
         print(f"⚠️ Erreur dimensions: chromato={chromato.shape}, X={len(X)}, Y={len(Y)}", flush=True)
         print(f"   → Utilisation de pcolormesh au lieu de contourf", flush=True)
