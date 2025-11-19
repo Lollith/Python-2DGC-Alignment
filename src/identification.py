@@ -596,7 +596,7 @@ def cohort_identification_to_csv(filename,
         - Area : Peak area (proportional to the compound abundance)
         - Height : Peak height (related to concentration)
     """
-    with open(PATH + filename + '.csv', 'w', encoding='UTF8', newline='') as f:
+    with open(PATH + "/" +filename + '.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
 
         # header
