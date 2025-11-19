@@ -69,10 +69,9 @@ def main():
             output_path=args.output_path,
             # area_selection=args.area_selection
         )
-        results = aligner.consensus_align_with_both_areas(args.input, args.seed_file,
+        aligner.consensus_align_bis(args.input, args.seed_file,
                                     common_ions=None,
                                     )
-        logger.info("results" + str(results))
         aligner.filter_alignment_matrix()
         aligner.nist_identification(args.nist, match_factor_min=650)
         aligner.save_results()
