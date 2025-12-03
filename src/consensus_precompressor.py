@@ -178,8 +178,12 @@ class PeakPrecompressor:
                 num_reps = max(len(m) for m in matches) - 1
                 if self.quant_method in ["T"]:
                     mates = [x[0] - 1 if len(x) > 0 else None for x in matches]
-                    binding_areas = imported_files[samp_num][0].iloc[
+                    binding_areas_deconv = imported_files[samp_num][0].iloc[
                         [m for m in mates if m is not None], 2
+                    ].values
+
+                    binding_areas_mod_max = imported_files[samp_num][0].iloc[
+                        [m for m in mates if m is not None], 3
                     ].values
 
                     # Find mates partners to combine
@@ -202,18 +206,19 @@ class PeakPrecompressor:
 
                     # Concaténation finale
                     combined_list[input_file_list[samp_num]] = pd.concat([to_bind_repeated, mates_df, source_series], axis=1)
-                    if samp_num == 0:
-                        combined_list_df = pd.DataFrame(combined_list[input_file_list[samp_num]])
+                    #if samp_num == 0:
+                    #    combined_list_df = pd.DataFrame(combined_list[input_file_list[samp_num]])
 
                     # Debug: afficher les combinaisons effectuées
-                    current_df = imported_files[samp_num][0].copy()
-                    for i, m in enumerate(mates):
-                        if m is not None:
-                            area_i = current_df.iloc[i, 2]
-                            area_m = current_df.iloc[m, 2]
+                   # current_df = imported_files[samp_num][0].copy()
+                    #for i, m in enumerate(mates):
+                     #   if m is not None:
+                      #      area_i = current_df.iloc[i, 2]
+                        #    area_m = current_df.iloc[m, 2]
                             # print(f"[COMBINE] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
                     # Sum peak areas
-                    to_bind.loc[:, to_bind.columns[2]] += binding_areas
+                    to_bind.loc[:, to_bind.columns[2]] += binding_areas_deconv 
+                    to_bind.loc[:, to_bind.columns[3]] += binding_areas_mod_max
                     # Ensure only one peak combination gets included in output
                     to_bind["Bound"] = [
                         f"{min(m, i)}"
@@ -258,9 +263,10 @@ class PeakPrecompressor:
                             binding_areas_deconvo = df.iloc[
                                 [m for m in mates if m is not None], 2
                             ].values
-                            binding_areas = df.iloc[
+                            binding_areas_mod_max = df.iloc[
                                 [m for m in mates if m is not None], 3
                             ].values
+
                             to_bind = df.iloc[
                                 [i for i, m in enumerate(mates) if m is not None], :
                             ].copy()
@@ -293,10 +299,11 @@ class PeakPrecompressor:
                                 ignore_index=True
                             )
                             # --- Mettre à jour to_bind avec les aires combinées ---
-                            binding_areas = df.iloc[valid_mates, 3].values
-                            binding_areas_deconvo = df.iloc[valid_mates, 2].values
-                            to_bind.loc[:, to_bind.columns[3]] += binding_areas
+                            #binding_areas = df.iloc[valid_mates, 3].values
+                            #binding_areas_deconvo = df.iloc[valid_mates, 2].values
+                            
                             to_bind.loc[:, to_bind.columns[2]] += binding_areas_deconvo
+                            to_bind.loc[:, to_bind.columns[3]] += binding_areas_mod_max
                             to_bind["Bound"] = [f"{min(m, i)}" for i, m in enumerate(mates) if m is not None]
                             to_bind = to_bind.drop_duplicates(subset=["Bound"])
 
@@ -335,6 +342,7 @@ class PeakPrecompressor:
             self.logger.info(f"✅ Fichier {input_file_list[samp_num]} traité, résultat: {out_name}")
 
         return combined_frame
+
 
 
 if __name__ == "__main__":
