@@ -1,6 +1,16 @@
 
 import { displayMessage, viewLogs } from '../main.js';
 
+/**
+ * Initializes the monitoring tab: wires buttons to check, refresh, and restart
+ * Docker containers, displays NIST engine status, and provides access to logs.
+ *
+ * Sets up:
+ * - Docker status checks and automatic startup if containers are not running
+ * - Global refresh of Docker and NIST statuses
+ * - Docker restart workflow with detailed status messages
+ * - Log viewer opening from the monitoring interface
+ */
 
 export function initializeMonitoringTab() {
     const checkDockerBtn = document.getElementById('checkDockerBtn');

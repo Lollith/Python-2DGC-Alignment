@@ -1,6 +1,10 @@
 import { displayMessage, setCurrentPath, setTargetInput, getCurrentPath } from '../main.js';
 
 export function openFileExplorer(inputId) {
+    /**
+    Opens the file explorer modal for a given input field and loads
+    the directory content based on the input's current value.
+    */
     const input = document.getElementById(inputId);
     if (!input) {
         console.error(`Input ${inputId} non trouvé`);
@@ -22,6 +26,12 @@ export function openFileExplorer(inputId) {
 }
 
 export function initializeFileExplorer() {
+    /**
+    Initializes the file explorer UI by wiring the folder selection button
+    so that it updates the target input with the currently browsed path
+    and closes the explorer modal.
+    */
+
     // Initialisation du bouton de sélection de dossier
     const selectFolderBtn = document.getElementById('selectFolder');
     if (selectFolderBtn) {
@@ -51,6 +61,12 @@ export function initializeFileExplorer() {
 }
 
 export async function loadDirectoryContent(path) {
+    /**
+    Loads and displays the content of a directory in the file explorer.
+    Normalizes the given path, queries the backend for folders and files,
+    updates the current path, and refreshes the file list in the UI.
+    */
+
     try {
         const normalizedPath = path.replace(/\\/g, '/');
 

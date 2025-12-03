@@ -4,6 +4,14 @@ import { initializeAnalysisTab } from './modules/analysis.js';
 import { initializeIdentificationTab } from './modules/identification.js';
 import { initializeMonitoringTab } from './modules/monitoring.js';
 
+/**
+ * Entry point for the DataLab 2DGC web interface.
+ * Wires global helpers, initializes all feature tabs (converter, analysis,
+ * identification, monitoring, file explorer), fills default paths, and
+ * sets up UI utilities such as progress bar, messaging, keyboard shortcuts,
+ * tab switching, and log viewing.
+ */
+
 export let selectedH5Files = [];
 export let currentPath = '';
 export let targetInput = null;

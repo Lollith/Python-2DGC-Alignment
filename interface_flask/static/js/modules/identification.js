@@ -1,5 +1,11 @@
 import { displayMessage, loadingDiv, outputDiv, showProgress } from '../main.js';
 
+/**
+ * Initializes the identification tab: lists available Peak_Info.csv files,
+ * validates user input, checks the NIST engine status, and starts the
+ * identification process using a server-sent events stream.
+ */
+
 export function initializeIdentificationTab() {
     
     const listCsvBtn = document.getElementById('listCsvBtn');
@@ -54,7 +60,7 @@ export function initializeIdentificationTab() {
             }
         });
     }
-// Lancer l'analyse
+    // Lancer l'analyse
     if (identificationForm) {
         let currentEventSource = null;
 
@@ -106,7 +112,7 @@ export function initializeIdentificationTab() {
                 return;
             }
             
-        // UI loading
+            // UI loading
             loadingDiv.style.display = 'block';
             showProgress(true);
             

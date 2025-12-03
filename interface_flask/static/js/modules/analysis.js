@@ -1,5 +1,10 @@
 import { displayMessage, loadingDiv } from '../main.js';
 
+/**
+ * Initialize the analysis tab: set up event listeners to list HDF5 files,
+ * launch the analysis, and check Docker container status on page load.
+ */
+
 
 export function initializeAnalysisTab() {
     const listH5Btn = document.getElementById('listH5Btn');
@@ -8,7 +13,7 @@ export function initializeAnalysisTab() {
     const dockerStatusDiv = document.getElementById('dockerStatus');
     const availableFilesDiv = document.getElementById('availableFilesH5');
     
-
+    // List .h5 files
     listH5Btn.addEventListener('click', async function() {
             const analysisPath = document.getElementById('analysisPath').value;
             
@@ -59,15 +64,15 @@ export function initializeAnalysisTab() {
                         });
                         
                         let html = '<div class="files-list"><strong>Fichiers .h5 trouvés:</strong><br>';
-                        
-                        // Fichiers à la racine
+
+                        // Files in root
                         if (filesByFolder['root']) {
                             filesByFolder['root'].forEach(file => {
                                 html += `<div style="margin-left: 10px;">📄 ${file}</div>`;
                             });
                         }
                         
-                        // Fichiers dans les sous-dossiers
+                        // Files in subfolders
                         Object.keys(filesByFolder).forEach(folder => {
                             if (folder !== 'root') {
                                 html += `<div style="margin-top: 10px; font-weight: bold;">📁 ${folder}/</div>`;
@@ -98,7 +103,7 @@ export function initializeAnalysisTab() {
             }
         });        
      
-// Lancer l'analyse
+        // Run analysis
         analysisForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             

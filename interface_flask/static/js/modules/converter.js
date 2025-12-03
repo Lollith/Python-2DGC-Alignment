@@ -1,5 +1,10 @@
 import { displayMessage, loadingDiv, outputDiv, getTargetInput, getCurrentPath, showProgress } from '../main.js';
 
+/**
+ * Initialize the converter tab: sets up folder selection, lists CDF files,
+ * runs the conversion process, and manages HDF5 cleanup utilities.
+ */
+
 export function initializeConverterTab() {
     const listFilesBtn = document.getElementById('listFilesBtn');
     const availableFilesDiv = document.getElementById('availableFiles');
@@ -175,7 +180,7 @@ export function initializeConverterTab() {
             }
         });
     }
-        // Event listeners pour le nettoyage des fichiers H5
+    // Event listeners pour le nettoyage des fichiers H5
     const listH5FilesBtn = document.getElementById('listH5FilesBtn');
     const deleteH5FilesBtn = document.getElementById('deleteH5FilesBtn');
     const h5FilesList = document.getElementById('h5FilesList');
