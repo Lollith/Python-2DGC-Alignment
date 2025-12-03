@@ -217,7 +217,7 @@ class PeakPrecompressor:
                         #    area_m = current_df.iloc[m, 2]
                             # print(f"[COMBINE] Peak {i+1} (area={area_i}) + Peak {m+1} (area={area_m}) -> {area_i + area_m}")
                     # Sum peak areas
-                    to_bind.loc[:, to_bind.columns[2]] += binding_areas_deconv 
+                    to_bind.loc[:, to_bind.columns[2]] += binding_areas_deconv
                     to_bind.loc[:, to_bind.columns[3]] += binding_areas_mod_max
                     # Ensure only one peak combination gets included in output
                     to_bind["Bound"] = [
@@ -338,7 +338,7 @@ class PeakPrecompressor:
             base_filename = os.path.basename(input_file_list[samp_num])
             output_filename = base_filename.replace('.txt', '#P.txt')
             out_name = os.path.join(output_dir, output_filename)
-            imp[0].iloc[:, :5].to_csv(out_name, sep="\t", index=False)
+            imp[0].iloc[:, :6].to_csv(out_name, sep="\t", index=False)
             self.logger.info(f"✅ Fichier {input_file_list[samp_num]} traité, résultat: {out_name}")
 
         return combined_frame
